@@ -1,2 +1,2 @@
 # cosmos-workflow
-A common workflow module using Azure Cosmos DB. Provides application, approval and rejection in HR/HCM domains.
+A light-weight workflow module using nosql database(document type). Provides application, approval and rejection features.
