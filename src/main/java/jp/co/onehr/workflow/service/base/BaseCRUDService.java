@@ -1,6 +1,7 @@
 package jp.co.onehr.workflow.service.base;
 
 import com.google.common.collect.Sets;
+import io.github.thunderz99.cosmos.Cosmos;
 import io.github.thunderz99.cosmos.CosmosDocument;
 import io.github.thunderz99.cosmos.CosmosException;
 import io.github.thunderz99.cosmos.util.JsonUtil;
@@ -22,13 +23,13 @@ public abstract class BaseCRUDService<T> extends BaseNoSqlService<T> {
 
     /**
      * Combining unique constraints and related keys to generate a clear error message during output
-     * id, _partition, _uniqueKey1, _uniqueKey2, _uniqueKey3
+     * id, partition_key, _uniqueKey1, _uniqueKey2, _uniqueKey3
      */
     public static final Set<String> CONSTRAINT_KEYS = Sets.newLinkedHashSet();
 
     static {
         CONSTRAINT_KEYS.addAll(UniqueKeyCapable.uniqueKeys);
-        CONSTRAINT_KEYS.addAll(Set.of("id", "_partition"));
+        CONSTRAINT_KEYS.addAll(Set.of("id", Cosmos.getDefaultPartitionKey()));
     }
 
     public BaseCRUDService(Class<T> classOfT) {
@@ -209,7 +210,7 @@ public abstract class BaseCRUDService<T> extends BaseNoSqlService<T> {
     static Exception wrapConflictError(CosmosException e, Map<String, Object> map) throws CosmosException {
         //When encountering a CONFLICT error, return a more informative errorObj
         if (e.getStatusCode() == 409) {
-            // Minimum map containing id, _partition, _uniqueKey1, _uniqueKey2, _uniqueKey3
+            // Minimum map containing id, partition_key, _uniqueKey1, _uniqueKey2, _uniqueKey3
             var errorMap = map.entrySet().stream().filter(entry ->
                     CONSTRAINT_KEYS.contains(entry.getKey())).collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
             var errorToThrow = judgeConflictErrorToThrow(map);

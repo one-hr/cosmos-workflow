@@ -14,7 +14,7 @@ public class CosmosDB {
     public static final String FW_WORKFLOW_CONNECTION_STRING = "FW_WORKFLOW_CONNECTION_STRING";
     public static final String FW_WORKFLOW_DATABASE_NAME = "FW_WORKFLOW_DATABASE_NAME";
 
-    public static final String DEFAULT_DATABASE_NAME = "SmartCompany";
+    public static final String DEFAULT_DATABASE_NAME = "Data";
 
     /**
      * get the default database from the environment variables

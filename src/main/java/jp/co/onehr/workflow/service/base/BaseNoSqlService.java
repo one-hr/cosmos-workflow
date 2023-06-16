@@ -100,7 +100,7 @@ public abstract class BaseNoSqlService<T> {
         var coll = WorkflowEngine.getCollectionName(host);
 
         if (StringUtils.isEmpty(coll)) {
-            throw new WorkflowException(WorkflowErrors.WORKFLOW_ENGINE_REGISTER_INVALID, "", host);
+            throw new WorkflowException(WorkflowErrors.WORKFLOW_ENGINE_REGISTER_INVALID, "Failed to retrieve the name of the collection.", host);
         }
 
         return coll;
