@@ -8,6 +8,10 @@ public class BaseData extends SimpleData implements Identifiable {
 
     public String id = "";
 
+    public String createdAt = "";
+
+    public String updatedAt = "";
+
     @Override
     @JsonGetter
     public String getId() {
