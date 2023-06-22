@@ -20,6 +20,12 @@ public class Workflow extends BaseData {
      */
     public Integer currentVersion = 0;
 
+    /**
+     * Control whether the workflow enables version management
+     * <p>
+     * The default value is true, and for each change in the workflow, a new version definition is generated.
+     */
+    public boolean enableVersion = true;
 
     public Workflow() {
 

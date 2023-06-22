@@ -42,5 +42,9 @@ public enum NodeType {
         }
         return nodeType.node;
     }
+
+    public boolean isEqual(String type) {
+        return this.name().equals(type);
+    }
     
 }

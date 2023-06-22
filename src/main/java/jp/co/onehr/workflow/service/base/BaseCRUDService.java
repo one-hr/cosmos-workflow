@@ -1,23 +1,28 @@
 package jp.co.onehr.workflow.service.base;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import com.google.common.collect.Sets;
 import io.github.thunderz99.cosmos.Cosmos;
 import io.github.thunderz99.cosmos.CosmosDocument;
 import io.github.thunderz99.cosmos.CosmosException;
+import io.github.thunderz99.cosmos.condition.Condition;
 import io.github.thunderz99.cosmos.util.JsonUtil;
 import jp.co.onehr.workflow.constant.DatabaseErrors;
+import jp.co.onehr.workflow.dto.base.BaseData;
 import jp.co.onehr.workflow.dto.base.DeletedObject;
 import jp.co.onehr.workflow.dto.base.UniqueKeyCapable;
 import jp.co.onehr.workflow.exception.WorkflowException;
+import jp.co.onehr.workflow.util.DateUtil;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-
-public abstract class BaseCRUDService<T> extends BaseNoSqlService<T> {
+public abstract class BaseCRUDService<T extends BaseData> extends BaseNoSqlService<T> {
 
     public static final List<String> DEFAULT_SORT = List.of("_ts", "DESC");
 
@@ -67,7 +72,15 @@ public abstract class BaseCRUDService<T> extends BaseNoSqlService<T> {
         return map;
     }
 
+    public List<String> getDefaultSort() {
+        return DEFAULT_SORT;
+    }
+
     public T create(String host, T data) throws Exception {
+
+        data.createdAt = DateUtil.nowDateTimeStringUTC();
+        data.updatedAt = data.createdAt;
+
         var map = JsonUtil.toMap(data);
         map = beforeMutation(data, map);
         return createMap(host, map);
@@ -144,6 +157,16 @@ public abstract class BaseCRUDService<T> extends BaseNoSqlService<T> {
     }
 
     public T update(String host, T data) throws Exception {
+
+        T existData = null;
+        if (StringUtils.isNotEmpty(data.getId())) {
+            existData = this.read(host, data.getId());
+        }
+
+        data.createdAt = StringUtils.isNotEmpty(existData.createdAt) ? existData.createdAt
+                : DateUtil.nowDateTimeStringUTC();
+        data.updatedAt = DateUtil.nowDateTimeStringUTC();
+
         var map = JsonUtil.toMap(data);
         map = beforeMutation(data, map);
         return updateMap(host, map);
@@ -167,6 +190,23 @@ public abstract class BaseCRUDService<T> extends BaseNoSqlService<T> {
     }
 
     public T upsert(String host, T data) throws Exception {
+
+        T existData = null;
+        if (StringUtils.isNotEmpty(data.getId())) {
+            existData = this.readSuppressing404(host, data.getId());
+        } else {
+            data.setId(generateId(data));
+        }
+
+        if (existData == null) {
+            data.createdAt = DateUtil.nowDateTimeStringUTC();
+        } else {
+            data.createdAt = StringUtils.isNotEmpty(existData.createdAt) ? existData.createdAt
+                    : DateUtil.nowDateTimeStringUTC();
+        }
+
+        data.updatedAt = DateUtil.nowDateTimeStringUTC();
+
         var map = JsonUtil.toMap(data);
         map = beforeMutation(data, map);
         return upsertMap(host, map);
@@ -197,6 +237,19 @@ public abstract class BaseCRUDService<T> extends BaseNoSqlService<T> {
         var db = getDatabase(host);
         db.delete(getColl(host), StringUtils.strip(id), getPartition());
         return new DeletedObject(id);
+    }
+
+    public List<T> find(String host, Condition cond) throws Exception {
+        var db = getDatabase(host);
+        if (CollectionUtils.isEmpty(cond.sort)) {
+            cond.sort(getDefaultSort().toArray(new String[]{}));
+        }
+        
+        return db.find(getColl(host), cond, getPartition()).toList(classOfT);
+    }
+
+    protected String generateId(T data) {
+        return StringUtils.isEmpty(data.id) ? UUID.randomUUID().toString() : StringUtils.strip(data.id);
     }
 
     /**

@@ -3,7 +3,7 @@ package jp.co.onehr.workflow.dto;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
-import jp.co.onehr.workflow.constant.ApplyMode;
+import jp.co.onehr.workflow.constant.ApplicationMode;
 import jp.co.onehr.workflow.constant.Status;
 import jp.co.onehr.workflow.dto.base.BaseData;
 
@@ -42,7 +42,7 @@ public class Instance extends BaseData {
     /**
      * Application mode of the instance, whether it is a proxy application
      */
-    public ApplyMode applyMode;
+    public ApplicationMode applicationMode;
 
     /**
      * Applicant's ID
@@ -63,4 +63,8 @@ public class Instance extends BaseData {
 
     }
 
+    public Instance(String definitionId) {
+        this.definitionId = definitionId;
+    }
+    
 }
