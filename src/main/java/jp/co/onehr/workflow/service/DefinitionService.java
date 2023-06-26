@@ -14,6 +14,7 @@ import jp.co.onehr.workflow.dto.node.StartNode;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import jp.co.onehr.workflow.service.base.BaseCRUDService;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 
 public class DefinitionService extends BaseCRUDService<Definition> {
@@ -26,7 +27,6 @@ public class DefinitionService extends BaseCRUDService<Definition> {
     DefinitionService() {
         super(Definition.class);
     }
-
 
     /**
      * Create an initial workflow definition.
@@ -76,6 +76,22 @@ public class DefinitionService extends BaseCRUDService<Definition> {
         }
 
         return result;
+    }
+
+    /**
+     * Make sure Definition is existed
+     *
+     * @param host
+     * @param definitionId
+     * @return
+     * @throws Exception
+     */
+    public Definition getDefinition(String host, String definitionId) throws Exception {
+        var definition = super.readSuppressing404(host, definitionId);
+        if (ObjectUtils.isEmpty(definition)) {
+            throw new WorkflowException(WorkflowErrors.DEFINITION_NOT_EXIST, "The definition does not exist in the database", definitionId);
+        }
+        return definition;
     }
 
     /**

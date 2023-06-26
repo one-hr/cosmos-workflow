@@ -1,5 +1,7 @@
 package jp.co.onehr.workflow.dto.node;
 
+import jp.co.onehr.workflow.dto.Instance;
+
 /**
  * Single-user node
  * <p>
@@ -21,4 +23,9 @@ public class SingleNode extends Node {
         this.nodeName = nodeName;
     }
 
+    @Override
+    public void resetCurrentOperators(Instance instance) {
+        clearOperators(instance);
+        instance.operatorIdSet.add(this.operatorId);
+    }
 }

@@ -3,7 +3,9 @@ package jp.co.onehr.workflow.dto.node;
 import java.util.Set;
 
 import com.azure.cosmos.implementation.guava25.collect.Sets;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jp.co.onehr.workflow.constant.ApproveType;
+import jp.co.onehr.workflow.dto.Instance;
 
 import static jp.co.onehr.workflow.constant.ApproveType.OR;
 
@@ -35,4 +37,21 @@ public class MultipleNode extends Node {
 
     }
 
+    /**
+     * Override the base class's approval type, and multiple-person nodes will use the configured type
+     *
+     * @return
+     */
+    @JsonIgnore
+    @Override
+    public ApproveType getApproveType() {
+        return approveType;
+    }
+
+    @Override
+    public void resetCurrentOperators(Instance instance) {
+        clearOperators(instance);
+        instance.operatorIdSet.addAll(this.operatorIdSet);
+        instance.operatorOrgIdSet.addAll(this.operatorOrgIdSet);
+    }
 }
