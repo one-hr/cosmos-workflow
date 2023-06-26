@@ -5,5 +5,12 @@ package jp.co.onehr.workflow.constant;
  */
 public enum Status {
 
-    PROCESSING;
+    /**
+     * The workflow instance is currently running
+     */
+    PROCESSING,
+    /**
+     * The workflow instance has already ended
+     */
+    Finished;
 }

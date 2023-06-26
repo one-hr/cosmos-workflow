@@ -8,7 +8,7 @@ import com.azure.cosmos.implementation.guava25.collect.Sets;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.google.common.collect.Lists;
 import io.github.thunderz99.cosmos.util.JsonUtil;
-import jp.co.onehr.workflow.constant.ApplyMode;
+import jp.co.onehr.workflow.constant.ApplicationMode;
 import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.dto.base.BaseData;
 import jp.co.onehr.workflow.dto.node.Node;
@@ -40,7 +40,7 @@ public class Definition extends BaseData {
     /**
      * The allowed application modes for the workflow: proxy/self.
      */
-    public Set<ApplyMode> applyModes = Sets.newHashSet();
+    public Set<ApplicationMode> applicationModes = Sets.newHashSet();
 
     public Definition() {
 

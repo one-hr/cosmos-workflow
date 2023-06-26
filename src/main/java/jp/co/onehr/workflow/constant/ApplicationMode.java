@@ -1,9 +1,9 @@
 package jp.co.onehr.workflow.constant;
 
 /**
- * Apply mode for workflow instances
+ * Application mode for workflow instances
  */
-public enum ApplyMode {
+public enum ApplicationMode {
 
     /**
      * Allowing the proxy to initiate the workflow on behalf of the applicant.
