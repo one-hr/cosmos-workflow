@@ -31,9 +31,18 @@ jobs:
 
       - name: Build with Maven
         run: mvn -B package --file pom.xml
+
+      - name: Run tests and generate code coverage report
+        run: mvn jacoco:prepare-agent test jacoco:report
         env:
           ENABLE_WORKFLOW_DEFAULT_DB: ${{ secrets.ENABLE_WORKFLOW_DEFAULT_DB }}
           FW_WORKFLOW_CONNECTION_STRING: ${{ secrets.FW_WORKFLOW_CONNECTION_STRING }}
           FW_WORKFLOW_DATABASE_NAME: ${{ secrets.FW_WORKFLOW_DATABASE_NAME }}
           FW_WORKFLOW_COLLECTION_NAME: ${{ secrets.FW_WORKFLOW_COLLECTION_NAME }}
           FW_TEST_COLLECTION_RECREATE: ${{ secrets.FW_TEST_COLLECTION_RECREATE }}
+
+      - name: Upload code coverage report
+        uses: actions/upload-artifact@v2
+        with:
+          name: code-coverage-report
+          path: target/site/jacoco
