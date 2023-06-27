@@ -42,6 +42,13 @@ public class WorkflowService extends BaseCRUDService<Workflow> {
             }
         }
 
+        var instances = InstanceService.singleton.find(host, Condition.filter("workflowId", id).fields("id"));
+        for (var instance : instances) {
+            if (StringUtils.isNotEmpty(instance.getId())) {
+                InstanceService.singleton.purge(host, instance.getId());
+            }
+        }
+
         return super.purge(host, id);
     }
 
@@ -56,7 +63,7 @@ public class WorkflowService extends BaseCRUDService<Workflow> {
     public Workflow getWorkflow(String host, String workflowId) throws Exception {
         var workflow = WorkflowService.singleton.readSuppressing404(host, workflowId);
         if (ObjectUtils.isEmpty(workflow)) {
-            throw new WorkflowException(WorkflowErrors.WORKFLOW_NOT_EXIST, "", workflowId);
+            throw new WorkflowException(WorkflowErrors.WORKFLOW_NOT_EXIST, "The workflow does not exist in the database", workflowId);
         }
         return workflow;
     }

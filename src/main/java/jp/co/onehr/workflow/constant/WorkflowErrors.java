@@ -27,6 +27,14 @@ public enum WorkflowErrors implements ErrorInterface {
      */
     DEFINITION_NOT_EXIST(400),
     /**
+     * The extended parameters of the action are invalid
+     */
+    ACTION_EXTEND_PARAM_INVALID(400),
+    /**
+     * The operator of the instance is invalid
+     */
+    INSTANCE_OPERATOR_INVALID(400),
+    /**
      * The name of a node cannot be empty.
      */
     NODE_NAME_INVALID(400),

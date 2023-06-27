@@ -6,6 +6,7 @@ import com.google.common.collect.Sets;
 import jp.co.onehr.workflow.constant.ApplicationMode;
 import jp.co.onehr.workflow.constant.Status;
 import jp.co.onehr.workflow.dto.base.BaseData;
+import jp.co.onehr.workflow.dto.param.ApplicationParam;
 
 /**
  * Workflow instance
@@ -15,6 +16,11 @@ import jp.co.onehr.workflow.dto.base.BaseData;
 public class Instance extends BaseData {
 
     /**
+     * ID of the Workflow for the Running Instance
+     */
+    public String workflowId = "";
+
+    /**
      * ID of the Workflow Definition for the Running Instance
      */
     public String definitionId = "";
@@ -22,12 +28,7 @@ public class Instance extends BaseData {
     /**
      * ID of the Current Node in the Instance
      */
-    public String currentNodeId;
-
-    /**
-     * Index of the Current Node
-     */
-    public int currentNodeIndex;
+    public String nodeId = "";
 
     /**
      * IDs of all operable operators for the current node of the instance
@@ -63,8 +64,19 @@ public class Instance extends BaseData {
 
     }
 
-    public Instance(String definitionId) {
+    public Instance(String workflowId, String definitionId) {
+        this.workflowId = workflowId;
         this.definitionId = definitionId;
     }
-    
+
+    /**
+     * Set the content of the application instance based on the application parameters
+     *
+     * @param param
+     */
+    public void setApplicationInfo(ApplicationParam param) {
+        this.applicationMode = param.applicationMode;
+        this.applicant = param.applicant;
+        this.proxyApplicant = param.proxyApplicant;
+    }
 }

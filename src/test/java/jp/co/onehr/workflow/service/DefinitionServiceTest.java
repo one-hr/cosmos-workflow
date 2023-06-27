@@ -165,6 +165,29 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
     }
 
     @Test
+    void getDefinition_should_work() throws Exception {
+        var workflow = new Workflow(getUuid(), "getDefinition_should_work");
+        try {
+            workflow = WorkflowService.singleton.create(host, workflow);
+            var definition = getService().getCurrentDefinition(host, workflow.id, workflow.currentVersion);
+            {
+                var result = getService().getDefinition(host, definition.getId());
+                assertThat(result.id).isEqualTo(definition.id);
+                assertThat(result.version).isEqualTo(definition.version);
+                assertThat(result.workflowId).isEqualTo(workflow.id);
+            }
+
+            {
+                assertThatThrownBy(() -> getService().getDefinition(host, "error-id"))
+                        .isInstanceOf(WorkflowException.class)
+                        .hasMessageContaining(WorkflowErrors.DEFINITION_NOT_EXIST.name());
+            }
+        } finally {
+            WorkflowService.singleton.purge(host, workflow.id);
+        }
+    }
+
+    @Test
     void getCurrentDefinition_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "getCurrentDefinition_should_work");
         try {
