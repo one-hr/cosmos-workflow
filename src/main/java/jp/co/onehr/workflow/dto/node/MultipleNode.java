@@ -3,11 +3,12 @@ package jp.co.onehr.workflow.dto.node;
 import java.util.Set;
 
 import com.azure.cosmos.implementation.guava25.collect.Sets;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jp.co.onehr.workflow.constant.ApproveType;
+import jp.co.onehr.workflow.constant.ApprovalType;
 import jp.co.onehr.workflow.dto.Instance;
+import jp.co.onehr.workflow.dto.WorkflowEngine;
+import org.apache.commons.collections4.CollectionUtils;
 
-import static jp.co.onehr.workflow.constant.ApproveType.OR;
+import static jp.co.onehr.workflow.constant.ApprovalType.OR;
 
 /**
  * Multi-user node
@@ -31,10 +32,32 @@ public class MultipleNode extends Node {
      * AND: All Approval
      * The default value is "OR".
      */
-    public ApproveType approveType = OR;
+    public ApprovalType approvalType = OR;
 
     public MultipleNode() {
 
+    }
+
+    public MultipleNode(String nodeName) {
+        this.nodeName = nodeName;
+    }
+
+    public MultipleNode(String nodeName, ApprovalType approvalType) {
+        this.nodeName = nodeName;
+        this.approvalType = approvalType;
+    }
+
+    public MultipleNode(String nodeName, Set<String> operatorIdSet, Set<String> operatorOrgIdSet) {
+        this.nodeName = nodeName;
+        this.operatorIdSet = operatorIdSet;
+        this.operatorOrgIdSet = operatorOrgIdSet;
+    }
+
+    public MultipleNode(String nodeName, ApprovalType approvalType, Set<String> operatorIdSet, Set<String> operatorOrgIdSet) {
+        this.nodeName = nodeName;
+        this.approvalType = approvalType;
+        this.operatorIdSet = operatorIdSet;
+        this.operatorOrgIdSet = operatorOrgIdSet;
     }
 
     /**
@@ -42,10 +65,9 @@ public class MultipleNode extends Node {
      *
      * @return
      */
-    @JsonIgnore
     @Override
-    public ApproveType getApproveType() {
-        return approveType;
+    public ApprovalType getApprovalType() {
+        return approvalType;
     }
 
     @Override
@@ -53,5 +75,20 @@ public class MultipleNode extends Node {
         clearOperators(instance);
         instance.operatorIdSet.addAll(this.operatorIdSet);
         instance.operatorOrgIdSet.addAll(this.operatorOrgIdSet);
+
+        if (CollectionUtils.isNotEmpty(instance.operatorIdSet)) {
+            var expandOperatorIds = WorkflowEngine.handleExpandOperators(instance.operatorIdSet);
+            instance.expandOperatorIdSet.addAll(expandOperatorIds);
+        }
+
+        if (CollectionUtils.isNotEmpty(instance.operatorOrgIdSet)) {
+            var expandOperatorIds = WorkflowEngine.handleExpandOrganizations(instance.operatorOrgIdSet);
+            instance.expandOperatorIdSet.addAll(expandOperatorIds);
+        }
+
+        if (ApprovalType.AND.equals(approvalType)) {
+            var parallelApprovalMap = WorkflowEngine.handleParallelApproval(instance.operatorIdSet, instance.operatorOrgIdSet, instance.expandOperatorIdSet);
+            instance.parallelApproval.putAll(parallelApprovalMap);
+        }
     }
 }

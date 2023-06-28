@@ -61,9 +61,6 @@ public class InstanceService extends BaseCRUDService<Instance> {
 
         action.execute(definition, instance, operatorId, extendParam);
 
-        var currentNode = NodeService.getCurrentNode(definition, instance.nodeId);
-        currentNode.resetCurrentOperators(instance);
-
         return super.update(host, instance);
     }
 
