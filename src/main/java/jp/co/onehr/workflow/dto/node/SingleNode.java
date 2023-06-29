@@ -1,6 +1,8 @@
 package jp.co.onehr.workflow.dto.node;
 
 import jp.co.onehr.workflow.dto.Instance;
+import jp.co.onehr.workflow.dto.WorkflowEngine;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * Single-user node
@@ -27,5 +29,11 @@ public class SingleNode extends Node {
     public void resetCurrentOperators(Instance instance) {
         clearOperators(instance);
         instance.operatorIdSet.add(this.operatorId);
+
+        if (CollectionUtils.isNotEmpty(instance.operatorIdSet)) {
+            var expandOperatorIds = WorkflowEngine.handleExpandOperators(instance.operatorIdSet);
+            instance.expandOperatorIdSet.addAll(expandOperatorIds);
+        }
+        
     }
 }

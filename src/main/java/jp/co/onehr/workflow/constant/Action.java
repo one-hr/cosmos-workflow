@@ -7,6 +7,7 @@ import jp.co.onehr.workflow.dto.param.ActionExtendParam;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import jp.co.onehr.workflow.service.ActionStrategy;
 import jp.co.onehr.workflow.service.InstanceService;
+import jp.co.onehr.workflow.service.NodeService;
 import jp.co.onehr.workflow.service.action.BackService;
 import jp.co.onehr.workflow.service.action.NextService;
 import jp.co.onehr.workflow.service.action.SaveService;
@@ -48,7 +49,13 @@ public enum Action {
         // todo
         InstanceService.singleton.setAllowingActions(definition, instance, operatorId);
 
-        strategy.execute(definition, instance, extendParam);
+        var actionResult = strategy.execute(definition, instance, operatorId, extendParam);
+
+        if (actionResult.resetOperator) {
+            var currentNode = NodeService.getCurrentNode(definition, instance.nodeId);
+            currentNode.resetCurrentOperators(instance);
+        }
+
     }
 
 }

@@ -1,6 +1,7 @@
 package jp.co.onehr.workflow.service.action;
 
 import jp.co.onehr.workflow.constant.BackMode;
+import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.param.ActionExtendParam;
@@ -13,9 +14,9 @@ import org.apache.commons.lang3.StringUtils;
 public class BackService implements ActionStrategy {
 
     @Override
-    public void execute(Definition definition, Instance instance, ActionExtendParam extendParam) {
+    public ActionResult execute(Definition definition, Instance instance, String operatorId, ActionExtendParam extendParam) {
         var currentNode = NodeService.getCurrentNode(definition, instance.nodeId);
-        currentNode.getApproveType().backExecute(definition, instance, currentNode, extendParam);
+        return currentNode.getApprovalType().backExecute(definition, instance, currentNode, operatorId, extendParam);
     }
 
     protected void handleSimpleBack(Definition definition, Instance instance, ActionExtendParam extendParam) {

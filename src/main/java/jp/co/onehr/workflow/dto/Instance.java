@@ -1,5 +1,7 @@
 package jp.co.onehr.workflow.dto;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -41,6 +43,11 @@ public class Instance extends BaseData {
     public Set<String> operatorOrgIdSet = Sets.newHashSet();
 
     /**
+     * Expand the operation organization into operators and merge it with all operator IDs
+     */
+    public Set<String> expandOperatorIdSet = Sets.newHashSet();
+
+    /**
      * Application mode of the instance, whether it is a proxy application
      */
     public ApplicationMode applicationMode;
@@ -59,6 +66,11 @@ public class Instance extends BaseData {
      * Current status of the instance
      */
     public Status status;
+
+    /**
+     * When the approval type is "AND," record whether all required operators have approved
+     */
+    public Map<String, ApprovalStatus> parallelApproval = new HashMap<>();
 
     public Instance() {
 

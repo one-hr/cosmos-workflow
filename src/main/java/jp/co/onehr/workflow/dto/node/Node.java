@@ -3,8 +3,7 @@ package jp.co.onehr.workflow.dto.node;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jp.co.onehr.workflow.constant.ApproveType;
+import jp.co.onehr.workflow.constant.ApprovalType;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.base.SimpleData;
@@ -39,9 +38,8 @@ public abstract class Node extends SimpleData {
      *
      * @return
      */
-    @JsonIgnore
-    public ApproveType getApproveType() {
-        return ApproveType.SIMPLE;
+    public ApprovalType getApprovalType() {
+        return ApprovalType.SIMPLE;
     }
 
     /**
@@ -60,5 +58,7 @@ public abstract class Node extends SimpleData {
     protected void clearOperators(Instance instance) {
         instance.operatorIdSet.clear();
         instance.operatorOrgIdSet.clear();
+        instance.expandOperatorIdSet.clear();
+        instance.parallelApproval.clear();
     }
 }
