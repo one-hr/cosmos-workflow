@@ -46,5 +46,12 @@ public enum NodeType {
     public boolean isEqual(String type) {
         return this.name().equals(type);
     }
-    
+
+    public static NodeType getNodeType(String type) {
+        var nodeType = EnumUtils.getEnum(NodeType.class, type);
+        if (nodeType == null) {
+            throw new WorkflowException(WorkflowErrors.NODE_TYPE_MISMATCH, "node type is invalid", type);
+        }
+        return nodeType;
+    }
 }

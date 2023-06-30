@@ -20,6 +20,11 @@ public class ActionExtendParam extends SimpleData {
      */
     public String backNodeId = "";
 
+    /**
+     * The parameters required for executing the plugin processing
+     */
+    public PluginParam pluginParam;
+
     public ActionExtendParam() {
 
     }

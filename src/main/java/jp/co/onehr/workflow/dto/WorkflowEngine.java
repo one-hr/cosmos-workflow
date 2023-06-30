@@ -5,30 +5,39 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import io.github.thunderz99.cosmos.CosmosDatabase;
+import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.dto.base.SimpleData;
 import jp.co.onehr.workflow.service.OperatorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
+/**
+ * Workflow engine, all processing needs to be done through the engine.
+ * <p>
+ * todo
+ * Registering the relevant storage and processing, then it needs to be moved to the Configuration class
+ */
 public class WorkflowEngine extends SimpleData {
 
     public final static Logger log = LoggerFactory.getLogger(WorkflowEngine.class);
 
+    private WorkflowEngine() {
+
+    }
+
+    // === Configuration and registration for Cosmos DB ===
+
     /**
      * host -> database
      */
-    static Map<String, CosmosDatabase> dbCache = Maps.newHashMap();
+    private static Map<String, CosmosDatabase> dbCache = Maps.newHashMap();
 
     /**
      * host -> collectionName
      */
-    static Map<String, String> collectionCache = Maps.newHashMap();
-
-    private WorkflowEngine() {
-
-    }
+    private static Map<String, String> collectionCache = Maps.newHashMap();
 
     /**
      * Register the database and collection used by the workflow
@@ -50,11 +59,12 @@ public class WorkflowEngine extends SimpleData {
         return collectionCache.get(host);
     }
 
+    // === Handling of custom node operators  ===
+
     /**
      * Custom method for expanding operator
      */
     private static OperatorService operatorService;
-
 
     public static void registerOperatorService(OperatorService service) {
         operatorService = service;
@@ -76,7 +86,7 @@ public class WorkflowEngine extends SimpleData {
 
     public static Map<String, ApprovalStatus> handleParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds) {
         var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
-         
+
         if (operatorService != null) {
             return operatorService.handleParallelApproval(operatorIds, orgIds, expandOperatorIds);
         }
@@ -86,5 +96,30 @@ public class WorkflowEngine extends SimpleData {
         }
 
         return parallelApprovalMap;
+    }
+
+
+    // === Configuration and registration for plugin ===
+
+    private static Map<String, WorkflowPlugin> pluginCache = Maps.newHashMap();
+
+    public static void registerPlugin(WorkflowPlugin plugin) {
+        pluginCache.put(plugin.getType(), plugin);
+    }
+
+    public static WorkflowPlugin getPlugin(String pluginType) {
+        return pluginCache.get(pluginType);
+    }
+
+    // === Configuration and registration for skip node type ===
+    
+    private static Set<String> skipNodeTypes = Sets.newHashSet(NodeType.RobotNode.name());
+
+    public static void registerSkipNodeTypes(Set<String> skipTypes) {
+        skipNodeTypes.addAll(skipTypes);
+    }
+
+    public static boolean isSkipNode(String nodeType) {
+        return skipNodeTypes.contains(nodeType);
     }
 }

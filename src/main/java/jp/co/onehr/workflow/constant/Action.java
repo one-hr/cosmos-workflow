@@ -1,6 +1,7 @@
 package jp.co.onehr.workflow.constant;
 
 
+import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.param.ActionExtendParam;
@@ -40,7 +41,7 @@ public enum Action {
     /**
      * Perform the corresponding action's handling
      */
-    public void execute(Definition definition, Instance instance, String operatorId, ActionExtendParam extendParam) {
+    public ActionResult execute(Definition definition, Instance instance, String operatorId, ActionExtendParam extendParam) {
 
         if (StringUtils.isEmpty(operatorId)) {
             throw new WorkflowException(WorkflowErrors.INSTANCE_OPERATOR_INVALID, "The operator of the instance cannot be empty", instance.getId());
@@ -51,11 +52,14 @@ public enum Action {
 
         var actionResult = strategy.execute(definition, instance, operatorId, extendParam);
 
+        var currentNode = NodeService.getCurrentNode(definition, instance.nodeId);
         if (actionResult.resetOperator) {
-            var currentNode = NodeService.getCurrentNode(definition, instance.nodeId);
             currentNode.resetCurrentOperators(instance);
         }
 
+        actionResult.node = currentNode;
+
+        return actionResult;
     }
 
 }
