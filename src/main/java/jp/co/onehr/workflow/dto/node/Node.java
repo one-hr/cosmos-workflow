@@ -1,8 +1,9 @@
 package jp.co.onehr.workflow.dto.node;
 
+import java.util.Set;
 import java.util.UUID;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
+import com.google.common.collect.Sets;
 import jp.co.onehr.workflow.constant.ApprovalType;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
@@ -18,9 +19,24 @@ public abstract class Node extends SimpleData {
 
     public String nodeName = "";
 
-    @JsonGetter
+    private String type;
+
+    /**
+     * The type of plugin used by the node
+     */
+    public Set<String> plugins = Sets.newHashSet();
+
+    /**
+     * The configuration information of the node can be specified with any type.
+     */
+    public Object configuration;
+
+    public Node() {
+        type = this.getClass().getSimpleName();
+    }
+
     public String getType() {
-        return this.getClass().getSimpleName();
+        return type;
     }
 
     /**

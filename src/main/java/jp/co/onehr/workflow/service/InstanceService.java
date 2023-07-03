@@ -2,8 +2,10 @@ package jp.co.onehr.workflow.service;
 
 import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.Status;
+import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
+import jp.co.onehr.workflow.dto.WorkflowEngine;
 import jp.co.onehr.workflow.dto.param.ActionExtendParam;
 import jp.co.onehr.workflow.dto.param.ApplicationParam;
 import jp.co.onehr.workflow.service.base.BaseCRUDService;
@@ -41,7 +43,7 @@ public class InstanceService extends BaseCRUDService<Instance> {
         return super.create(host, instance);
     }
 
-    public Instance resolve(String host, Instance instance, Action action, String operatorId) throws Exception {
+    public ActionResult resolve(String host, Instance instance, Action action, String operatorId) throws Exception {
         return resolve(host, instance, action, operatorId, null);
     }
 
@@ -55,13 +57,22 @@ public class InstanceService extends BaseCRUDService<Instance> {
      * @return
      * @throws Exception
      */
-    public Instance resolve(String host, Instance instance, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
+    public ActionResult resolve(String host, Instance instance, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
 
         var definition = DefinitionService.singleton.getDefinition(host, instance.definitionId);
 
-        action.execute(definition, instance, operatorId, extendParam);
+        var result = action.execute(definition, instance, operatorId, extendParam);
 
-        return super.update(host, instance);
+        var updateNode = result.node;
+        if (WorkflowEngine.isSkipNode(updateNode.getType())) {
+            result = action.execute(definition, instance, operatorId, extendParam);
+        }
+
+        var updatedInstance = super.update(host, instance);
+
+        result.instance = updatedInstance;
+
+        return result;
     }
 
     /**

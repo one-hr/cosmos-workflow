@@ -11,6 +11,10 @@ public class RobotNode extends Node {
 
     }
 
+    public RobotNode(String nodeName) {
+        this.nodeName = nodeName;
+    }
+
     @Override
     public void resetCurrentOperators(Instance instance) {
         clearOperators(instance);

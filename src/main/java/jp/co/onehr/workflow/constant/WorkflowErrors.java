@@ -35,6 +35,10 @@ public enum WorkflowErrors implements ErrorInterface {
      */
     INSTANCE_OPERATOR_INVALID(400),
     /**
+     * The plugin's handle method is invalid
+     */
+    PLUGIN_HANDLE_INVALID(400),
+    /**
      * The name of a node cannot be empty.
      */
     NODE_NAME_INVALID(400),
