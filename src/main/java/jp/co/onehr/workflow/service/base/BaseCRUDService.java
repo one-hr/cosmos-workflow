@@ -76,7 +76,7 @@ public abstract class BaseCRUDService<T extends BaseData> extends BaseNoSqlServi
         return DEFAULT_SORT;
     }
 
-    public T create(String host, T data) throws Exception {
+    protected T create(String host, T data) throws Exception {
 
         data.createdAt = DateUtil.nowDateTimeStringUTC();
         data.updatedAt = data.createdAt;
@@ -115,7 +115,7 @@ public abstract class BaseCRUDService<T extends BaseData> extends BaseNoSqlServi
      * @return
      * @throws Exception
      */
-    public T read(String host, String id) throws Exception {
+    protected T read(String host, String id) throws Exception {
         var db = getDatabase(host);
         CosmosDocument cd = db.read(getColl(host), id, getPartition());
         try {
@@ -134,11 +134,11 @@ public abstract class BaseCRUDService<T extends BaseData> extends BaseNoSqlServi
      * @return
      * @throws Exception
      */
-    public T readSuppressing404(String host, String id) throws Exception {
+    protected T readSuppressing404(String host, String id) throws Exception {
         return readSuppressing404(host, id, getPartition());
     }
 
-    private T readSuppressing404(String host, String id, String partition) throws Exception {
+    protected T readSuppressing404(String host, String id, String partition) throws Exception {
         if (StringUtils.isEmpty(id)) {
             return null;
         }
@@ -156,7 +156,7 @@ public abstract class BaseCRUDService<T extends BaseData> extends BaseNoSqlServi
         }
     }
 
-    public T update(String host, T data) throws Exception {
+    protected T update(String host, T data) throws Exception {
 
         T existData = null;
         if (StringUtils.isNotEmpty(data.getId())) {
@@ -189,7 +189,7 @@ public abstract class BaseCRUDService<T extends BaseData> extends BaseNoSqlServi
         return data;
     }
 
-    public T upsert(String host, T data) throws Exception {
+    protected T upsert(String host, T data) throws Exception {
 
         T existData = null;
         if (StringUtils.isNotEmpty(data.getId())) {
@@ -212,7 +212,7 @@ public abstract class BaseCRUDService<T extends BaseData> extends BaseNoSqlServi
         return upsertMap(host, map);
     }
 
-    public T upsertMap(String host, Map<String, Object> map) throws Exception {
+    protected T upsertMap(String host, Map<String, Object> map) throws Exception {
         var db = getDatabase(host);
         map = stripId(map);
         T data;
@@ -233,18 +233,18 @@ public abstract class BaseCRUDService<T extends BaseData> extends BaseNoSqlServi
     /**
      * Physical deletion
      */
-    public DeletedObject purge(String host, String id) throws Exception {
+    protected DeletedObject purge(String host, String id) throws Exception {
         var db = getDatabase(host);
         db.delete(getColl(host), StringUtils.strip(id), getPartition());
         return new DeletedObject(id);
     }
 
-    public List<T> find(String host, Condition cond) throws Exception {
+    protected List<T> find(String host, Condition cond) throws Exception {
         var db = getDatabase(host);
         if (CollectionUtils.isEmpty(cond.sort)) {
             cond.sort(getDefaultSort().toArray(new String[]{}));
         }
-        
+
         return db.find(getColl(host), cond, getPartition()).toList(classOfT);
     }
 

@@ -1,14 +1,17 @@
 package jp.co.onehr.workflow.base;
 
+import java.util.Locale;
+
 import com.github.javafaker.Faker;
+import jp.co.onehr.workflow.EngineConfiguration;
+import jp.co.onehr.workflow.WorkflowEngine;
 import jp.co.onehr.workflow.base.faker.SafeFaker;
 import jp.co.onehr.workflow.dao.ContainerUtil;
+import jp.co.onehr.workflow.dto.TestPlugin;
 import jp.co.onehr.workflow.util.TestOrder;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -23,11 +26,13 @@ public class BaseTest implements TestIdGeneratable {
 
     protected final Faker faker = new SafeFaker(Locale.JAPANESE);
 
+    protected static WorkflowEngine workflowEngine;
+
     static {
         try {
             // Initialization of test data for unit testing
             assertThat(ContainerUtil.judgeAndRecreated).isTrue();
-
+            insertTestData();
         } catch (Exception e) {
             BaseTest.staticLogger.error("test init failed", e);
             // Terminating the unit test due to initialization failure
@@ -35,4 +40,9 @@ public class BaseTest implements TestIdGeneratable {
         }
     }
 
+    private static void insertTestData() throws Exception {
+        var configuration = EngineConfiguration.getConfiguration();
+        configuration.registerPlugin(new TestPlugin());
+        workflowEngine = configuration.buildEngine();
+    }
 }
