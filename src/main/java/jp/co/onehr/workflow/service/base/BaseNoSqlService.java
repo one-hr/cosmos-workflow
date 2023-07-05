@@ -1,9 +1,12 @@
 package jp.co.onehr.workflow.service.base;
 
+import java.util.Map;
+import java.util.UUID;
+
 import io.github.thunderz99.cosmos.CosmosDatabase;
+import jp.co.onehr.workflow.EngineConfiguration;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dao.CosmosDB;
-import jp.co.onehr.workflow.dto.WorkflowEngine;
 import jp.co.onehr.workflow.dto.base.UniqueKeyCapable;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import jp.co.onehr.workflow.util.EnvUtil;
@@ -12,9 +15,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.atteo.evo.inflector.English;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
-import java.util.UUID;
 
 public abstract class BaseNoSqlService<T> {
 
@@ -82,7 +82,7 @@ public abstract class BaseNoSqlService<T> {
     }
 
     public CosmosDatabase getDatabase(String host) throws Exception {
-        var db = WorkflowEngine.getDatabase(host);
+        var db = EngineConfiguration.getConfiguration().getDatabase(host);
         if (ObjectUtils.isEmpty(db) && judgeEnableDefaultWorkflowDB()) {
             db = CosmosDB.registerDefaultWorkflowDB(host);
         }
@@ -97,7 +97,7 @@ public abstract class BaseNoSqlService<T> {
      */
     public String getColl(String host) throws Exception {
 
-        var coll = WorkflowEngine.getCollectionName(host);
+        var coll = EngineConfiguration.getConfiguration().getCollectionName(host);
 
         if (StringUtils.isEmpty(coll)) {
             throw new WorkflowException(WorkflowErrors.WORKFLOW_ENGINE_REGISTER_INVALID, "Failed to retrieve the name of the collection.", host);

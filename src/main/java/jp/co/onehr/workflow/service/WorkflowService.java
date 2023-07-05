@@ -1,5 +1,7 @@
 package jp.co.onehr.workflow.service;
 
+import java.util.List;
+
 import io.github.thunderz99.cosmos.condition.Condition;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dto.Workflow;
@@ -14,12 +16,12 @@ public class WorkflowService extends BaseCRUDService<Workflow> {
 
     public static final WorkflowService singleton = new WorkflowService();
 
-    WorkflowService() {
+    private WorkflowService() {
         super(Workflow.class);
     }
 
     @Override
-    public Workflow create(String host, Workflow workflow) throws Exception {
+    protected Workflow create(String host, Workflow workflow) throws Exception {
         workflow.id = generateId(workflow);
         var definition = DefinitionService.singleton.createInitialDefinition(host, workflow);
         workflow.currentVersion = definition.version;
@@ -27,13 +29,18 @@ public class WorkflowService extends BaseCRUDService<Workflow> {
     }
 
     @Override
-    public Workflow upsert(String host, Workflow workflow) throws Exception {
+    protected Workflow readSuppressing404(String host, String id) throws Exception {
+        return super.readSuppressing404(host, id);
+    }
+
+    @Override
+    protected Workflow upsert(String host, Workflow workflow) throws Exception {
         workflow.id = generateId(workflow);
         return super.upsert(host, workflow);
     }
 
     @Override
-    public DeletedObject purge(String host, String id) throws Exception {
+    protected DeletedObject purge(String host, String id) throws Exception {
 
         var definitions = DefinitionService.singleton.find(host, Condition.filter("workflowId", id).fields("id"));
         for (var definition : definitions) {
@@ -52,6 +59,11 @@ public class WorkflowService extends BaseCRUDService<Workflow> {
         return super.purge(host, id);
     }
 
+    @Override
+    protected List<Workflow> find(String host, Condition cond) throws Exception {
+        return super.find(host, cond);
+    }
+
     /**
      * Make sure Workflow is existed
      *
@@ -60,7 +72,7 @@ public class WorkflowService extends BaseCRUDService<Workflow> {
      * @return
      * @throws Exception
      */
-    public Workflow getWorkflow(String host, String workflowId) throws Exception {
+    protected Workflow getWorkflow(String host, String workflowId) throws Exception {
         var workflow = WorkflowService.singleton.readSuppressing404(host, workflowId);
         if (ObjectUtils.isEmpty(workflow)) {
             throw new WorkflowException(WorkflowErrors.WORKFLOW_NOT_EXIST, "The workflow does not exist in the database", workflowId);

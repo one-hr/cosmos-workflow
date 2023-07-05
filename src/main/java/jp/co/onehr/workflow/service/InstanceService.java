@@ -1,11 +1,15 @@
 package jp.co.onehr.workflow.service;
 
+import java.util.List;
+
+import io.github.thunderz99.cosmos.condition.Condition;
+import jp.co.onehr.workflow.EngineConfiguration;
 import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.Status;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
-import jp.co.onehr.workflow.dto.WorkflowEngine;
+import jp.co.onehr.workflow.dto.base.DeletedObject;
 import jp.co.onehr.workflow.dto.param.ActionExtendParam;
 import jp.co.onehr.workflow.dto.param.ApplicationParam;
 import jp.co.onehr.workflow.service.base.BaseCRUDService;
@@ -15,8 +19,23 @@ public class InstanceService extends BaseCRUDService<Instance> {
 
     public static final InstanceService singleton = new InstanceService();
 
-    InstanceService() {
+    private InstanceService() {
         super(Instance.class);
+    }
+
+    @Override
+    protected Instance readSuppressing404(String host, String id) throws Exception {
+        return super.readSuppressing404(host, id);
+    }
+
+    @Override
+    protected DeletedObject purge(String host, String id) throws Exception {
+        return super.purge(host, id);
+    }
+
+    @Override
+    protected List<Instance> find(String host, Condition cond) throws Exception {
+        return super.find(host, cond);
     }
 
     /**
@@ -27,7 +46,7 @@ public class InstanceService extends BaseCRUDService<Instance> {
      * @return
      * @throws Exception
      */
-    public Instance start(String host, ApplicationParam param) throws Exception {
+    protected Instance start(String host, ApplicationParam param) throws Exception {
         var workflow = WorkflowService.singleton.getWorkflow(host, param.workflowId);
         var definition = DefinitionService.singleton.getCurrentDefinition(host, workflow.id, workflow.currentVersion);
 
@@ -43,10 +62,6 @@ public class InstanceService extends BaseCRUDService<Instance> {
         return super.create(host, instance);
     }
 
-    public ActionResult resolve(String host, Instance instance, Action action, String operatorId) throws Exception {
-        return resolve(host, instance, action, operatorId, null);
-    }
-
     /**
      * Advance the workflow instance processing based on the action
      *
@@ -57,14 +72,16 @@ public class InstanceService extends BaseCRUDService<Instance> {
      * @return
      * @throws Exception
      */
-    public ActionResult resolve(String host, Instance instance, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
+    protected ActionResult resolve(String host, Instance instance, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
 
         var definition = DefinitionService.singleton.getDefinition(host, instance.definitionId);
 
         var result = action.execute(definition, instance, operatorId, extendParam);
 
         var updateNode = result.node;
-        if (WorkflowEngine.isSkipNode(updateNode.getType())) {
+        var configuration = EngineConfiguration.getConfiguration();
+
+        if (configuration.isSkipNode(updateNode.getType())) {
             result = action.execute(definition, instance, operatorId, extendParam);
         }
 

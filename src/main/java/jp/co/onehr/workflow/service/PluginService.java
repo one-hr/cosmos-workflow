@@ -4,9 +4,9 @@ package jp.co.onehr.workflow.service;
 import java.util.HashMap;
 import java.util.Map;
 
+import jp.co.onehr.workflow.EngineConfiguration;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dto.PluginResult;
-import jp.co.onehr.workflow.dto.WorkflowEngine;
 import jp.co.onehr.workflow.dto.node.Node;
 import jp.co.onehr.workflow.dto.param.PluginParam;
 import jp.co.onehr.workflow.exception.WorkflowException;
@@ -15,6 +15,12 @@ import org.apache.commons.lang3.ObjectUtils;
 
 public class PluginService {
 
+    public static final PluginService singleton = new PluginService();
+
+    private PluginService() {
+
+    }
+
     /**
      * Execute the handle of all the plugins on the node.
      *
@@ -22,7 +28,7 @@ public class PluginService {
      * @param param
      * @return
      */
-    public static Map<String, PluginResult> processPlugin(Node node, PluginParam param) {
+    public Map<String, PluginResult> processPlugin(Node node, PluginParam param) {
         var result = new HashMap<String, PluginResult>();
 
         var pluginTypes = node.plugins;
@@ -30,7 +36,7 @@ public class PluginService {
         if (CollectionUtils.isNotEmpty(pluginTypes)) {
             for (var pluginType : pluginTypes) {
                 try {
-                    var plugin = WorkflowEngine.getPlugin(pluginType);
+                    var plugin = EngineConfiguration.getConfiguration().getPlugin(pluginType);
                     if (ObjectUtils.isNotEmpty(plugin)) {
                         var pluginResult = plugin.handle(node, param);
                         result.put(pluginType, pluginResult);

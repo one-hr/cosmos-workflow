@@ -1,6 +1,7 @@
 package jp.co.onehr.workflow.service;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
 
 import io.github.thunderz99.cosmos.condition.Condition;
@@ -9,6 +10,7 @@ import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Workflow;
+import jp.co.onehr.workflow.dto.base.DeletedObject;
 import jp.co.onehr.workflow.dto.node.EndNode;
 import jp.co.onehr.workflow.dto.node.StartNode;
 import jp.co.onehr.workflow.exception.WorkflowException;
@@ -24,7 +26,7 @@ public class DefinitionService extends BaseCRUDService<Definition> {
 
     public static final DefinitionService singleton = new DefinitionService();
 
-    DefinitionService() {
+    private DefinitionService() {
         super(Definition.class);
     }
 
@@ -35,7 +37,7 @@ public class DefinitionService extends BaseCRUDService<Definition> {
      * @param workflow
      * @return
      */
-    public Definition createInitialDefinition(String host, Workflow workflow) throws Exception {
+    protected Definition createInitialDefinition(String host, Workflow workflow) throws Exception {
         var definition = generateInitialDefinition(workflow);
 
         checkNodes(definition);
@@ -43,7 +45,7 @@ public class DefinitionService extends BaseCRUDService<Definition> {
     }
 
     @Override
-    public Definition create(String host, Definition definition) throws Exception {
+    protected Definition create(String host, Definition definition) throws Exception {
         var workflow = WorkflowService.singleton.getWorkflow(host, definition.workflowId);
 
         definition.id = generateId(definition);
@@ -54,7 +56,12 @@ public class DefinitionService extends BaseCRUDService<Definition> {
     }
 
     @Override
-    public Definition upsert(String host, Definition definition) throws Exception {
+    protected Definition readSuppressing404(String host, String id) throws Exception {
+        return super.readSuppressing404(host, id);
+    }
+
+    @Override
+    protected Definition upsert(String host, Definition definition) throws Exception {
         var workflow = WorkflowService.singleton.getWorkflow(host, definition.workflowId);
 
         // increment the version number of the definition by 1
@@ -78,6 +85,16 @@ public class DefinitionService extends BaseCRUDService<Definition> {
         return result;
     }
 
+    @Override
+    protected DeletedObject purge(String host, String id) throws Exception {
+        return super.purge(host, id);
+    }
+
+    @Override
+    protected List<Definition> find(String host, Condition cond) throws Exception {
+        return super.find(host, cond);
+    }
+
     /**
      * Make sure Definition is existed
      *
@@ -86,7 +103,7 @@ public class DefinitionService extends BaseCRUDService<Definition> {
      * @return
      * @throws Exception
      */
-    public Definition getDefinition(String host, String definitionId) throws Exception {
+    protected Definition getDefinition(String host, String definitionId) throws Exception {
         var definition = super.readSuppressing404(host, definitionId);
         if (ObjectUtils.isEmpty(definition)) {
             throw new WorkflowException(WorkflowErrors.DEFINITION_NOT_EXIST, "The definition does not exist in the database", definitionId);
@@ -103,7 +120,7 @@ public class DefinitionService extends BaseCRUDService<Definition> {
      * @return
      * @throws Exception
      */
-    public Definition getCurrentDefinition(String host, String workflowId, int version) throws Exception {
+    protected Definition getCurrentDefinition(String host, String workflowId, int version) throws Exception {
         var definitions = this.find(host, Condition.filter("workflowId", workflowId, "version", version));
         if (CollectionUtils.isEmpty(definitions)) {
             throw new WorkflowException(WorkflowErrors.DEFINITION_NOT_EXIST, "The definition for the current version of the workflow was not found", workflowId);
@@ -155,7 +172,7 @@ public class DefinitionService extends BaseCRUDService<Definition> {
      * @param definition
      * @throws Exception
      */
-    public void checkNodes(Definition definition) throws Exception {
+    protected void checkNodes(Definition definition) throws Exception {
         var nodes = definition.nodes;
 
         if (nodes.size() < 2) {

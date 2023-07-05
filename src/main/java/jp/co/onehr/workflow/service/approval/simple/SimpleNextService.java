@@ -21,7 +21,7 @@ public class SimpleNextService extends NextService implements ApprovalStrategy {
         // only the robot node supports the use of plugins for processing during the next action.
         switch (currentNodeType) {
             case RobotNode -> {
-                var pluginResultMap = PluginService.processPlugin(node, extendParam.pluginParam);
+                var pluginResultMap = PluginService.singleton.processPlugin(node, extendParam.pluginParam);
                 result.pluginResult.putAll(pluginResultMap);
                 handleSimpleNext(definition, instance);
             }
