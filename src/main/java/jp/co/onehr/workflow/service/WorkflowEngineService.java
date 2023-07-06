@@ -71,6 +71,22 @@ public class WorkflowEngineService {
         return InstanceService.singleton.readSuppressing404(host, instanceId);
     }
 
+    /**
+     * Get the instance with the allowed actions.
+     *
+     * @param host
+     * @param instanceId
+     * @param operatorId
+     * @return
+     * @throws Exception
+     */
+    public Instance getInstanceWithOps(String host, String instanceId, String operatorId) throws Exception {
+        var instance = InstanceService.singleton.readSuppressing404(host, instanceId);
+        var definition = DefinitionService.singleton.getDefinition(host, instance.definitionId);
+        InstanceService.singleton.setAllowingActions(definition, instance, operatorId);
+        return instance;
+    }
+
     public ActionResult resolve(String host, Instance instance, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
         return InstanceService.singleton.resolve(host, instance, action, operatorId, extendParam);
     }

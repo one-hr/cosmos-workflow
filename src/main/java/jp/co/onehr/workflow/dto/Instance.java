@@ -1,10 +1,11 @@
 package jp.co.onehr.workflow.dto;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.ApplicationMode;
 import jp.co.onehr.workflow.constant.Status;
 import jp.co.onehr.workflow.dto.base.BaseData;
@@ -70,7 +71,12 @@ public class Instance extends BaseData {
     /**
      * When the approval type is "AND," record whether all required operators have approved
      */
-    public Map<String, ApprovalStatus> parallelApproval = new HashMap<>();
+    public Map<String, ApprovalStatus> parallelApproval = Maps.newHashMap();
+
+    /**
+     * The available actions that can be used in a workflow instance
+     */
+    public Set<Action> allowingActions = Sets.newHashSet();
 
     public Instance() {
 
