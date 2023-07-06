@@ -75,6 +75,10 @@ public class WorkflowEngine extends SimpleData {
         return service.getInstance(host, instanceId);
     }
 
+    public Instance getInstanceWithOps(String host, String instanceId, String operatorId) throws Exception {
+        return service.getInstanceWithOps(host, instanceId, operatorId);
+    }
+
     public ActionResult resolve(String host, Instance instance, Action action, String operatorId) throws Exception {
         return service.resolve(host, instance, action, operatorId, null);
     }

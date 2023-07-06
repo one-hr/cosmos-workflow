@@ -7,6 +7,7 @@ import jp.co.onehr.workflow.EngineConfiguration;
 import jp.co.onehr.workflow.WorkflowEngine;
 import jp.co.onehr.workflow.base.faker.SafeFaker;
 import jp.co.onehr.workflow.dao.ContainerUtil;
+import jp.co.onehr.workflow.dto.TestOperatorService;
 import jp.co.onehr.workflow.dto.TestPlugin;
 import jp.co.onehr.workflow.util.TestOrder;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -43,6 +44,7 @@ public class BaseTest implements TestIdGeneratable {
     private static void insertTestData() throws Exception {
         var configuration = EngineConfiguration.getConfiguration();
         configuration.registerPlugin(new TestPlugin());
+        configuration.registerOperatorService(TestOperatorService.singleton);
         workflowEngine = configuration.buildEngine();
     }
 }

@@ -14,10 +14,12 @@ import jp.co.onehr.workflow.dto.node.RobotNode;
 import jp.co.onehr.workflow.dto.node.SingleNode;
 import jp.co.onehr.workflow.dto.param.ActionExtendParam;
 import jp.co.onehr.workflow.dto.param.ApplicationParam;
+import jp.co.onehr.workflow.exception.WorkflowException;
 import org.junit.jupiter.api.Test;
 
 import static jp.co.onehr.workflow.service.DefinitionService.DEFAULT_END_NODE_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 
 public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceService> {
@@ -621,9 +623,105 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
         }
     }
 
-    // todo
-    void setAllowingActions_should_work() throws Exception {
+    @Test
+    void resolve_allowingActions_should_work() throws Exception {
+        var workflow = new Workflow(getUuid(), "resolve_allowingActions_should_work");
+        try {
+            workflow = workflowEngine.createWorkflow(host, workflow);
+            var definition = workflowEngine.getCurrentDefinition(host, workflow.id, 0);
 
+            var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+            singleNode1.operatorId = "operator-1";
+            definition.nodes.add(1, singleNode1);
+
+            var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-3", "operator-4"), Set.of());
+            definition.nodes.add(2, multipleNode2);
+
+            workflowEngine.upsertDefinition(host, definition);
+
+            definition = workflowEngine.getCurrentDefinition(host, workflow.id, 1);
+
+            var param = new ApplicationParam();
+            param.workflowId = workflow.id;
+            param.applicant = "operator-1";
+            var instance = workflowEngine.startInstance(host, param);
+
+            assertThat(instance.workflowId).isEqualTo(workflow.id);
+            assertThat(instance.definitionId).isEqualTo(definition.id);
+            assertThat(instance.operatorIdSet).containsExactlyInAnyOrder("operator-1");
+            assertThat(instance.operatorOrgIdSet).isEmpty();
+            assertThat(instance.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1");
+            assertThat(instance.applicant).isEqualTo("operator-1");
+            assertThat(instance.applicationMode).isEqualTo(ApplicationMode.SELF);
+            assertThat(instance.status).isEqualTo(Status.PROCESSING);
+            assertThat(instance.nodeId).isEqualTo(singleNode1.nodeId);
+
+            {
+                var result = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
+                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.NEXT);
+
+                assertThatThrownBy(() -> workflowEngine.resolve(host, instance, Action.BACK, "operator-1"))
+                        .isInstanceOf(WorkflowException.class)
+                        .hasMessageContaining(WorkflowErrors.NODE_ACTION_INVALID.name());
+
+                assertThatThrownBy(() -> workflowEngine.resolve(host, instance, Action.NEXT, "operator-2"))
+                        .isInstanceOf(WorkflowException.class)
+                        .hasMessageContaining(WorkflowErrors.NODE_ACTION_INVALID.name());
+
+                assertThatThrownBy(() -> workflowEngine.resolve(host, instance, Action.SAVE, "operator-1"))
+                        .isInstanceOf(WorkflowException.class)
+                        .hasMessageContaining(WorkflowErrors.NODE_ACTION_INVALID.name());
+
+                workflowEngine.resolve(host, instance, Action.NEXT, "operator-1");
+
+                var result2 = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
+                assertThat(result2.definitionId).isEqualTo(definition.id);
+                assertThat(result2.nodeId).isEqualTo(multipleNode2.nodeId);
+                assertThat(result2.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
+                assertThat(result2.operatorOrgIdSet).isEmpty();
+                assertThat(result2.expandOperatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
+                assertThat(result2.applicant).isEqualTo("operator-1");
+                assertThat(result2.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result2.status).isEqualTo(Status.PROCESSING);
+                assertThat(result2.allowingActions).isEmpty();
+
+                var result3 = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
+                assertThat(result3.definitionId).isEqualTo(definition.id);
+                assertThat(result3.nodeId).isEqualTo(multipleNode2.nodeId);
+                assertThat(result3.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
+                assertThat(result3.operatorOrgIdSet).isEmpty();
+                assertThat(result3.expandOperatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
+                assertThat(result3.applicant).isEqualTo("operator-1");
+                assertThat(result3.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result3.status).isEqualTo(Status.PROCESSING);
+                assertThat(result3.allowingActions).containsExactlyInAnyOrder(Action.NEXT, Action.BACK, Action.SAVE);
+
+                workflowEngine.resolve(host, instance, Action.NEXT, "operator-3");
+            }
+
+            {
+                var result = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
+                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.BACK);
+
+                var result2 = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
+                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.BACK);
+
+                workflowEngine.resolve(host, instance, Action.BACK, "operator-1");
+
+                var result3 = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
+                assertThat(result3.definitionId).isEqualTo(definition.id);
+                assertThat(result3.nodeId).isEqualTo(multipleNode2.nodeId);
+                assertThat(result3.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
+                assertThat(result3.operatorOrgIdSet).isEmpty();
+                assertThat(result3.expandOperatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
+                assertThat(result3.applicant).isEqualTo("operator-1");
+                assertThat(result3.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result3.status).isEqualTo(Status.PROCESSING);
+                assertThat(result3.allowingActions).containsExactlyInAnyOrder(Action.NEXT, Action.BACK, Action.SAVE);
+            }
+        } finally {
+            WorkflowService.singleton.purge(host, workflow.id);
+        }
     }
 
 }
