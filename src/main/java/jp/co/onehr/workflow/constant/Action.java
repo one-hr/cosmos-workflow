@@ -9,9 +9,7 @@ import jp.co.onehr.workflow.exception.WorkflowException;
 import jp.co.onehr.workflow.service.ActionStrategy;
 import jp.co.onehr.workflow.service.InstanceService;
 import jp.co.onehr.workflow.service.NodeService;
-import jp.co.onehr.workflow.service.action.BackService;
-import jp.co.onehr.workflow.service.action.NextService;
-import jp.co.onehr.workflow.service.action.SaveService;
+import jp.co.onehr.workflow.service.action.*;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -30,7 +28,22 @@ public enum Action {
     /**
      * Move the instance back to the previous node from the current node
      */
-    BACK(new BackService());
+    BACK(new BackService()),
+
+    /**
+     * Cancel. Applicant cancels instance when the instance is processing
+     */
+    CANCEL(new CancelService()),
+
+    /**
+     * Reject. Approver closes instance when the instance is processing
+     */
+    REJECT(new RejectService()),
+
+    /**
+     * Withdraw. Withdraw instance means the instance data will be deleted immediately
+     */
+    WITHDRAW(new WithdrawalService());
 
     private final ActionStrategy strategy;
 

@@ -16,5 +16,4 @@ public class SimpleBackService extends BackService implements ApprovalStrategy {
         handleSimpleBack(definition, instance, extendParam);
         return new ActionResult();
     }
-
 }

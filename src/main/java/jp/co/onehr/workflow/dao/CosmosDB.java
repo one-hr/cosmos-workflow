@@ -25,8 +25,7 @@ public class CosmosDB {
         String connectionString = EnvUtil.get(FW_WORKFLOW_CONNECTION_STRING);
         String dbName = EnvUtil.getOrDefault(FW_WORKFLOW_DATABASE_NAME, DEFAULT_DATABASE_NAME);
 
-        var db = new Cosmos(connectionString).getDatabase(dbName);
-        return db;
+        return new Cosmos(connectionString).getDatabase(dbName);
     }
 
     /**
@@ -37,7 +36,7 @@ public class CosmosDB {
      */
     public static CosmosDatabase registerDefaultWorkflowDB(String host) {
         var collectionName = BaseNoSqlService.getCollectionNameByEnv(DEFAULT_COLLECTION);
-        var db = CosmosDB.getDefaultDatabaseByEnv();
+        var db = getDefaultDatabaseByEnv();
         EngineConfiguration.getConfiguration().registerDB(host, db, collectionName);
         return EngineConfiguration.getConfiguration().getDatabase(host);
     }
