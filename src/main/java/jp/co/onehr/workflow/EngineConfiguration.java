@@ -8,8 +8,11 @@ import java.util.Set;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.github.thunderz99.cosmos.CosmosDatabase;
+import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.dto.ApprovalStatus;
+import jp.co.onehr.workflow.dto.Definition;
+import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.WorkflowPlugin;
 import jp.co.onehr.workflow.service.OperatorService;
 import org.slf4j.Logger;
@@ -96,17 +99,24 @@ public class EngineConfiguration {
     }
 
     public Map<String, ApprovalStatus> handleParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds) {
-        var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
-
         if (operatorService != null) {
             return operatorService.handleParallelApproval(operatorIds, orgIds, expandOperatorIds);
         }
+
+        var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
 
         for (var expandOperatorId : expandOperatorIds) {
             parallelApprovalMap.put(expandOperatorId, new ApprovalStatus(expandOperatorId, false));
         }
 
         return parallelApprovalMap;
+    }
+
+    public Set<Action> handleAllowingActionsByOperator(Definition definition, Instance instance, Set<Action> actions, String operatorId) {
+        if (operatorService != null) {
+            return operatorService.handleAllowingActions(definition, instance, actions, operatorId);
+        }
+        return actions;
     }
 
     // === Configuration and registration for plugin ===

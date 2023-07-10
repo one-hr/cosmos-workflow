@@ -47,8 +47,12 @@ public enum Action {
             throw new WorkflowException(WorkflowErrors.INSTANCE_OPERATOR_INVALID, "The operator of the instance cannot be empty", instance.getId());
         }
 
-        // todo
+        // Before executing an action, check if the user's action is allowed
         InstanceService.singleton.setAllowingActions(definition, instance, operatorId);
+
+        if (!instance.allowingActions.contains(this)) {
+            throw new WorkflowException(WorkflowErrors.NODE_ACTION_INVALID, "The current action is not allowed at the node for the instance", instance.getId());
+        }
 
         var actionResult = strategy.execute(definition, instance, operatorId, extendParam);
 

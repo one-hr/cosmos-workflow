@@ -1,10 +1,13 @@
 package jp.co.onehr.workflow.service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import io.github.thunderz99.cosmos.condition.Condition;
 import jp.co.onehr.workflow.EngineConfiguration;
 import jp.co.onehr.workflow.constant.Action;
+import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.constant.Status;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
@@ -93,13 +96,60 @@ public class InstanceService extends BaseCRUDService<Instance> {
     }
 
     /**
-     * todo Set the allowed actions for the instance.
+     * Set the allowed actions for the instance.
      *
      * @param definition
      * @param instance
      * @param operatorId
      */
     public void setAllowingActions(Definition definition, Instance instance, String operatorId) {
+        instance.allowingActions.clear();
 
+        var actions = setBasicAllowingActions(definition, instance, operatorId);
+
+        var configuration = EngineConfiguration.getConfiguration();
+        actions = configuration.handleAllowingActionsByOperator(definition, instance, actions, operatorId);
+
+        instance.allowingActions.addAll(actions);
+    }
+
+    /**
+     * The basic action rules for an instance.
+     *
+     * @param definition
+     * @param instance
+     * @param operatorId
+     * @return
+     */
+    private Set<Action> setBasicAllowingActions(Definition definition, Instance instance, String operatorId) {
+
+        var actions = new HashSet<Action>();
+
+        var currentNode = NodeService.getCurrentNode(definition, instance.nodeId);
+        if (NodeType.SingleNode.isEqual(currentNode.getType()) || NodeType.MultipleNode.isEqual(currentNode.getType())) {
+            if (!instance.expandOperatorIdSet.contains(operatorId)) {
+                return actions;
+            }
+        }
+
+        // The first node only allows "save" and "next" actions
+        if (NodeService.isFirstNode(definition, instance.nodeId)) {
+            actions.add(Action.NEXT);
+            actions.add(Action.SAVE);
+            return actions;
+        }
+
+        // The last node only allows "save" and "back" actions
+        if (NodeService.isLastNode(definition, instance.nodeId)) {
+            actions.add(Action.SAVE);
+            actions.add(Action.BACK);
+            return actions;
+        }
+
+        // In other cases, the node allows all actions
+        actions.add(Action.NEXT);
+        actions.add(Action.SAVE);
+        actions.add(Action.BACK);
+        return actions;
     }
 }

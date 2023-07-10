@@ -1,6 +1,4 @@
-package jp.co.onehr.workflow.dto;
-
-import jp.co.onehr.workflow.dto.param.PluginParam;
+package jp.co.onehr.workflow.dto.param;
 
 public class TestPluginParam extends PluginParam {
 

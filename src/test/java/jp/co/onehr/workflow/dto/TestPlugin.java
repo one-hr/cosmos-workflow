@@ -5,6 +5,7 @@ import java.util.Map;
 
 import jp.co.onehr.workflow.dto.node.Node;
 import jp.co.onehr.workflow.dto.param.PluginParam;
+import jp.co.onehr.workflow.dto.param.TestPluginParam;
 
 public class TestPlugin extends WorkflowPlugin {
 
@@ -22,7 +23,7 @@ public class TestPlugin extends WorkflowPlugin {
             result.resultNum = num;
             result.resultStr = str;
         }
-        
+
         var map = (Map) node.configuration;
         result.resultMap.putAll(map);
         result.nodeType = node.getType();
