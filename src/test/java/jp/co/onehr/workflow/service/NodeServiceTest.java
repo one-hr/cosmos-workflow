@@ -73,8 +73,8 @@ public class NodeServiceTest extends BaseTest {
     }
 
     @Test
-    void getCurrentNodeIndex_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "getCurrentNodeIndex_should_work");
+    void getNodeIndexByNodeId_should_work() throws Exception {
+        var workflow = new Workflow(getUuid(), "getNodeIndexByNodeId_should_work");
         try {
             workflow = WorkflowService.singleton.create(host, workflow);
 
@@ -85,9 +85,9 @@ public class NodeServiceTest extends BaseTest {
 
             {
                 var nodes = NodeService.getAllNodes(definition);
-                var result1 = NodeService.getCurrentNodeIndex(nodes, startNodeId);
+                var result1 = NodeService.getNodeIndexByNodeId(nodes, startNodeId);
                 assertThat(result1).isEqualTo(0);
-                var result2 = NodeService.getCurrentNodeIndex(nodes, endNodeId);
+                var result2 = NodeService.getNodeIndexByNodeId(nodes, endNodeId);
                 assertThat(result2).isEqualTo(1);
             }
 
@@ -96,12 +96,12 @@ public class NodeServiceTest extends BaseTest {
 
             {
                 var nodes = NodeService.getAllNodes(definition);
-                var result1 = NodeService.getCurrentNodeIndex(nodes, startNodeId);
+                var result1 = NodeService.getNodeIndexByNodeId(nodes, startNodeId);
                 assertThat(result1).isEqualTo(0);
-                var result2 = NodeService.getCurrentNodeIndex(nodes, endNodeId);
+                var result2 = NodeService.getNodeIndexByNodeId(nodes, endNodeId);
                 assertThat(result2).isEqualTo(2);
 
-                var result3 = NodeService.getCurrentNodeIndex(nodes, singleNode.nodeId);
+                var result3 = NodeService.getNodeIndexByNodeId(nodes, singleNode.nodeId);
                 assertThat(result3).isEqualTo(1);
             }
         } finally {
@@ -110,8 +110,8 @@ public class NodeServiceTest extends BaseTest {
     }
 
     @Test
-    void getCurrentNode_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "getCurrentNode_should_work");
+    void getNodeByNodeId_should_work() throws Exception {
+        var workflow = new Workflow(getUuid(), "getNodeByNodeId_should_work");
         try {
             workflow = WorkflowService.singleton.create(host, workflow);
 
@@ -121,10 +121,10 @@ public class NodeServiceTest extends BaseTest {
             var endNodeId = definition.nodes.get(1).nodeId;
 
             {
-                var result1 = NodeService.getCurrentNode(definition, startNodeId);
+                var result1 = NodeService.getNodeByNodeId(definition, startNodeId);
                 assertThat(result1.nodeName).isEqualTo(DEFAULT_START_NODE_NAME);
                 assertThat(result1.getType()).isEqualTo(NodeType.StartNode.name());
-                var result2 = NodeService.getCurrentNode(definition, endNodeId);
+                var result2 = NodeService.getNodeByNodeId(definition, endNodeId);
                 assertThat(result2.nodeName).isEqualTo(DEFAULT_END_NODE_NAME);
                 assertThat(result2.getType()).isEqualTo(NodeType.EndNode.name());
             }
@@ -133,10 +133,10 @@ public class NodeServiceTest extends BaseTest {
             definition.nodes.add(1, singleNode);
 
             {
-                var result1 = NodeService.getCurrentNode(definition, startNodeId);
+                var result1 = NodeService.getNodeByNodeId(definition, startNodeId);
                 assertThat(result1.nodeName).isEqualTo(DEFAULT_START_NODE_NAME);
                 assertThat(result1.getType()).isEqualTo(NodeType.StartNode.name());
-                var result2 = NodeService.getCurrentNode(definition, singleNode.nodeId);
+                var result2 = NodeService.getNodeByNodeId(definition, singleNode.nodeId);
                 assertThat(result2.nodeName).isEqualTo("DEFAULT_SINGLE_NODE_NAME-1");
                 assertThat(result2.getType()).isEqualTo(NodeType.SingleNode.name());
             }

@@ -4,6 +4,7 @@ package jp.co.onehr.workflow.dto;
 import java.util.Map;
 
 import com.google.common.collect.Maps;
+import jp.co.onehr.workflow.contract.plugin.PluginResult;
 import jp.co.onehr.workflow.dto.node.Node;
 
 /**

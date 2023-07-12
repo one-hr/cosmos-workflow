@@ -1,4 +1,4 @@
-package jp.co.onehr.workflow.service;
+package jp.co.onehr.workflow.contract.operator;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,6 +11,7 @@ import jp.co.onehr.workflow.dto.ApprovalStatus;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.node.Node;
+import jp.co.onehr.workflow.service.NodeService;
 
 
 public class TestOperatorService implements OperatorService {
@@ -40,7 +41,7 @@ public class TestOperatorService implements OperatorService {
 
     @Override
     public Set<Action> handleAllowingActions(Definition definition, Instance instance, Set<Action> actions, String operatorId) {
-        var currentNode = NodeService.getCurrentNode(definition, instance.nodeId);
+        var currentNode = NodeService.getNodeByNodeId(definition, instance.nodeId);
 
         var baseActions = handleAllowingActions(definition, instance, currentNode, actions, operatorId);
 

@@ -87,8 +87,8 @@ public class WorkflowEngineService {
         return instance;
     }
 
-    public ActionResult resolve(String host, Instance instance, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
-        return InstanceService.singleton.resolve(host, instance, action, operatorId, extendParam);
+    public ActionResult resolve(String host, String instanceId, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
+        return InstanceService.singleton.resolve(host, instanceId, action, operatorId, extendParam);
     }
 
     public List<Instance> findInstances(String host, Condition cond) throws Exception {

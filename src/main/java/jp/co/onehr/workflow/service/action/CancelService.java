@@ -13,7 +13,7 @@ public class CancelService implements ActionStrategy {
 
     @Override
     public ActionResult execute(Definition definition, Instance instance, String operatorId, ActionExtendParam extendParam) {
-        var currentNode = NodeService.getCurrentNode(definition, instance.nodeId);
+        var currentNode = NodeService.getNodeByNodeId(definition, instance.nodeId);
 
         // Current node of instance will move to first node.
         extendParam = extendParam == null ? new ActionExtendParam() : extendParam;

@@ -1,4 +1,4 @@
-package jp.co.onehr.workflow.dto.param;
+package jp.co.onehr.workflow.contract.plugin;
 
 import jp.co.onehr.workflow.dto.base.SimpleData;
 

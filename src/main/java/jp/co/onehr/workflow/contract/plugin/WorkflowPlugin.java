@@ -1,7 +1,6 @@
-package jp.co.onehr.workflow.dto;
+package jp.co.onehr.workflow.contract.plugin;
 
 import jp.co.onehr.workflow.dto.node.Node;
-import jp.co.onehr.workflow.dto.param.PluginParam;
 
 /**
  * The plugin definition that can be used in the workflow.

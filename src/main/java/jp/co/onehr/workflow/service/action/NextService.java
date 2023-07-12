@@ -12,7 +12,7 @@ public class NextService implements ActionStrategy {
 
     @Override
     public ActionResult execute(Definition definition, Instance instance, String operatorId, ActionExtendParam extendParam) {
-        var currentNode = NodeService.getCurrentNode(definition, instance.nodeId);
+        var currentNode = NodeService.getNodeByNodeId(definition, instance.nodeId);
         return currentNode.getApprovalType().nextExecute(definition, instance, currentNode, operatorId, extendParam);
     }
 
@@ -24,7 +24,7 @@ public class NextService implements ActionStrategy {
      */
     protected void handleSimpleNext(Definition definition, Instance instance) {
         var nodes = NodeService.getAllNodes(definition);
-        var currentNodeIndex = NodeService.getCurrentNodeIndex(nodes, instance.nodeId);
+        var currentNodeIndex = NodeService.getNodeIndexByNodeId(nodes, instance.nodeId);
 
         var nextNode = nodes.get(currentNodeIndex + 1);
         instance.nodeId = nextNode.nodeId;

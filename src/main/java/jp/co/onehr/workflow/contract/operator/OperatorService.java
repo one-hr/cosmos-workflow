@@ -1,4 +1,4 @@
-package jp.co.onehr.workflow.service;
+package jp.co.onehr.workflow.contract.operator;
 
 import java.util.Map;
 import java.util.Set;

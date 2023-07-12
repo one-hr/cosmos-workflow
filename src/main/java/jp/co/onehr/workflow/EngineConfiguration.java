@@ -10,11 +10,13 @@ import com.google.common.collect.Sets;
 import io.github.thunderz99.cosmos.CosmosDatabase;
 import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.NodeType;
+import jp.co.onehr.workflow.contract.notification.Notification;
+import jp.co.onehr.workflow.contract.notification.NotificationSender;
+import jp.co.onehr.workflow.contract.operator.OperatorService;
+import jp.co.onehr.workflow.contract.plugin.WorkflowPlugin;
 import jp.co.onehr.workflow.dto.ApprovalStatus;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
-import jp.co.onehr.workflow.dto.WorkflowPlugin;
-import jp.co.onehr.workflow.service.OperatorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +47,8 @@ public class EngineConfiguration {
     private Map<String, WorkflowPlugin> pluginCache = Maps.newHashMap();
 
     private Set<String> skipNodeTypes = Sets.newHashSet(NodeType.RobotNode.name());
+
+    private NotificationSender notificationSender;
 
     private EngineConfiguration() {
 
@@ -138,4 +142,16 @@ public class EngineConfiguration {
     public boolean isSkipNode(String nodeType) {
         return skipNodeTypes.contains(nodeType);
     }
+
+    // == Configuration and registration for notification sender ===
+    public void registerNotificationSender(NotificationSender sender) {
+        notificationSender = sender;
+    }
+
+    public void sendNotification(Instance instance, Action action, Notification notification) {
+        if (notificationSender != null) {
+            notificationSender.sendNotification(instance, action, notification);
+        }
+    }
+
 }

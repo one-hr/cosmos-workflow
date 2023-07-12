@@ -1,11 +1,9 @@
-package jp.co.onehr.workflow.dto;
+package jp.co.onehr.workflow.contract.plugin;
 
 
 import java.util.Map;
 
 import jp.co.onehr.workflow.dto.node.Node;
-import jp.co.onehr.workflow.dto.param.PluginParam;
-import jp.co.onehr.workflow.dto.param.TestPluginParam;
 
 public class TestPlugin extends WorkflowPlugin {
 
