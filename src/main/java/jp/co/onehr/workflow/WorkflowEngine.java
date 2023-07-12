@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
  */
 public class WorkflowEngine extends SimpleData {
 
-    public final static Logger log = LoggerFactory.getLogger(WorkflowEngine.class);
+    public static final Logger log = LoggerFactory.getLogger(WorkflowEngine.class);
 
     private EngineConfiguration configuration;
 
@@ -80,10 +80,12 @@ public class WorkflowEngine extends SimpleData {
     }
 
     public ActionResult resolve(String host, Instance instance, Action action, String operatorId) throws Exception {
+        // TODO Warning instance from invoker is not reliable.
         return service.resolve(host, instance, action, operatorId, null);
     }
 
     public ActionResult resolve(String host, Instance instance, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
+        // TODO Warning instance from invoker is not reliable.
         return service.resolve(host, instance, action, operatorId, extendParam);
     }
 

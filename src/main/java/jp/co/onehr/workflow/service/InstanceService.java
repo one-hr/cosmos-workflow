@@ -1,13 +1,12 @@
 package jp.co.onehr.workflow.service;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.Sets;
 import io.github.thunderz99.cosmos.condition.Condition;
 import jp.co.onehr.workflow.EngineConfiguration;
 import jp.co.onehr.workflow.constant.Action;
-import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.constant.Status;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
@@ -77,6 +76,7 @@ public class InstanceService extends BaseCRUDService<Instance> {
      */
     protected ActionResult resolve(String host, Instance instance, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
 
+        // TODO required checking. fail-fast
         var definition = DefinitionService.singleton.getDefinition(host, instance.definitionId);
 
         var result = action.execute(definition, instance, operatorId, extendParam);
@@ -88,9 +88,12 @@ public class InstanceService extends BaseCRUDService<Instance> {
             result = action.execute(definition, instance, operatorId, extendParam);
         }
 
-        var updatedInstance = super.update(host, instance);
-
-        result.instance = updatedInstance;
+        // Delete the instance if withdraw
+        if (result.withdraw) {
+            delete(host, instance.id);
+        } else {
+            result.instance = super.update(host, instance);
+        }
 
         return result;
     }
@@ -105,7 +108,7 @@ public class InstanceService extends BaseCRUDService<Instance> {
     public void setAllowingActions(Definition definition, Instance instance, String operatorId) {
         instance.allowingActions.clear();
 
-        var actions = setBasicAllowingActions(definition, instance, operatorId);
+        var actions = setOperatorBasicAllowingActions(definition, instance, operatorId);
 
         var configuration = EngineConfiguration.getConfiguration();
         actions = configuration.handleAllowingActionsByOperator(definition, instance, actions, operatorId);
@@ -121,35 +124,8 @@ public class InstanceService extends BaseCRUDService<Instance> {
      * @param operatorId
      * @return
      */
-    private Set<Action> setBasicAllowingActions(Definition definition, Instance instance, String operatorId) {
-
-        var actions = new HashSet<Action>();
-
-        var currentNode = NodeService.getCurrentNode(definition, instance.nodeId);
-        if (NodeType.SingleNode.isEqual(currentNode.getType()) || NodeType.MultipleNode.isEqual(currentNode.getType())) {
-            if (!instance.expandOperatorIdSet.contains(operatorId)) {
-                return actions;
-            }
-        }
-
-        // The first node only allows "save" and "next" actions
-        if (NodeService.isFirstNode(definition, instance.nodeId)) {
-            actions.add(Action.NEXT);
-            actions.add(Action.SAVE);
-            return actions;
-        }
-
-        // The last node only allows "save" and "back" actions
-        if (NodeService.isLastNode(definition, instance.nodeId)) {
-            actions.add(Action.SAVE);
-            actions.add(Action.BACK);
-            return actions;
-        }
-
-        // In other cases, the node allows all actions
-        actions.add(Action.NEXT);
-        actions.add(Action.SAVE);
-        actions.add(Action.BACK);
-        return actions;
+    private Set<Action> setOperatorBasicAllowingActions(Definition definition, Instance instance, String operatorId) {
+        // TODO SC_SAAS-15115
+        return Sets.newHashSet();
     }
 }

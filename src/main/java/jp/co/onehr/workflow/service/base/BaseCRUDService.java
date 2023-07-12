@@ -1,9 +1,6 @@
 package jp.co.onehr.workflow.service.base;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
@@ -25,6 +22,12 @@ import org.apache.commons.lang3.StringUtils;
 public abstract class BaseCRUDService<T extends BaseData> extends BaseNoSqlService<T> {
 
     public static final List<String> DEFAULT_SORT = List.of("_ts", "DESC");
+
+    public static final int DEFAULT_RECYCLE_LIFETIME = 90 * 24 * 60 * 60;
+
+    public static final String ORIGINAL_DATA = "originalData";
+    public static final String CREATED_AT = "createdAt";
+    public static final String DELETED_AT = "deletedAt";
 
     /**
      * Combining unique constraints and related keys to generate a clear error message during output
@@ -237,6 +240,89 @@ public abstract class BaseCRUDService<T extends BaseData> extends BaseNoSqlServi
         var db = getDatabase(host);
         db.delete(getColl(host), StringUtils.strip(id), getPartition());
         return new DeletedObject(id);
+    }
+
+    /**
+     * soft deletion
+     */
+    protected DeletedObject delete(String host, String id) throws Exception {
+        move2Recycle(host, id);
+
+        return new DeletedObject(id);
+    }
+
+    /**
+     * move origin data to recycle bin
+     *
+     * @param host
+     * @param id
+     * @return origin data
+     * @throws Exception
+     */
+    private T move2Recycle(String host, String id) throws Exception {
+        // origin data
+        var oldMap = this.readRaw(host, id, false);
+
+        if (oldMap == null) {
+            return null;
+        }
+        var recycle = new HashMap<String, Object>();
+        recycle.put("ttl", getTtlLifeTime());
+        recycle.put(ORIGINAL_DATA, oldMap);
+        recycle.put("id", id);
+        recycle.put(CREATED_AT, DateUtil.nowDateTimeStringUTC());
+        recycle.put(UniqueKeyCapable.UNIQUE_KEY_1, id);
+        recycle.put(UniqueKeyCapable.UNIQUE_KEY_2, id);
+        recycle.put(UniqueKeyCapable.UNIQUE_KEY_3, id);
+
+        recycle.put(DELETED_AT, DateUtil.nowDateTimeStringUTC());
+
+        upsertRaw(host, recycle, true);
+        // hard delete
+        purge(getColl(host), StringUtils.strip(id));
+
+        return JsonUtil.fromMap(oldMap, this.classOfT);
+    }
+
+    /**
+     * upsert original data or copy in recycle bin
+     *
+     * @param host
+     * @param map
+     * @param isRecycle
+     * @return
+     * @throws Exception
+     */
+    protected final Map<String, Object> upsertRaw(String host, Map<String, Object> map, boolean isRecycle) throws Exception {
+        var partition = isRecycle ? getRecyclePartition() : getPartition();
+        var db = getDatabase(host);
+        try {
+            return db.upsert(getColl(host), map, partition).toMap();
+        } catch (CosmosException e) {
+            // id conflict will be error
+            throw wrapConflictError(e, map);
+        }
+    }
+
+    private int getTtlLifeTime() {
+        // デフォルト保存期間 90日
+        return DEFAULT_RECYCLE_LIFETIME;
+    }
+
+    protected final Map<String, Object> readRaw(String host, String id, boolean isRecycle) throws Exception {
+        var partition = isRecycle ? getRecyclePartition() : getPartition();
+
+        if (StringUtils.isEmpty(id)) {
+            return null;
+        }
+        var db = getDatabase(host);
+        var ret = db.readSuppressing404(getColl(host), id, partition);
+
+        return ret == null ? null : ret.toMap();
+    }
+
+    protected final String getRecyclePartition() {
+        return getPartition() + "_recycle";
     }
 
     protected List<T> find(String host, Condition cond) throws Exception {

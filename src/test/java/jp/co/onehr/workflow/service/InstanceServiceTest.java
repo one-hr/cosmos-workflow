@@ -18,8 +18,7 @@ import jp.co.onehr.workflow.exception.WorkflowException;
 import org.junit.jupiter.api.Test;
 
 import static jp.co.onehr.workflow.service.DefinitionService.DEFAULT_END_NODE_NAME;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 
 public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceService> {
@@ -52,7 +51,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(instance.operatorOrgIdSet).isEmpty();
                 assertThat(instance.applicant).isEqualTo("operator-1");
                 assertThat(instance.applicationMode).isEqualTo(ApplicationMode.SELF);
-                assertThat(instance.status).isEqualTo(Status.Finished);
+                assertThat(instance.status).isEqualTo(Status.FINISHED);
 
                 var node = NodeService.getCurrentNode(definition, instance.nodeId);
                 assertThat(node.getType()).isEqualTo(NodeType.EndNode.name());
@@ -659,7 +658,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             // test The single node only allows the "next" action.
             {
                 var result = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
-                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.NEXT);
+                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.NEXT, Action.CANCEL, Action.REJECT);
 
                 assertThatThrownBy(() -> workflowEngine.resolve(host, instance, Action.BACK, "operator-1"))
                         .isInstanceOf(WorkflowException.class)
@@ -695,7 +694,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result3.applicant).isEqualTo("operator-1");
                 assertThat(result3.applicationMode).isEqualTo(ApplicationMode.SELF);
                 assertThat(result3.status).isEqualTo(Status.PROCESSING);
-                assertThat(result3.allowingActions).containsExactlyInAnyOrder(Action.NEXT, Action.BACK, Action.SAVE);
+                assertThat(result3.allowingActions).containsExactlyInAnyOrder(Action.NEXT, Action.BACK, Action.SAVE, Action.REJECT, Action.CANCEL);
 
                 workflowEngine.resolve(host, instance, Action.NEXT, "operator-3");
             }
@@ -703,10 +702,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             // test The single node only allows the "back" action.
             {
                 var result = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
-                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.BACK);
+                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.BACK, Action.CANCEL, Action.REJECT);
 
                 var result2 = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
-                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.BACK);
+                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.BACK, Action.CANCEL, Action.REJECT);
 
                 workflowEngine.resolve(host, instance, Action.BACK, "operator-1");
 
@@ -719,11 +718,76 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result3.applicant).isEqualTo("operator-1");
                 assertThat(result3.applicationMode).isEqualTo(ApplicationMode.SELF);
                 assertThat(result3.status).isEqualTo(Status.PROCESSING);
-                assertThat(result3.allowingActions).containsExactlyInAnyOrder(Action.NEXT, Action.BACK, Action.SAVE);
+                assertThat(result3.allowingActions).containsExactlyInAnyOrder(Action.NEXT, Action.BACK, Action.SAVE, Action.CANCEL, Action.REJECT);
             }
         } finally {
             WorkflowService.singleton.purge(host, workflow.id);
         }
     }
 
+    @Test
+    void resolve_reject_should_work() throws Exception {
+        var workflow = new Workflow(getUuid(), "resolve_reject_should_work");
+        try {
+            workflow = workflowEngine.createWorkflow(host, workflow);
+            var definition = workflowEngine.getCurrentDefinition(host, workflow.id, 0);
+
+            var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+            singleNode1.operatorId = "operator-2";
+            definition.nodes.add(1, singleNode1);
+
+            var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-3", "operator-4"), Set.of());
+            definition.nodes.add(2, multipleNode2);
+
+            workflowEngine.upsertDefinition(host, definition);
+
+            var param = new ApplicationParam();
+            param.workflowId = workflow.id;
+            param.applicant = "operator-1";
+            var instance = workflowEngine.startInstance(host, param);
+
+            var actionResult = workflowEngine.resolve(host, instance, Action.REJECT, "operator-2", null);
+
+            var rejectedInstance = actionResult.instance;
+            assertThat(rejectedInstance).isNotNull();
+            assertThat(rejectedInstance.status).isEqualTo(Status.REJECTED);
+            assertThat(rejectedInstance.nodeId).isEqualTo(instance.nodeId);
+
+        } finally {
+            WorkflowService.singleton.purge(host, workflow.id);
+        }
+    }
+
+    @Test
+    void resolve_withdraw_should_work() throws Exception {
+        var workflow = new Workflow(getUuid(), "resolve_withdraw_should_work");
+        try {
+            workflow = workflowEngine.createWorkflow(host, workflow);
+            var definition = workflowEngine.getCurrentDefinition(host, workflow.id, 0);
+
+            var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+            singleNode1.operatorId = "operator-2";
+            definition.nodes.add(1, singleNode1);
+
+            var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-3", "operator-4"), Set.of());
+            definition.nodes.add(2, multipleNode2);
+
+            workflowEngine.upsertDefinition(host, definition);
+
+            var param = new ApplicationParam();
+            param.workflowId = workflow.id;
+            param.applicant = "operator-1";
+            var instance = workflowEngine.startInstance(host, param);
+
+            workflowEngine.resolve(host, instance, Action.CANCEL, "operator-2", null);
+
+            workflowEngine.resolve(host, instance, Action.WITHDRAW, "operator-2", null);
+
+            var withdrawalInstance = workflowEngine.getInstance(host, instance.id);
+            assertThat(withdrawalInstance).isNull();
+
+        } finally {
+            WorkflowService.singleton.purge(host, workflow.id);
+        }
+    }
 }

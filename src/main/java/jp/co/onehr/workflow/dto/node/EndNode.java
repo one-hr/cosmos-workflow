@@ -27,7 +27,7 @@ public class EndNode extends Node {
      */
     @Override
     public void handleFirstNode(Definition definition, Instance instance) {
-        instance.status = Status.Finished;
+        instance.status = Status.FINISHED;
     }
 
     @Override

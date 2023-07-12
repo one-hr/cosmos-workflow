@@ -31,6 +31,8 @@ public class ActionResult {
      */
     public Node node;
 
+    public boolean withdraw = false;
+
     public ActionResult() {
 
     }
