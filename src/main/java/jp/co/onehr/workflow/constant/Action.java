@@ -54,8 +54,10 @@ public enum Action {
     /**
      * Perform the corresponding action's handling
      */
-    public ActionResult execute(Definition definition, Instance instance, String operatorId, ActionExtendParam extendParam) {
+    public ActionResult execute(Definition definition, Instance existInstance, String operatorId, ActionExtendParam extendParam) {
 
+        Instance instance = existInstance.copy();
+        
         if (StringUtils.isEmpty(operatorId)) {
             throw new WorkflowException(WorkflowErrors.INSTANCE_OPERATOR_INVALID, "The operator of the instance cannot be empty", instance.getId());
         }
@@ -69,12 +71,13 @@ public enum Action {
 
         var actionResult = strategy.execute(definition, instance, operatorId, extendParam);
 
-        var currentNode = NodeService.getCurrentNode(definition, instance.nodeId);
+        var currentNode = NodeService.getNodeByNodeId(definition, instance.nodeId);
         if (actionResult.resetOperator) {
             currentNode.resetCurrentOperators(instance);
         }
 
         actionResult.node = currentNode;
+        actionResult.instance = instance;
 
         return actionResult;
     }

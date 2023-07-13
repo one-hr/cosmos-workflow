@@ -6,9 +6,10 @@ import com.github.javafaker.Faker;
 import jp.co.onehr.workflow.EngineConfiguration;
 import jp.co.onehr.workflow.WorkflowEngine;
 import jp.co.onehr.workflow.base.faker.SafeFaker;
+import jp.co.onehr.workflow.contract.notification.TestNotificationSender;
+import jp.co.onehr.workflow.contract.operator.TestOperatorService;
+import jp.co.onehr.workflow.contract.plugin.TestPlugin;
 import jp.co.onehr.workflow.dao.ContainerUtil;
-import jp.co.onehr.workflow.dto.TestPlugin;
-import jp.co.onehr.workflow.service.TestOperatorService;
 import jp.co.onehr.workflow.util.TestOrder;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.slf4j.Logger;
@@ -45,6 +46,7 @@ public class BaseTest implements TestIdGeneratable {
         var configuration = EngineConfiguration.getConfiguration();
         configuration.registerPlugin(new TestPlugin());
         configuration.registerOperatorService(TestOperatorService.singleton);
+        configuration.registerNotificationSender(TestNotificationSender.singleton);
         workflowEngine = configuration.buildEngine();
     }
 }

@@ -1,10 +1,15 @@
 package jp.co.onehr.workflow.dto.node;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.ApprovalType;
+import jp.co.onehr.workflow.constant.NotificationMode;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.base.SimpleData;
@@ -31,7 +36,17 @@ public abstract class Node extends SimpleData {
      */
     public Object configuration;
 
-    public Node() {
+    /**
+     * The node has the notification feature enabled
+     */
+    public boolean enableNotification = false;
+
+    /**
+     * The notification mode for the custom action is defined when the notification feature is enabled.
+     */
+    public Map<Action, NotificationMode> notificationModes = Maps.newHashMap();
+
+    protected Node() {
         type = this.getClass().getSimpleName();
     }
 
@@ -77,4 +92,14 @@ public abstract class Node extends SimpleData {
         instance.expandOperatorIdSet.clear();
         instance.parallelApproval.clear();
     }
+
+    @JsonIgnore
+    public NotificationMode getNotificationModesByAction(Action action) {
+        if (enableNotification) {
+            return this.notificationModes.getOrDefault(action, NotificationMode.ALWAYS);
+        } else {
+            return NotificationMode.NEVER;
+        }
+    }
+    
 }

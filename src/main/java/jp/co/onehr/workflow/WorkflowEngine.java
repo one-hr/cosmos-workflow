@@ -79,14 +79,12 @@ public class WorkflowEngine extends SimpleData {
         return service.getInstanceWithOps(host, instanceId, operatorId);
     }
 
-    public ActionResult resolve(String host, Instance instance, Action action, String operatorId) throws Exception {
-        // TODO Warning instance from invoker is not reliable.
-        return service.resolve(host, instance, action, operatorId, null);
+    public ActionResult resolve(String host, String instanceId, Action action, String operatorId) throws Exception {
+        return service.resolve(host, instanceId, action, operatorId, null);
     }
 
-    public ActionResult resolve(String host, Instance instance, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
-        // TODO Warning instance from invoker is not reliable.
-        return service.resolve(host, instance, action, operatorId, extendParam);
+    public ActionResult resolve(String host, String instanceId, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
+        return service.resolve(host, instanceId, action, operatorId, extendParam);
     }
 
     public List<Instance> findInstances(String host, Condition cond) throws Exception {

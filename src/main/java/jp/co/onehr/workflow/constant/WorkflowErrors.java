@@ -25,7 +25,7 @@ public enum WorkflowErrors implements ErrorInterface {
     /**
      * Workflow definition not found
      */
-    DEFINITION_NOT_EXIST(400),
+    DEFINITION_NOT_EXIST(404),
     /**
      * The extended parameters of the action are invalid
      */
@@ -34,6 +34,10 @@ public enum WorkflowErrors implements ErrorInterface {
      * The operator of the instance is invalid
      */
     INSTANCE_OPERATOR_INVALID(400),
+    /**
+     * Workflow instance not found
+     */
+    INSTANCE_NOT_EXIST(404),
     /**
      * The movement action used by the node is invalid
      */

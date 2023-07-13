@@ -13,7 +13,7 @@ import static jp.co.onehr.workflow.constant.ApprovalType.OR;
 /**
  * Multi-user node
  */
-public class MultipleNode extends Node {
+public class MultipleNode extends ManualNode {
 
     /**
      * The ids of all operators who can perform operations on the node.

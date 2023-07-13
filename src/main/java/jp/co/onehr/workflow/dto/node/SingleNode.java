@@ -10,7 +10,7 @@ import org.apache.commons.collections4.CollectionUtils;
  * There is only one approver, and if the approver is empty, it will be automatically skipped
  * Department approval is not supported
  */
-public class SingleNode extends Node {
+public class SingleNode extends ManualNode {
 
     /**
      * Operator of the node

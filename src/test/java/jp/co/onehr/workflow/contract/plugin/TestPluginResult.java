@@ -1,4 +1,4 @@
-package jp.co.onehr.workflow.dto;
+package jp.co.onehr.workflow.contract.plugin;
 
 
 import java.util.HashMap;

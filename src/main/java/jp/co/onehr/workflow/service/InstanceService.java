@@ -8,16 +8,21 @@ import io.github.thunderz99.cosmos.condition.Condition;
 import jp.co.onehr.workflow.EngineConfiguration;
 import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.Status;
+import jp.co.onehr.workflow.constant.WorkflowErrors;
+import jp.co.onehr.workflow.contract.notification.Notification;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.base.DeletedObject;
+import jp.co.onehr.workflow.dto.node.Node;
 import jp.co.onehr.workflow.dto.param.ActionExtendParam;
 import jp.co.onehr.workflow.dto.param.ApplicationParam;
+import jp.co.onehr.workflow.exception.WorkflowException;
 import jp.co.onehr.workflow.service.base.BaseCRUDService;
+import org.apache.commons.lang3.ObjectUtils;
 
 
-public class InstanceService extends BaseCRUDService<Instance> {
+public class InstanceService extends BaseCRUDService<Instance> implements NotificationSendChangeable {
 
     public static final InstanceService singleton = new InstanceService();
 
@@ -38,6 +43,22 @@ public class InstanceService extends BaseCRUDService<Instance> {
     @Override
     protected List<Instance> find(String host, Condition cond) throws Exception {
         return super.find(host, cond);
+    }
+
+    /**
+     * Make sure Instance is existed
+     *
+     * @param host
+     * @param instanceId
+     * @return
+     * @throws Exception
+     */
+    protected Instance getInstance(String host, String instanceId) throws Exception {
+        var Instance = super.readSuppressing404(host, instanceId);
+        if (ObjectUtils.isEmpty(Instance)) {
+            throw new WorkflowException(WorkflowErrors.INSTANCE_NOT_EXIST, "The instance does not exist in the database", instanceId);
+        }
+        return Instance;
     }
 
     /**
@@ -68,32 +89,42 @@ public class InstanceService extends BaseCRUDService<Instance> {
      * Advance the workflow instance processing based on the action
      *
      * @param host
-     * @param instance
+     * @param instanceId
      * @param action
      * @param extendParam
      * @return
      * @throws Exception
      */
-    protected ActionResult resolve(String host, Instance instance, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
+    protected ActionResult resolve(String host, String instanceId, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
 
-        // TODO required checking. fail-fast
-        var definition = DefinitionService.singleton.getDefinition(host, instance.definitionId);
+        var existInstance = getInstance(host, instanceId);
 
-        var result = action.execute(definition, instance, operatorId, extendParam);
+        var definition = DefinitionService.singleton.getDefinition(host, existInstance.definitionId);
 
-        var updateNode = result.node;
         var configuration = EngineConfiguration.getConfiguration();
 
-        if (configuration.isSkipNode(updateNode.getType())) {
-            result = action.execute(definition, instance, operatorId, extendParam);
+        // TODO required checking. fail-fast
+        var existNode = NodeService.getNodeByInstance(definition, existInstance);
+
+        var result = action.execute(definition, existInstance, operatorId, extendParam);
+
+        var updatedInstance = result.instance;
+
+        var updatedNode = result.node;
+
+        if (configuration.isSkipNode(updatedNode.getType())) {
+            result = action.execute(definition, updatedInstance, operatorId, extendParam);
+            updatedInstance = result.instance;
         }
 
         // Delete the instance if withdraw
         if (result.withdraw) {
-            delete(host, instance.id);
+            delete(host, updatedInstance.id);
         } else {
-            result.instance = super.update(host, instance);
+            result.instance = super.update(host, updatedInstance);
         }
+
+        handleSendNotification(configuration, updatedInstance, existNode, action, extendParam);
 
         return result;
     }
@@ -128,4 +159,32 @@ public class InstanceService extends BaseCRUDService<Instance> {
         // TODO SC_SAAS-15115
         return Sets.newHashSet();
     }
+
+    /**
+     * After the instance is complete, determine if the notification needs to be sent, and send the notification
+     *
+     * @param configuration
+     * @param instance
+     * @param node
+     * @param action
+     * @param extendParam
+     */
+    private void handleSendNotification(EngineConfiguration configuration, Instance instance, Node node, Action action, ActionExtendParam extendParam) {
+        var send = false;
+        var notificationMode = node.getNotificationModesByAction(action);
+
+        Boolean selectedSend = null;
+        Notification notification = null;
+        if (ObjectUtils.isNotEmpty(extendParam)) {
+            selectedSend = extendParam.selectedSend;
+            notification = extendParam.notification;
+        }
+
+        send = whetherSendNotification(notificationMode, selectedSend);
+
+        if (send) {
+            configuration.sendNotification(instance, action, notification);
+        }
+    }
+
 }

@@ -6,9 +6,9 @@ import java.util.Map;
 
 import jp.co.onehr.workflow.EngineConfiguration;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
-import jp.co.onehr.workflow.dto.PluginResult;
+import jp.co.onehr.workflow.contract.plugin.PluginParam;
+import jp.co.onehr.workflow.contract.plugin.PluginResult;
 import jp.co.onehr.workflow.dto.node.Node;
-import jp.co.onehr.workflow.dto.param.PluginParam;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
