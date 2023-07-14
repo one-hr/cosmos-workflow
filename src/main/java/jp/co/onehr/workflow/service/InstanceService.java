@@ -5,7 +5,7 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 import io.github.thunderz99.cosmos.condition.Condition;
-import jp.co.onehr.workflow.EngineConfiguration;
+import jp.co.onehr.workflow.ProcessEngineConfiguration;
 import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.Status;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
@@ -101,7 +101,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
 
         var definition = DefinitionService.singleton.getDefinition(host, existInstance.definitionId);
 
-        var configuration = EngineConfiguration.getConfiguration();
+        var configuration = ProcessEngineConfiguration.getConfiguration();
 
         // TODO required checking. fail-fast
         var existNode = NodeService.getNodeByInstance(definition, existInstance);
@@ -141,7 +141,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
 
         var actions = setOperatorBasicAllowingActions(definition, instance, operatorId);
 
-        var configuration = EngineConfiguration.getConfiguration();
+        var configuration = ProcessEngineConfiguration.getConfiguration();
         actions = configuration.handleAllowingActionsByOperator(definition, instance, actions, operatorId);
 
         instance.allowingActions.addAll(actions);
@@ -169,7 +169,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
      * @param action
      * @param extendParam
      */
-    private void handleSendNotification(EngineConfiguration configuration, Instance instance, Node node, Action action, ActionExtendParam extendParam) {
+    private void handleSendNotification(ProcessEngineConfiguration configuration, Instance instance, Node node, Action action, ActionExtendParam extendParam) {
         var send = false;
         var notificationMode = node.getNotificationModesByAction(action);
 

@@ -17,14 +17,14 @@ import jp.co.onehr.workflow.dto.param.ApplicationParam;
  * The service responsible for exposing private methods
  * allowing users to perform corresponding operations through the engine
  */
-public class WorkflowEngineService {
+public class ProcessEngineService {
 
-    private static final WorkflowEngineService singleton = new WorkflowEngineService();
+    private static final ProcessEngineService singleton = new ProcessEngineService();
 
-    private WorkflowEngineService() {
+    private ProcessEngineService() {
     }
 
-    public static WorkflowEngineService getService() {
+    public static ProcessEngineService getService() {
         return singleton;
     }
 

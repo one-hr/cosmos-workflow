@@ -1,6 +1,6 @@
 package jp.co.onehr.workflow.dto.node;
 
-import jp.co.onehr.workflow.EngineConfiguration;
+import jp.co.onehr.workflow.ProcessEngineConfiguration;
 import jp.co.onehr.workflow.dto.Instance;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -31,7 +31,7 @@ public class SingleNode extends ManualNode {
         instance.operatorIdSet.add(this.operatorId);
 
         if (CollectionUtils.isNotEmpty(instance.operatorIdSet)) {
-            var expandOperatorIds = EngineConfiguration.getConfiguration().handleExpandOperators(instance.operatorIdSet);
+            var expandOperatorIds = ProcessEngineConfiguration.getConfiguration().handleExpandOperators(instance.operatorIdSet);
             instance.expandOperatorIdSet.addAll(expandOperatorIds);
         }
 
