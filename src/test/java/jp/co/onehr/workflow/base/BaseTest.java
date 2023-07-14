@@ -3,8 +3,8 @@ package jp.co.onehr.workflow.base;
 import java.util.Locale;
 
 import com.github.javafaker.Faker;
-import jp.co.onehr.workflow.EngineConfiguration;
-import jp.co.onehr.workflow.WorkflowEngine;
+import jp.co.onehr.workflow.ProcessEngine;
+import jp.co.onehr.workflow.ProcessEngineConfiguration;
 import jp.co.onehr.workflow.base.faker.SafeFaker;
 import jp.co.onehr.workflow.contract.notification.TestNotificationSender;
 import jp.co.onehr.workflow.contract.operator.TestOperatorService;
@@ -28,7 +28,7 @@ public class BaseTest implements TestIdGeneratable {
 
     protected final Faker faker = new SafeFaker(Locale.JAPANESE);
 
-    protected static WorkflowEngine workflowEngine;
+    protected static ProcessEngine processEngine;
 
     static {
         try {
@@ -43,10 +43,10 @@ public class BaseTest implements TestIdGeneratable {
     }
 
     private static void insertTestData() throws Exception {
-        var configuration = EngineConfiguration.getConfiguration();
+        var configuration = ProcessEngineConfiguration.getConfiguration();
         configuration.registerPlugin(new TestPlugin());
         configuration.registerOperatorService(TestOperatorService.singleton);
         configuration.registerNotificationSender(TestNotificationSender.singleton);
-        workflowEngine = configuration.buildEngine();
+        processEngine = configuration.buildEngine();
     }
 }

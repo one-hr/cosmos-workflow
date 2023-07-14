@@ -39,14 +39,14 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
     void start_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "start_should_work");
         try {
-            workflow = workflowEngine.createWorkflow(host, workflow);
+            workflow = processEngine.createWorkflow(host, workflow);
 
-            var definition = workflowEngine.getCurrentDefinition(host, workflow.id, 0);
+            var definition = processEngine.getCurrentDefinition(host, workflow.id, 0);
             {
                 var param = new ApplicationParam();
                 param.workflowId = workflow.id;
                 param.applicant = "operator-1";
-                var instance = workflowEngine.startInstance(host, param);
+                var instance = processEngine.startInstance(host, param);
                 assertThat(instance.workflowId).isEqualTo(workflow.id);
                 assertThat(instance.definitionId).isEqualTo(definition.id);
                 assertThat(instance.operatorIdSet).isEmpty();
@@ -63,15 +63,15 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var singleNode = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
             singleNode.operatorId = "operator-node";
             definition.nodes.add(1, singleNode);
-            workflowEngine.upsertDefinition(host, definition);
+            processEngine.upsertDefinition(host, definition);
 
-            definition = workflowEngine.getCurrentDefinition(host, workflow.id, 1);
+            definition = processEngine.getCurrentDefinition(host, workflow.id, 1);
 
             {
                 var param = new ApplicationParam();
                 param.workflowId = workflow.id;
                 param.applicant = "operator-1";
-                var instance = workflowEngine.startInstance(host, param);
+                var instance = processEngine.startInstance(host, param);
                 assertThat(instance.workflowId).isEqualTo(workflow.id);
                 assertThat(instance.definitionId).isEqualTo(definition.id);
                 assertThat(instance.operatorIdSet).containsExactlyInAnyOrder("operator-node");
@@ -93,9 +93,9 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
     void resolve_singleNode_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "resolve_singleNode_should_work");
         try {
-            workflow = workflowEngine.createWorkflow(host, workflow);
+            workflow = processEngine.createWorkflow(host, workflow);
 
-            var definition = workflowEngine.getCurrentDefinition(host, workflow.id, 0);
+            var definition = processEngine.getCurrentDefinition(host, workflow.id, 0);
 
             var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
             singleNode1.operatorId = "operator-node-1";
@@ -106,14 +106,14 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var singleNode3 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-3");
             singleNode3.operatorId = "operator-node-3";
             definition.nodes.add(3, singleNode3);
-            workflowEngine.upsertDefinition(host, definition);
+            processEngine.upsertDefinition(host, definition);
 
-            definition = workflowEngine.getCurrentDefinition(host, workflow.id, 1);
+            definition = processEngine.getCurrentDefinition(host, workflow.id, 1);
 
             var param = new ApplicationParam();
             param.workflowId = workflow.id;
             param.applicant = "operator-1";
-            var instance = workflowEngine.startInstance(host, param);
+            var instance = processEngine.startInstance(host, param);
 
             assertThat(instance.workflowId).isEqualTo(workflow.id);
             assertThat(instance.definitionId).isEqualTo(definition.id);
@@ -127,10 +127,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             // simple next
             {
-                var actionResult = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-1");
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-1");
                 instance = actionResult.instance;
 
-                var result1 = workflowEngine.getInstance(host, instance.getId());
+                var result1 = processEngine.getInstance(host, instance.getId());
                 assertThat(result1.definitionId).isEqualTo(definition.id);
                 assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-node-2");
                 assertThat(result1.operatorOrgIdSet).isEmpty();
@@ -141,10 +141,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.nodeId).isEqualTo(singleNode2.nodeId);
 
 
-                actionResult = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-2");
+                actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-2");
                 instance = actionResult.instance;
 
-                var result2 = workflowEngine.getInstance(host, instance.getId());
+                var result2 = processEngine.getInstance(host, instance.getId());
                 assertThat(result2.definitionId).isEqualTo(definition.id);
                 assertThat(result2.operatorIdSet).containsExactlyInAnyOrder("operator-node-3");
                 assertThat(result2.operatorOrgIdSet).isEmpty();
@@ -157,10 +157,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             // test back PREVIOUS
             {
-                var actionResult = workflowEngine.resolve(host, instance.getId(), Action.BACK, "operator-node-3");
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.BACK, "operator-node-3");
                 instance = actionResult.instance;
 
-                var result1 = workflowEngine.getInstance(host, instance.getId());
+                var result1 = processEngine.getInstance(host, instance.getId());
                 assertThat(result1.definitionId).isEqualTo(definition.id);
                 assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-node-2");
                 assertThat(result1.operatorOrgIdSet).isEmpty();
@@ -170,10 +170,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.status).isEqualTo(Status.PROCESSING);
                 assertThat(result1.nodeId).isEqualTo(singleNode2.nodeId);
 
-                actionResult = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-2");
+                actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-2");
                 instance = actionResult.instance;
 
-                var result2 = workflowEngine.getInstance(host, instance.getId());
+                var result2 = processEngine.getInstance(host, instance.getId());
                 assertThat(result2.definitionId).isEqualTo(definition.id);
                 assertThat(result2.operatorIdSet).containsExactlyInAnyOrder("operator-node-3");
                 assertThat(result2.operatorOrgIdSet).isEmpty();
@@ -188,10 +188,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             {
                 var actionParam = new ActionExtendParam();
                 actionParam.backMode = BackMode.FIRST;
-                var actionResult = workflowEngine.resolve(host, instance.getId(), Action.BACK, "operator-node-3", actionParam);
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.BACK, "operator-node-3", actionParam);
                 instance = actionResult.instance;
 
-                var result1 = workflowEngine.getInstance(host, instance.getId());
+                var result1 = processEngine.getInstance(host, instance.getId());
                 assertThat(result1.definitionId).isEqualTo(definition.id);
                 assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-node-1");
                 assertThat(result1.operatorOrgIdSet).isEmpty();
@@ -210,9 +210,9 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
     void resolve_multipleNode_or_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "resolve_multipleNode_or_should_work");
         try {
-            workflow = workflowEngine.createWorkflow(host, workflow);
+            workflow = processEngine.createWorkflow(host, workflow);
 
-            var definition = workflowEngine.getCurrentDefinition(host, workflow.id, 0);
+            var definition = processEngine.getCurrentDefinition(host, workflow.id, 0);
 
             var multipleNode1 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-1", Set.of("operator-1", "operator-2"), Set.of());
             definition.nodes.add(1, multipleNode1);
@@ -220,14 +220,14 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             definition.nodes.add(2, multipleNode2);
             var multipleNode3 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-3", Set.of("operator-1", "operator-4"), Set.of());
             definition.nodes.add(3, multipleNode3);
-            workflowEngine.upsertDefinition(host, definition);
+            processEngine.upsertDefinition(host, definition);
 
-            definition = workflowEngine.getCurrentDefinition(host, workflow.id, 1);
+            definition = processEngine.getCurrentDefinition(host, workflow.id, 1);
 
             var param = new ApplicationParam();
             param.workflowId = workflow.id;
             param.applicant = "operator-0";
-            var instance = workflowEngine.startInstance(host, param);
+            var instance = processEngine.startInstance(host, param);
 
             assertThat(instance.workflowId).isEqualTo(workflow.id);
             assertThat(instance.definitionId).isEqualTo(definition.id);
@@ -241,10 +241,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             // or next
             {
-                var actionResult = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1");
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1");
                 instance = actionResult.instance;
 
-                var result1 = workflowEngine.getInstance(host, instance.getId());
+                var result1 = processEngine.getInstance(host, instance.getId());
                 assertThat(result1.definitionId).isEqualTo(definition.id);
                 assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
                 assertThat(result1.operatorOrgIdSet).isEmpty();
@@ -255,10 +255,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.nodeId).isEqualTo(multipleNode2.nodeId);
 
 
-                actionResult = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-3");
+                actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-3");
                 instance = actionResult.instance;
 
-                var result2 = workflowEngine.getInstance(host, instance.getId());
+                var result2 = processEngine.getInstance(host, instance.getId());
                 assertThat(result2.definitionId).isEqualTo(definition.id);
                 assertThat(result2.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-4");
                 assertThat(result2.operatorOrgIdSet).isEmpty();
@@ -271,10 +271,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             // test or back PREVIOUS
             {
-                var actionResult = workflowEngine.resolve(host, instance.getId(), Action.BACK, "operator-4");
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.BACK, "operator-4");
                 instance = actionResult.instance;
 
-                var result1 = workflowEngine.getInstance(host, instance.getId());
+                var result1 = processEngine.getInstance(host, instance.getId());
                 assertThat(result1.definitionId).isEqualTo(definition.id);
                 assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
                 assertThat(result1.operatorOrgIdSet).isEmpty();
@@ -284,10 +284,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.status).isEqualTo(Status.PROCESSING);
                 assertThat(result1.nodeId).isEqualTo(multipleNode2.nodeId);
 
-                actionResult = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-3");
+                actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-3");
                 instance = actionResult.instance;
 
-                var result2 = workflowEngine.getInstance(host, instance.getId());
+                var result2 = processEngine.getInstance(host, instance.getId());
                 assertThat(result2.definitionId).isEqualTo(definition.id);
                 assertThat(result2.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-4");
                 assertThat(result2.operatorOrgIdSet).isEmpty();
@@ -302,10 +302,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             {
                 var actionParam = new ActionExtendParam();
                 actionParam.backMode = BackMode.FIRST;
-                var actionResult = workflowEngine.resolve(host, instance.getId(), Action.BACK, "operator-4", actionParam);
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.BACK, "operator-4", actionParam);
                 instance = actionResult.instance;
 
-                var result1 = workflowEngine.getInstance(host, instance.getId());
+                var result1 = processEngine.getInstance(host, instance.getId());
                 assertThat(result1.definitionId).isEqualTo(definition.id);
                 assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-2");
                 assertThat(result1.operatorOrgIdSet).isEmpty();
@@ -324,9 +324,9 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
     void resolve_multipleNode_and_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "resolve_multipleNode_or_should_work");
         try {
-            workflow = workflowEngine.createWorkflow(host, workflow);
+            workflow = processEngine.createWorkflow(host, workflow);
 
-            var definition = workflowEngine.getCurrentDefinition(host, workflow.id, 0);
+            var definition = processEngine.getCurrentDefinition(host, workflow.id, 0);
 
             var multipleNode1 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-1", ApprovalType.AND, Set.of("operator-1", "operator-2"), Set.of());
             definition.nodes.add(1, multipleNode1);
@@ -334,14 +334,14 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             definition.nodes.add(2, multipleNode2);
             var multipleNode3 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-3", ApprovalType.AND, Set.of("operator-1", "operator-4"), Set.of());
             definition.nodes.add(3, multipleNode3);
-            workflowEngine.upsertDefinition(host, definition);
+            processEngine.upsertDefinition(host, definition);
 
-            definition = workflowEngine.getCurrentDefinition(host, workflow.id, 1);
+            definition = processEngine.getCurrentDefinition(host, workflow.id, 1);
 
             var param = new ApplicationParam();
             param.workflowId = workflow.id;
             param.applicant = "operator-0";
-            var instance = workflowEngine.startInstance(host, param);
+            var instance = processEngine.startInstance(host, param);
 
             assertThat(instance.workflowId).isEqualTo(workflow.id);
             assertThat(instance.definitionId).isEqualTo(definition.id);
@@ -355,10 +355,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             // and next
             {
-                var actionResult = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1");
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1");
                 instance = actionResult.instance;
 
-                var result1 = workflowEngine.getInstance(host, instance.getId());
+                var result1 = processEngine.getInstance(host, instance.getId());
                 assertThat(result1.definitionId).isEqualTo(definition.id);
                 assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-2");
                 assertThat(result1.operatorOrgIdSet).isEmpty();
@@ -376,10 +376,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.parallelApproval.get("operator-2").approved).isFalse();
 
                 // the second operator confirms the action.
-                actionResult = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-2");
+                actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-2");
                 instance = actionResult.instance;
 
-                result1 = workflowEngine.getInstance(host, instance.getId());
+                result1 = processEngine.getInstance(host, instance.getId());
                 assertThat(result1.definitionId).isEqualTo(definition.id);
                 assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
                 assertThat(result1.operatorOrgIdSet).isEmpty();
@@ -397,10 +397,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.parallelApproval.get("operator-4").approved).isFalse();
 
                 // moving to the third node
-                actionResult = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-3");
+                actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-3");
                 instance = actionResult.instance;
 
-                var result2 = workflowEngine.getInstance(host, instance.getId());
+                var result2 = processEngine.getInstance(host, instance.getId());
                 assertThat(result2.definitionId).isEqualTo(definition.id);
                 assertThat(result2.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
                 assertThat(result2.operatorOrgIdSet).isEmpty();
@@ -418,10 +418,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result2.parallelApproval.get("operator-4").approved).isFalse();
 
                 // The save action does not clear the approval status
-                actionResult = workflowEngine.resolve(host, instance.getId(), Action.SAVE, "operator-3");
+                actionResult = processEngine.resolve(host, instance.getId(), Action.SAVE, "operator-3");
                 instance = actionResult.instance;
 
-                result1 = workflowEngine.getInstance(host, instance.getId());
+                result1 = processEngine.getInstance(host, instance.getId());
                 assertThat(result2.definitionId).isEqualTo(definition.id);
                 assertThat(result2.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
                 assertThat(result2.operatorOrgIdSet).isEmpty();
@@ -438,10 +438,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result2.parallelApproval.get("operator-4").operatorId).isEqualTo("operator-4");
                 assertThat(result2.parallelApproval.get("operator-4").approved).isFalse();
 
-                actionResult = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-4");
+                actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-4");
                 instance = actionResult.instance;
 
-                var result3 = workflowEngine.getInstance(host, instance.getId());
+                var result3 = processEngine.getInstance(host, instance.getId());
                 assertThat(result3.definitionId).isEqualTo(definition.id);
                 assertThat(result3.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-4");
                 assertThat(result3.operatorOrgIdSet).isEmpty();
@@ -462,10 +462,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             // test and back PREVIOUS
             {
-                var actionResult = workflowEngine.resolve(host, instance.getId(), Action.BACK, "operator-4");
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.BACK, "operator-4");
                 instance = actionResult.instance;
 
-                var result1 = workflowEngine.getInstance(host, instance.getId());
+                var result1 = processEngine.getInstance(host, instance.getId());
                 assertThat(result1.definitionId).isEqualTo(definition.id);
                 assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
                 assertThat(result1.operatorOrgIdSet).isEmpty();
@@ -475,10 +475,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.status).isEqualTo(Status.PROCESSING);
                 assertThat(result1.nodeId).isEqualTo(multipleNode2.nodeId);
 
-                actionResult = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-3");
+                actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-3");
                 instance = actionResult.instance;
 
-                var result2 = workflowEngine.getInstance(host, instance.getId());
+                var result2 = processEngine.getInstance(host, instance.getId());
                 assertThat(result2.definitionId).isEqualTo(definition.id);
                 assertThat(result2.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
                 assertThat(result2.operatorOrgIdSet).isEmpty();
@@ -488,10 +488,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result2.status).isEqualTo(Status.PROCESSING);
                 assertThat(result2.nodeId).isEqualTo(multipleNode2.nodeId);
 
-                actionResult = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-4");
+                actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-4");
                 instance = actionResult.instance;
 
-                result2 = workflowEngine.getInstance(host, instance.getId());
+                result2 = processEngine.getInstance(host, instance.getId());
                 assertThat(result2.definitionId).isEqualTo(definition.id);
                 assertThat(result2.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-4");
                 assertThat(result2.operatorOrgIdSet).isEmpty();
@@ -506,10 +506,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             {
                 var actionParam = new ActionExtendParam();
                 actionParam.backMode = BackMode.FIRST;
-                var actionResult = workflowEngine.resolve(host, instance.getId(), Action.BACK, "operator-4", actionParam);
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.BACK, "operator-4", actionParam);
                 instance = actionResult.instance;
 
-                var result1 = workflowEngine.getInstance(host, instance.getId());
+                var result1 = processEngine.getInstance(host, instance.getId());
                 assertThat(result1.definitionId).isEqualTo(definition.id);
                 assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-2");
                 assertThat(result1.operatorOrgIdSet).isEmpty();
@@ -528,8 +528,8 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
     void resolve_robotNode_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "resolve_multipleNode_or_should_work");
         try {
-            workflow = workflowEngine.createWorkflow(host, workflow);
-            var definition = workflowEngine.getCurrentDefinition(host, workflow.id, 0);
+            workflow = processEngine.createWorkflow(host, workflow);
+            var definition = processEngine.getCurrentDefinition(host, workflow.id, 0);
 
             var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
             singleNode1.operatorId = "operator-node-1";
@@ -546,14 +546,14 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var singleNode3 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-3");
             singleNode3.operatorId = "operator-node-3";
             definition.nodes.add(3, singleNode3);
-            workflowEngine.upsertDefinition(host, definition);
+            processEngine.upsertDefinition(host, definition);
 
-            definition = workflowEngine.getCurrentDefinition(host, workflow.id, 1);
+            definition = processEngine.getCurrentDefinition(host, workflow.id, 1);
 
             var param = new ApplicationParam();
             param.workflowId = workflow.id;
             param.applicant = "operator-1";
-            var instance = workflowEngine.startInstance(host, param);
+            var instance = processEngine.startInstance(host, param);
 
             assertThat(instance.workflowId).isEqualTo(workflow.id);
             assertThat(instance.definitionId).isEqualTo(definition.id);
@@ -573,7 +573,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 testPluginParam.str = "test";
                 extendParam.pluginParam = testPluginParam;
 
-                var actionResult = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-1", extendParam);
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-1", extendParam);
                 var pluginResult = actionResult.pluginResult;
                 assertThat(pluginResult).isNotEmpty();
                 var testPluginResult = (TestPluginResult) pluginResult.get("TestPlugin");
@@ -586,7 +586,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
                 instance = actionResult.instance;
 
-                var result1 = workflowEngine.getInstance(host, instance.getId());
+                var result1 = processEngine.getInstance(host, instance.getId());
                 assertThat(result1.definitionId).isEqualTo(definition.id);
                 assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-node-3");
                 assertThat(result1.operatorOrgIdSet).isEmpty();
@@ -605,11 +605,11 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 testPluginParam.str = "test-back";
                 extendParam.pluginParam = testPluginParam;
 
-                var actionResult = workflowEngine.resolve(host, instance.getId(), Action.BACK, "operator-node-3", extendParam);
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.BACK, "operator-node-3", extendParam);
                 var pluginResult = actionResult.pluginResult;
                 assertThat(pluginResult).isEmpty();
 
-                var result1 = workflowEngine.getInstance(host, instance.getId());
+                var result1 = processEngine.getInstance(host, instance.getId());
                 assertThat(result1.definitionId).isEqualTo(definition.id);
                 assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-node-1");
                 assertThat(result1.operatorOrgIdSet).isEmpty();
@@ -628,8 +628,8 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
     void resolve_allowingActions_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "resolve_allowingActions_should_work");
         try {
-            workflow = workflowEngine.createWorkflow(host, workflow);
-            var definition = workflowEngine.getCurrentDefinition(host, workflow.id, 0);
+            workflow = processEngine.createWorkflow(host, workflow);
+            var definition = processEngine.getCurrentDefinition(host, workflow.id, 0);
 
             var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
             singleNode1.operatorId = "operator-1";
@@ -638,14 +638,14 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-3", "operator-4"), Set.of());
             definition.nodes.add(2, multipleNode2);
 
-            workflowEngine.upsertDefinition(host, definition);
+            processEngine.upsertDefinition(host, definition);
 
-            definition = workflowEngine.getCurrentDefinition(host, workflow.id, 1);
+            definition = processEngine.getCurrentDefinition(host, workflow.id, 1);
 
             var param = new ApplicationParam();
             param.workflowId = workflow.id;
             param.applicant = "operator-1";
-            var instance = workflowEngine.startInstance(host, param);
+            var instance = processEngine.startInstance(host, param);
 
             assertThat(instance.workflowId).isEqualTo(workflow.id);
             assertThat(instance.definitionId).isEqualTo(definition.id);
@@ -659,24 +659,24 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             // test The single node only allows the "next" action.
             {
-                var result = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
+                var result = processEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
                 assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.NEXT, Action.CANCEL, Action.REJECT);
 
-                assertThatThrownBy(() -> workflowEngine.resolve(host, instance.getId(), Action.BACK, "operator-1"))
+                assertThatThrownBy(() -> processEngine.resolve(host, instance.getId(), Action.BACK, "operator-1"))
                         .isInstanceOf(WorkflowException.class)
                         .hasMessageContaining(WorkflowErrors.NODE_ACTION_INVALID.name());
 
-                assertThatThrownBy(() -> workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-2"))
+                assertThatThrownBy(() -> processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-2"))
                         .isInstanceOf(WorkflowException.class)
                         .hasMessageContaining(WorkflowErrors.NODE_ACTION_INVALID.name());
 
-                assertThatThrownBy(() -> workflowEngine.resolve(host, instance.getId(), Action.SAVE, "operator-1"))
+                assertThatThrownBy(() -> processEngine.resolve(host, instance.getId(), Action.SAVE, "operator-1"))
                         .isInstanceOf(WorkflowException.class)
                         .hasMessageContaining(WorkflowErrors.NODE_ACTION_INVALID.name());
 
-                workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1");
+                processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1");
 
-                var result2 = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
+                var result2 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
                 assertThat(result2.definitionId).isEqualTo(definition.id);
                 assertThat(result2.nodeId).isEqualTo(multipleNode2.nodeId);
                 assertThat(result2.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
@@ -687,7 +687,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result2.status).isEqualTo(Status.PROCESSING);
                 assertThat(result2.allowingActions).isEmpty();
 
-                var result3 = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
+                var result3 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
                 assertThat(result3.definitionId).isEqualTo(definition.id);
                 assertThat(result3.nodeId).isEqualTo(multipleNode2.nodeId);
                 assertThat(result3.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
@@ -698,20 +698,20 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result3.status).isEqualTo(Status.PROCESSING);
                 assertThat(result3.allowingActions).containsExactlyInAnyOrder(Action.NEXT, Action.BACK, Action.SAVE, Action.REJECT, Action.CANCEL);
 
-                workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-3");
+                processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-3");
             }
 
             // test The single node only allows the "back" action.
             {
-                var result = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
+                var result = processEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
                 assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.BACK, Action.CANCEL, Action.REJECT);
 
-                var result2 = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
+                var result2 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
                 assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.BACK, Action.CANCEL, Action.REJECT);
 
-                workflowEngine.resolve(host, instance.getId(), Action.BACK, "operator-1");
+                processEngine.resolve(host, instance.getId(), Action.BACK, "operator-1");
 
-                var result3 = workflowEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
+                var result3 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
                 assertThat(result3.definitionId).isEqualTo(definition.id);
                 assertThat(result3.nodeId).isEqualTo(multipleNode2.nodeId);
                 assertThat(result3.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
@@ -731,8 +731,8 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
     void resolve_reject_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "resolve_reject_should_work");
         try {
-            workflow = workflowEngine.createWorkflow(host, workflow);
-            var definition = workflowEngine.getCurrentDefinition(host, workflow.id, 0);
+            workflow = processEngine.createWorkflow(host, workflow);
+            var definition = processEngine.getCurrentDefinition(host, workflow.id, 0);
 
             var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
             singleNode1.operatorId = "operator-2";
@@ -741,14 +741,14 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-3", "operator-4"), Set.of());
             definition.nodes.add(2, multipleNode2);
 
-            workflowEngine.upsertDefinition(host, definition);
+            processEngine.upsertDefinition(host, definition);
 
             var param = new ApplicationParam();
             param.workflowId = workflow.id;
             param.applicant = "operator-1";
-            var instance = workflowEngine.startInstance(host, param);
+            var instance = processEngine.startInstance(host, param);
 
-            var actionResult = workflowEngine.resolve(host, instance.getId(), Action.REJECT, "operator-2", null);
+            var actionResult = processEngine.resolve(host, instance.getId(), Action.REJECT, "operator-2", null);
 
             var rejectedInstance = actionResult.instance;
             assertThat(rejectedInstance).isNotNull();
@@ -764,8 +764,8 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
     void resolve_withdraw_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "resolve_withdraw_should_work");
         try {
-            workflow = workflowEngine.createWorkflow(host, workflow);
-            var definition = workflowEngine.getCurrentDefinition(host, workflow.id, 0);
+            workflow = processEngine.createWorkflow(host, workflow);
+            var definition = processEngine.getCurrentDefinition(host, workflow.id, 0);
 
             var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
             singleNode1.operatorId = "operator-2";
@@ -774,18 +774,18 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-3", "operator-4"), Set.of());
             definition.nodes.add(2, multipleNode2);
 
-            workflowEngine.upsertDefinition(host, definition);
+            processEngine.upsertDefinition(host, definition);
 
             var param = new ApplicationParam();
             param.workflowId = workflow.id;
             param.applicant = "operator-1";
-            var instance = workflowEngine.startInstance(host, param);
+            var instance = processEngine.startInstance(host, param);
 
-            workflowEngine.resolve(host, instance.getId(), Action.CANCEL, "operator-2", null);
+            processEngine.resolve(host, instance.getId(), Action.CANCEL, "operator-2", null);
 
-            workflowEngine.resolve(host, instance.getId(), Action.WITHDRAW, "operator-2", null);
+            processEngine.resolve(host, instance.getId(), Action.WITHDRAW, "operator-2", null);
 
-            var withdrawalInstance = workflowEngine.getInstance(host, instance.getId());
+            var withdrawalInstance = processEngine.getInstance(host, instance.getId());
             assertThat(withdrawalInstance).isNull();
 
         } finally {
@@ -797,8 +797,8 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
     void resolve_send_notification_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "resolve_send_notification_should_work");
         try {
-            workflow = workflowEngine.createWorkflow(host, workflow);
-            var definition = workflowEngine.getCurrentDefinition(host, workflow.id, 0);
+            workflow = processEngine.createWorkflow(host, workflow);
+            var definition = processEngine.getCurrentDefinition(host, workflow.id, 0);
 
             var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
             singleNode1.operatorId = "operator-1";
@@ -816,12 +816,12 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             singleNode3.notificationModes.put(Action.BACK, NotificationMode.USER_DEFAULT_NOT_SEND);
             definition.nodes.add(3, singleNode3);
 
-            workflowEngine.upsertDefinition(host, definition);
+            processEngine.upsertDefinition(host, definition);
 
             var param = new ApplicationParam();
             param.workflowId = workflow.id;
             param.applicant = "operator-1";
-            var instance = workflowEngine.startInstance(host, param);
+            var instance = processEngine.startInstance(host, param);
             assertThat(instance.workflowId).isEqualTo(workflow.id);
             assertThat(instance.definitionId).isEqualTo(definition.id);
             assertThat(instance.operatorIdSet).containsExactlyInAnyOrder("operator-1");
@@ -840,7 +840,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
                 actionParam.notification = testNotification;
 
-                var result = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1", actionParam);
+                var result = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1", actionParam);
 
                 instance = result.instance;
 
@@ -860,7 +860,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
                 actionParam.notification = testNotification;
 
-                var result = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-2", actionParam);
+                var result = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-2", actionParam);
 
                 instance = result.instance;
 
@@ -880,7 +880,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
                 actionParam.notification = testNotification;
 
-                var result = workflowEngine.resolve(host, instance.getId(), Action.BACK, "operator-3", actionParam);
+                var result = processEngine.resolve(host, instance.getId(), Action.BACK, "operator-3", actionParam);
 
                 instance = result.instance;
 
@@ -891,7 +891,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
                 assertThat(testNotification.result).isEqualTo("");
 
-                var result2 = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-2", actionParam);
+                var result2 = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-2", actionParam);
                 instance = result2.instance;
             }
 
@@ -904,7 +904,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 actionParam.notification = testNotification;
                 actionParam.selectedSend = true;
 
-                var result = workflowEngine.resolve(host, instance.getId(), Action.BACK, "operator-3", actionParam);
+                var result = processEngine.resolve(host, instance.getId(), Action.BACK, "operator-3", actionParam);
 
                 instance = result.instance;
 
@@ -926,7 +926,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 actionParam.notification = testNotification;
                 actionParam.selectedSend = true;
 
-                var result = workflowEngine.resolve(host, instance.getId(), Action.BACK, "operator-2", actionParam);
+                var result = processEngine.resolve(host, instance.getId(), Action.BACK, "operator-2", actionParam);
 
                 instance = result.instance;
 
@@ -937,7 +937,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
                 assertThat(testNotification.result).isEqualTo("");
 
-                var result2 = workflowEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1", actionParam);
+                var result2 = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1", actionParam);
                 instance = result2.instance;
             }
 
@@ -949,7 +949,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
                 actionParam.notification = testNotification;
 
-                var result = workflowEngine.resolve(host, instance.getId(), Action.REJECT, "operator-2", actionParam);
+                var result = processEngine.resolve(host, instance.getId(), Action.REJECT, "operator-2", actionParam);
 
                 instance = result.instance;
 

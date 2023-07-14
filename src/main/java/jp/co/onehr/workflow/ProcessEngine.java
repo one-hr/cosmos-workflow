@@ -11,25 +11,25 @@ import jp.co.onehr.workflow.dto.Workflow;
 import jp.co.onehr.workflow.dto.base.SimpleData;
 import jp.co.onehr.workflow.dto.param.ActionExtendParam;
 import jp.co.onehr.workflow.dto.param.ApplicationParam;
-import jp.co.onehr.workflow.service.WorkflowEngineService;
+import jp.co.onehr.workflow.service.ProcessEngineService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Workflow engine, all operations performed on the workflow need to be done through the engine
+ * Process engine, all operations performed on the workflow need to be done through the engine
  * and cannot directly call other methods within the workflow
  */
-public class WorkflowEngine extends SimpleData {
+public class ProcessEngine extends SimpleData {
 
-    public static final Logger log = LoggerFactory.getLogger(WorkflowEngine.class);
+    public static final Logger log = LoggerFactory.getLogger(ProcessEngine.class);
 
-    private EngineConfiguration configuration;
+    private ProcessEngineConfiguration configuration;
 
-    private WorkflowEngineService service;
+    private ProcessEngineService service;
 
-    protected WorkflowEngine(EngineConfiguration configuration) {
+    protected ProcessEngine(ProcessEngineConfiguration configuration) {
         this.configuration = configuration;
-        this.service = WorkflowEngineService.getService();
+        this.service = ProcessEngineService.getService();
     }
 
     // === Workflow ===

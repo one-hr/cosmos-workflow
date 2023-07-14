@@ -26,11 +26,11 @@ import org.slf4j.LoggerFactory;
  * Once the configuration is complete, the workflow engine can be built
  * the engine can only be constructed through the configuration class
  */
-public class EngineConfiguration {
+public class ProcessEngineConfiguration {
 
-    public final static Logger log = LoggerFactory.getLogger(EngineConfiguration.class);
+    public final static Logger log = LoggerFactory.getLogger(ProcessEngineConfiguration.class);
 
-    private static final EngineConfiguration singleton = new EngineConfiguration();
+    private static final ProcessEngineConfiguration singleton = new ProcessEngineConfiguration();
 
     /**
      * host -> database
@@ -50,11 +50,11 @@ public class EngineConfiguration {
 
     private NotificationSender notificationSender;
 
-    private EngineConfiguration() {
+    private ProcessEngineConfiguration() {
 
     }
 
-    public static EngineConfiguration getConfiguration() {
+    public static ProcessEngineConfiguration getConfiguration() {
         return singleton;
     }
 
@@ -63,8 +63,8 @@ public class EngineConfiguration {
      *
      * @return
      */
-    public WorkflowEngine buildEngine() {
-        return new WorkflowEngine(this);
+    public ProcessEngine buildEngine() {
+        return new ProcessEngine(this);
     }
 
     // === Configuration and registration for Cosmos DB ===
