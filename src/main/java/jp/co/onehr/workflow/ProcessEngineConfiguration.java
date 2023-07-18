@@ -2,6 +2,7 @@ package jp.co.onehr.workflow;
 
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,6 +15,7 @@ import jp.co.onehr.workflow.contract.notification.Notification;
 import jp.co.onehr.workflow.contract.notification.NotificationSender;
 import jp.co.onehr.workflow.contract.operator.OperatorService;
 import jp.co.onehr.workflow.contract.plugin.WorkflowPlugin;
+import jp.co.onehr.workflow.contract.restriction.ActionRestriction;
 import jp.co.onehr.workflow.dto.ApprovalStatus;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
@@ -44,11 +46,22 @@ public class ProcessEngineConfiguration {
 
     private OperatorService operatorService;
 
+    /**
+     * Customized plugins available for the workflow.
+     */
     private Map<String, WorkflowPlugin> pluginCache = Maps.newHashMap();
 
     private Set<String> skipNodeTypes = Sets.newHashSet(NodeType.RobotNode.name());
 
+    /**
+     * Customized sending message notification functionality.
+     */
     private NotificationSender notificationSender;
+
+    /**
+     * Customized instance action restrictions.
+     */
+    private ActionRestriction actionRestriction;
 
     private ProcessEngineConfiguration() {
 
@@ -116,13 +129,6 @@ public class ProcessEngineConfiguration {
         return parallelApprovalMap;
     }
 
-    public Set<Action> handleAllowingActionsByOperator(Definition definition, Instance instance, Set<Action> actions, String operatorId) {
-        if (operatorService != null) {
-            return operatorService.handleAllowingActions(definition, instance, actions, operatorId);
-        }
-        return actions;
-    }
-
     // === Configuration and registration for plugin ===
 
     public void registerPlugin(WorkflowPlugin plugin) {
@@ -152,6 +158,19 @@ public class ProcessEngineConfiguration {
         if (notificationSender != null) {
             notificationSender.sendNotification(instance, action, notification);
         }
+    }
+
+    // === Configuration and registration for Action Restriction ===
+    public void registerActionRestriction(ActionRestriction restriction) {
+        this.actionRestriction = restriction;
+    }
+
+    public Set<Action> generateCustomRemovalActionsByOperator(Definition definition, Instance instance, String operatorId) {
+        var actions = new HashSet<Action>();
+        if (actionRestriction != null) {
+            actions.addAll(actionRestriction.generateCustomRemovalActionsByOperator(definition, instance, operatorId));
+        }
+        return actions;
     }
 
 }

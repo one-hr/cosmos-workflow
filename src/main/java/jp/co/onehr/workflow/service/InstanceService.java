@@ -1,5 +1,6 @@
 package jp.co.onehr.workflow.service;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -121,6 +122,10 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         if (result.withdraw) {
             delete(host, updatedInstance.id);
         } else {
+            // If the instance reaches the last node, the status is changed to Approved.
+            if (NodeService.isLastNode(definition, updatedInstance.nodeId)) {
+                updatedInstance.status = Status.APPROVED;
+            }
             result.instance = super.update(host, updatedInstance);
         }
 
@@ -139,25 +144,128 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
     public void setAllowingActions(Definition definition, Instance instance, String operatorId) {
         instance.allowingActions.clear();
 
-        var actions = setOperatorBasicAllowingActions(definition, instance, operatorId);
-
         var configuration = ProcessEngineConfiguration.getConfiguration();
-        actions = configuration.handleAllowingActionsByOperator(definition, instance, actions, operatorId);
+
+        var actions = generateActionsByStatus(instance);
+
+        var customRemovalActions = configuration.generateCustomRemovalActionsByOperator(definition, instance, operatorId);
+        actions.removeAll(customRemovalActions);
+
+        var removalActions = generateRemovalActionsByOperator(definition, instance, operatorId);
+        actions.removeAll(removalActions);
 
         instance.allowingActions.addAll(actions);
     }
 
+
     /**
-     * The basic action rules for an instance.
+     * Set action permissions entry point
+     * Generate all available actions based on the status
+     * Subsequent methods only allow deletion of actions and do not allow adding new actions
+     *
+     * @param instance
+     * @return
+     */
+    private Set<Action> generateActionsByStatus(Instance instance) {
+        var actions = new HashSet<Action>();
+        var status = instance.status;
+        switch (status) {
+            case PROCESSING -> {
+                actions.add(Action.SAVE);
+                actions.add(Action.NEXT);
+                actions.add(Action.BACK);
+                actions.add(Action.CANCEL);
+                actions.add(Action.REJECT);
+                actions.add(Action.WITHDRAW);
+                actions.add(Action.RETRIEVE);
+            }
+            case REJECTED -> {
+                actions.add(Action.CANCEL);
+                actions.add(Action.WITHDRAW);
+                actions.add(Action.APPLY);
+            }
+            case CANCELED -> {
+                actions.add(Action.WITHDRAW);
+                actions.add(Action.APPLY);
+            }
+            case APPROVED -> {
+                actions.add(Action.CANCEL);
+                actions.add(Action.WITHDRAW);
+                actions.add(Action.RETRIEVE);
+            }
+            case FINISHED -> {
+            }
+        }
+        return Sets.newHashSet(actions);
+    }
+
+    /**
+     * Generating the most basic action that needs to be removed
      *
      * @param definition
      * @param instance
      * @param operatorId
      * @return
      */
-    private Set<Action> setOperatorBasicAllowingActions(Definition definition, Instance instance, String operatorId) {
-        // TODO SC_SAAS-15115
-        return Sets.newHashSet();
+    private Set<Action> generateRemovalActionsByOperator(Definition definition, Instance instance, String operatorId) {
+        var actions = new HashSet<Action>();
+
+        var status = instance.status;
+        switch (status) {
+            case PROCESSING -> {
+                actions.add(Action.RETRIEVE);
+
+                //If it is the first node, back and retrieve action is not allowed.
+                if (NodeService.isFirstNode(definition, instance.nodeId)) {
+                    actions.add(Action.BACK);
+                }
+
+                // If it is the last node, next action is not allowed.
+                if (NodeService.isLastNode(definition, instance.nodeId)) {
+                    actions.add(Action.NEXT);
+                }
+
+                var currentNode = NodeService.getNodeByNodeId(definition, instance.nodeId);
+
+                if (NodeService.isManualNode(currentNode.getType())) {
+                    // If the current operator is not one of the allowed operators for the instance,
+                    // all actions are not available for use.
+                    if (!instance.expandOperatorIdSet.contains(operatorId)) {
+                        actions.addAll(List.of(Action.values()));
+                        // If the operator has the permission to retrieve the instance, the retrieve action is not removed.
+                        if (isRetrieveOperator(definition, instance, operatorId)) {
+                            actions.remove(Action.RETRIEVE);
+                        }
+                    }
+                }
+            }
+            case REJECTED, CANCELED -> {
+                // Only the applicant or the proxy applicant can perform actions in the Rejected and Canceled states.
+                if (!isInstanceApplicant(instance, operatorId)) {
+                    actions.addAll(List.of(Action.values()));
+                }
+                // todo Rejection and cancellation handling involves returning to the first node.
+                //  If the first node's operator is not the applicant, the handling for the first node's operator needs to be determined.
+            }
+            case APPROVED -> {
+
+                actions.add(Action.RETRIEVE);
+
+                // Only the applicant/proxy applicant can cancel or delete the instance in the approved status
+                if (!isInstanceApplicant(instance, operatorId)) {
+                    actions.add(Action.CANCEL);
+                    actions.add(Action.WITHDRAW);
+                }
+                // If the operator has the permission to retrieve the instance, the retrieve action is not removed.
+                if (isRetrieveOperator(definition, instance, operatorId)) {
+                    actions.remove(Action.RETRIEVE);
+                }
+            }
+            //No actions are allowed in the finished status
+            case FINISHED -> actions.addAll(List.of(Action.values()));
+        }
+
+        return Sets.newHashSet(actions);
     }
 
     /**
@@ -187,4 +295,19 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         }
     }
 
+    // To determine if the operator is the applicant of the instance.
+    private boolean isInstanceApplicant(Instance instance, String operatorId) {
+        if (operatorId.equals(instance.applicant)) {
+            return true;
+        }
+        if (operatorId.equals(instance.proxyApplicant)) {
+            return true;
+        }
+        return false;
+    }
+
+    // todo To determine if the operator is eligible to retrieve the instance
+    private boolean isRetrieveOperator(Definition definition, Instance instance, String operatorId) {
+        return false;
+    }
 }

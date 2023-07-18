@@ -3,10 +3,7 @@ package jp.co.onehr.workflow.contract.operator;
 import java.util.Map;
 import java.util.Set;
 
-import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.dto.ApprovalStatus;
-import jp.co.onehr.workflow.dto.Definition;
-import jp.co.onehr.workflow.dto.Instance;
 
 public interface OperatorService {
 
@@ -36,14 +33,4 @@ public interface OperatorService {
      */
     Map<String, ApprovalStatus> handleParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds);
 
-    /**
-     * Custom handling of actions allowed in a workflow instance
-     *
-     * @param definition
-     * @param instance
-     * @param actions
-     * @param operatorId
-     * @return
-     */
-    Set<Action> handleAllowingActions(Definition definition, Instance instance, Set<Action> actions, String operatorId);
 }
