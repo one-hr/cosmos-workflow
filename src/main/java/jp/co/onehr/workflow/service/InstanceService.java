@@ -8,12 +8,14 @@ import com.google.common.collect.Sets;
 import io.github.thunderz99.cosmos.condition.Condition;
 import jp.co.onehr.workflow.ProcessEngineConfiguration;
 import jp.co.onehr.workflow.constant.Action;
+import jp.co.onehr.workflow.constant.ApplicationMode;
 import jp.co.onehr.workflow.constant.Status;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.contract.notification.Notification;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
+import jp.co.onehr.workflow.dto.OperateLog;
 import jp.co.onehr.workflow.dto.base.DeletedObject;
 import jp.co.onehr.workflow.dto.node.Node;
 import jp.co.onehr.workflow.dto.param.ActionExtendParam;
@@ -87,6 +89,18 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         firstNode.resetCurrentOperators(instance);
         firstNode.handleFirstNode(definition, instance);
 
+        var operateLog = new OperateLog();
+        operateLog.nodeId = firstNode.nodeId;
+        operateLog.nodeName = firstNode.nodeName;
+        operateLog.nodeType = firstNode.getClass().getSimpleName();
+        operateLog.statusBefore = Status.NEW;
+        operateLog.operatorId = ApplicationMode.SELF.equals(param.applicationMode) ? param.applicant : param.proxyApplicant;
+        operateLog.action = Action.APPLY;
+        operateLog.statusAfter = Status.PROCESSING;
+        operateLog.comment = param.comment;
+        operateLog.businessParam = param.businessParam;
+        instance.operateLogList.add(operateLog);
+
         return super.create(host, instance);
     }
 
@@ -108,12 +122,11 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
 
         var configuration = ProcessEngineConfiguration.getConfiguration();
 
-        // TODO required checking. fail-fast
         var existNode = NodeService.getNodeByInstance(definition, existInstance);
 
         var result = action.execute(definition, existInstance, operatorId, extendParam);
 
-        result = recursiveInstance(definition, result, action, operatorId, extendParam, 0);
+        result = recursiveInstance(definition, existInstance.status, result, action, operatorId, extendParam, 0);
 
         var updatedInstance = result.instance;
 
@@ -121,9 +134,12 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         if (result.withdraw) {
             delete(host, updatedInstance.id);
         } else {
+
             // If the instance reaches the last node, the status is changed to Approved.
             if (NodeService.isLastNode(definition, updatedInstance.nodeId)) {
                 updatedInstance.status = Status.APPROVED;
+                var operateLogList = updatedInstance.operateLogList;
+                operateLogList.get(operateLogList.size() - 1).statusAfter = Status.APPROVED;
             }
             result.instance = super.update(host, updatedInstance);
         }
@@ -145,7 +161,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
      * @param count
      * @return
      */
-    private ActionResult recursiveInstance(Definition definition, ActionResult actionResult, Action action,
+    private ActionResult recursiveInstance(Definition definition, Status currentStatus, ActionResult actionResult, Action action,
                                            String operatorId, ActionExtendParam extendParam, int count) {
         var instance = actionResult.instance;
 
@@ -158,8 +174,8 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         }
 
         if (CollectionUtils.isEmpty(instance.expandOperatorIdSet) && recursiveAction.contains(action)) {
-            actionResult = action.executeWithoutCheck(definition, instance, operatorId, extendParam);
-            return recursiveInstance(definition, actionResult, action, operatorId, extendParam, ++count);
+            actionResult = action.executeWithoutCheck(definition, currentStatus, instance, operatorId, extendParam);
+            return recursiveInstance(definition, currentStatus, actionResult, action, operatorId, extendParam, ++count);
         }
 
         return actionResult;

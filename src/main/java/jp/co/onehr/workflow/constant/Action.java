@@ -4,6 +4,8 @@ package jp.co.onehr.workflow.constant;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
+import jp.co.onehr.workflow.dto.OperateLog;
+import jp.co.onehr.workflow.dto.node.Node;
 import jp.co.onehr.workflow.dto.param.ActionExtendParam;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import jp.co.onehr.workflow.service.ActionStrategy;
@@ -82,10 +84,10 @@ public enum Action {
             throw new WorkflowException(WorkflowErrors.NODE_ACTION_INVALID, "The current action is not allowed at the node for the instance", instance.getId());
         }
 
-        return executeWithoutCheck(definition, instance, operatorId, extendParam);
+        return executeWithoutCheck(definition, existInstance.status, instance, operatorId, extendParam);
     }
 
-    public ActionResult executeWithoutCheck(Definition definition, Instance instance, String operatorId, ActionExtendParam extendParam) {
+    public ActionResult executeWithoutCheck(Definition definition, Status currentStatus, Instance instance, String operatorId, ActionExtendParam extendParam) {
         var actionResult = strategy.execute(definition, instance, operatorId, extendParam);
 
         var currentNode = NodeService.getNodeByNodeId(definition, instance.nodeId);
@@ -102,9 +104,23 @@ public enum Action {
             currentNode.resetCurrentOperators(instance);
         }
 
+        generateOperateLog(operatorId, extendParam, currentStatus, currentNode, instance);
         actionResult.instance = instance;
 
         return actionResult;
     }
 
+    private void generateOperateLog(String operatorId, ActionExtendParam extendParam, Status currentStatus, Node currentNode, Instance updatedInstance) {
+        var operateLog = new OperateLog();
+        operateLog.nodeId = currentNode.nodeId;
+        operateLog.nodeName = currentNode.nodeName;
+        operateLog.nodeType = currentNode.getType();
+        operateLog.statusBefore = currentStatus;
+        operateLog.operatorId = operatorId;
+        operateLog.action = this;
+        operateLog.statusAfter = updatedInstance.status;
+        operateLog.comment = extendParam != null ? extendParam.comment : operateLog.comment;
+        operateLog.businessParam = extendParam != null ? extendParam.businessParam : null;
+        updatedInstance.operateLogList.add(operateLog);
+    }
 }

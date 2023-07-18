@@ -3,6 +3,7 @@ package jp.co.onehr.workflow.dto.param;
 
 import jp.co.onehr.workflow.constant.BackMode;
 import jp.co.onehr.workflow.contract.notification.Notification;
+import jp.co.onehr.workflow.contract.plugin.BusinessParam;
 import jp.co.onehr.workflow.contract.plugin.PluginParam;
 import jp.co.onehr.workflow.dto.base.SimpleData;
 
@@ -36,6 +37,16 @@ public class ActionExtendParam extends SimpleData {
      * Content of the message notification
      */
     public Notification notification;
+
+    /**
+     * comment
+     */
+    public String comment = "";
+
+    /**
+     * business param
+     */
+    public BusinessParam businessParam;
 
     public ActionExtendParam() {
 

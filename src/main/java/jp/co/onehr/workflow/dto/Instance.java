@@ -1,8 +1,10 @@
 package jp.co.onehr.workflow.dto;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import jp.co.onehr.workflow.constant.Action;
@@ -87,6 +89,8 @@ public class Instance extends BaseData {
      * The available actions that can be used in a workflow instance
      */
     public Set<Action> allowingActions = Sets.newHashSet();
+
+    public List<OperateLog> operateLogList = Lists.newArrayList();
 
     public Instance() {
 
