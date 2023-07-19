@@ -51,7 +51,7 @@ public class BackService implements ActionStrategy {
             var backNode = nodes.get(currentNodeIndex - 1);
             instance.nodeId = backNode.nodeId;
         } else {
-            // todo
+            // todo add a restriction where you can only go back to a previous node
             var backNode = NodeService.getNodeByNodeId(definition, backStepId);
             instance.nodeId = backNode.nodeId;
         }

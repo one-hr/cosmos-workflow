@@ -53,7 +53,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(instance.operatorOrgIdSet).isEmpty();
                 assertThat(instance.applicant).isEqualTo("operator-1");
                 assertThat(instance.applicationMode).isEqualTo(ApplicationMode.SELF);
-                assertThat(instance.status).isEqualTo(Status.FINISHED);
+                assertThat(instance.status).isEqualTo(Status.APPROVED);
 
                 var node = NodeService.getNodeByNodeId(definition, instance.nodeId);
                 assertThat(node.getType()).isEqualTo(NodeType.EndNode.name());
@@ -642,6 +642,9 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             definition = processEngine.getCurrentDefinition(host, workflow.id, 1);
 
+            var startNode = definition.nodes.get(0);
+            var endNode = definition.nodes.get(definition.nodes.size() - 1);
+
             var param = new ApplicationParam();
             param.workflowId = workflow.id;
             param.applicant = "operator-1";
@@ -657,10 +660,11 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             assertThat(instance.status).isEqualTo(Status.PROCESSING);
             assertThat(instance.nodeId).isEqualTo(singleNode1.nodeId);
 
-            // test The single node only allows the "next" action.
+            // processing status
             {
+                // first node
                 var result = processEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
-                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.NEXT, Action.CANCEL, Action.REJECT);
+                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.NEXT, Action.CANCEL, Action.REJECT, Action.WITHDRAW);
 
                 assertThatThrownBy(() -> processEngine.resolve(host, instance.getId(), Action.BACK, "operator-1"))
                         .isInstanceOf(WorkflowException.class)
@@ -676,6 +680,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
                 processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1");
 
+                // second node not operator
                 var result2 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
                 assertThat(result2.definitionId).isEqualTo(definition.id);
                 assertThat(result2.nodeId).isEqualTo(multipleNode2.nodeId);
@@ -687,6 +692,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result2.status).isEqualTo(Status.PROCESSING);
                 assertThat(result2.allowingActions).isEmpty();
 
+                // second node operator
                 var result3 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
                 assertThat(result3.definitionId).isEqualTo(definition.id);
                 assertThat(result3.nodeId).isEqualTo(multipleNode2.nodeId);
@@ -696,31 +702,74 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result3.applicant).isEqualTo("operator-1");
                 assertThat(result3.applicationMode).isEqualTo(ApplicationMode.SELF);
                 assertThat(result3.status).isEqualTo(Status.PROCESSING);
-                assertThat(result3.allowingActions).containsExactlyInAnyOrder(Action.NEXT, Action.BACK, Action.SAVE, Action.REJECT, Action.CANCEL);
+                assertThat(result3.allowingActions).containsExactlyInAnyOrder(Action.NEXT, Action.BACK, Action.SAVE, Action.REJECT, Action.CANCEL, Action.WITHDRAW);
 
                 processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-3");
             }
 
-            // test The single node only allows the "back" action.
+            // approved status
             {
+                // end node applicant
                 var result = processEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
-                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.BACK, Action.CANCEL, Action.REJECT);
+                assertThat(result.nodeId).isEqualTo(endNode.nodeId);
+                assertThat(result.status).isEqualTo(Status.APPROVED);
+                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.CANCEL, Action.WITHDRAW);
 
+                // end node not applicant
                 var result2 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
-                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.BACK, Action.CANCEL, Action.REJECT);
+                assertThat(result2.nodeId).isEqualTo(endNode.nodeId);
+                assertThat(result2.status).isEqualTo(Status.APPROVED);
+                assertThat(result2.allowingActions).isEmpty();
+            }
 
-                processEngine.resolve(host, instance.getId(), Action.BACK, "operator-1");
+            // instance 2
+            var param2 = new ApplicationParam();
+            param2.workflowId = workflow.id;
+            param2.applicant = "operator-second-1";
+            var instance2 = processEngine.startInstance(host, param2);
 
-                var result3 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
-                assertThat(result3.definitionId).isEqualTo(definition.id);
-                assertThat(result3.nodeId).isEqualTo(multipleNode2.nodeId);
-                assertThat(result3.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
-                assertThat(result3.operatorOrgIdSet).isEmpty();
-                assertThat(result3.expandOperatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
-                assertThat(result3.applicant).isEqualTo("operator-1");
-                assertThat(result3.applicationMode).isEqualTo(ApplicationMode.SELF);
-                assertThat(result3.status).isEqualTo(Status.PROCESSING);
-                assertThat(result3.allowingActions).containsExactlyInAnyOrder(Action.NEXT, Action.BACK, Action.SAVE, Action.CANCEL, Action.REJECT);
+            assertThat(instance2.workflowId).isEqualTo(workflow.id);
+            assertThat(instance2.definitionId).isEqualTo(definition.id);
+            assertThat(instance2.operatorIdSet).containsExactlyInAnyOrder("operator-1");
+            assertThat(instance2.operatorOrgIdSet).isEmpty();
+            assertThat(instance2.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1");
+            assertThat(instance2.applicant).isEqualTo("operator-second-1");
+            assertThat(instance2.applicationMode).isEqualTo(ApplicationMode.SELF);
+            assertThat(instance2.status).isEqualTo(Status.PROCESSING);
+            assertThat(instance2.nodeId).isEqualTo(singleNode1.nodeId);
+
+            // rejected status
+            {
+                processEngine.resolve(host, instance2.getId(), Action.REJECT, "operator-1");
+
+                // operator not application
+                var result = processEngine.getInstanceWithOps(host, instance2.getId(), "operator-1");
+                assertThat(result.status).isEqualTo(Status.REJECTED);
+                assertThat(result.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result.allowingActions).isEmpty();
+
+                // application
+                var result2 = processEngine.getInstanceWithOps(host, instance2.getId(), "operator-second-1");
+                assertThat(result2.status).isEqualTo(Status.REJECTED);
+                assertThat(result2.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result2.allowingActions).containsExactlyInAnyOrder(Action.WITHDRAW, Action.CANCEL, Action.APPLY);
+            }
+
+            // canceled status
+            {
+                processEngine.resolve(host, instance2.getId(), Action.CANCEL, "operator-second-1");
+
+                // operator not application
+                var result = processEngine.getInstanceWithOps(host, instance2.getId(), "operator-1");
+                assertThat(result.status).isEqualTo(Status.CANCELED);
+                assertThat(result.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result.allowingActions).isEmpty();
+
+                // application
+                var result2 = processEngine.getInstanceWithOps(host, instance2.getId(), "operator-second-1");
+                assertThat(result2.status).isEqualTo(Status.CANCELED);
+                assertThat(result2.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result2.allowingActions).containsExactlyInAnyOrder(Action.WITHDRAW, Action.APPLY);
             }
         } finally {
             WorkflowService.singleton.purge(host, workflow.id);
@@ -783,7 +832,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             processEngine.resolve(host, instance.getId(), Action.CANCEL, "operator-2", null);
 
-            processEngine.resolve(host, instance.getId(), Action.WITHDRAW, "operator-2", null);
+            processEngine.resolve(host, instance.getId(), Action.WITHDRAW, "operator-1", null);
 
             var withdrawalInstance = processEngine.getInstance(host, instance.getId());
             assertThat(withdrawalInstance).isNull();

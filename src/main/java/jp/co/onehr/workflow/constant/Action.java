@@ -21,10 +21,12 @@ public enum Action {
      * Keep the instance at the current node
      */
     SAVE(new SaveService()),
+
     /**
      * Move the instance from the current node to the next node
      */
     NEXT(new NextService()),
+
     /**
      * Move the instance back to the previous node from the current node
      */
@@ -43,7 +45,18 @@ public enum Action {
     /**
      * Withdraw. Withdraw instance means the instance data will be deleted immediately
      */
-    WITHDRAW(new WithdrawalService());
+    WITHDRAW(new WithdrawalService()),
+
+    /**
+     * Retrieve. The operator of the previous node can retrieve their own instance.
+     */
+    RETRIEVE(new RetrieveService()),
+
+    /**
+     * Handling of the apply action to transition the instance from "REJECTED" or "CANCELED" to a "PROCESSING" status
+     */
+    APPLY(new ApplyService());
+
 
     private final ActionStrategy strategy;
 
@@ -57,7 +70,7 @@ public enum Action {
     public ActionResult execute(Definition definition, Instance existInstance, String operatorId, ActionExtendParam extendParam) {
 
         Instance instance = existInstance.copy();
-        
+
         if (StringUtils.isEmpty(operatorId)) {
             throw new WorkflowException(WorkflowErrors.INSTANCE_OPERATOR_INVALID, "The operator of the instance cannot be empty", instance.getId());
         }

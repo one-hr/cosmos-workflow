@@ -3,6 +3,7 @@ package jp.co.onehr.workflow.service;
 
 import java.util.List;
 
+import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.node.Node;
@@ -84,4 +85,10 @@ public class NodeService {
         return allNodes.get(allNodes.size() - 1).nodeId.equals(nodeId);
     }
 
+    public static boolean isManualNode(String type) {
+        if (NodeType.SingleNode.isEqual(type) || NodeType.MultipleNode.isEqual(type)) {
+            return true;
+        }
+        return false;
+    }
 }

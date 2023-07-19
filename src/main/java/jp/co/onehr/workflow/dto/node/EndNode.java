@@ -20,14 +20,14 @@ public class EndNode extends Node {
     /**
      * If the type of the first node is endNode
      * it means that the workflow directly reaches the last node
-     * Modify the instance status to Finished
+     * Modify the instance status to Approved
      *
      * @param definition
      * @param instance
      */
     @Override
     public void handleFirstNode(Definition definition, Instance instance) {
-        instance.status = Status.FINISHED;
+        instance.status = Status.APPROVED;
     }
 
     @Override
