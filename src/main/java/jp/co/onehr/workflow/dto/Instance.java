@@ -34,6 +34,11 @@ public class Instance extends BaseData {
     public String nodeId = "";
 
     /**
+     * The ID of the previous manual node.
+     */
+    public String preNodeId = "";
+
+    /**
      * IDs of all operable operators for the current node of the instance
      */
     public Set<String> operatorIdSet = Sets.newHashSet();
@@ -47,6 +52,11 @@ public class Instance extends BaseData {
      * Expand the operation organization into operators and merge it with all operator IDs
      */
     public Set<String> expandOperatorIdSet = Sets.newHashSet();
+
+    /**
+     * The collection of operator IDs from the previous manual node
+     */
+    public Set<String> preExpandOperatorIdSet = Sets.newHashSet();
 
     /**
      * Application mode of the instance, whether it is a proxy application

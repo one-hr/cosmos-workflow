@@ -1,5 +1,8 @@
 package jp.co.onehr.workflow.dto.node;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import jp.co.onehr.workflow.ProcessEngineConfiguration;
 import jp.co.onehr.workflow.dto.Instance;
 import org.apache.commons.collections4.CollectionUtils;
@@ -26,14 +29,15 @@ public class SingleNode extends ManualNode {
     }
 
     @Override
-    public void resetCurrentOperators(Instance instance) {
+    public Set<String> resetCurrentOperators(Instance instance) {
         clearOperators(instance);
         instance.operatorIdSet.add(this.operatorId);
 
+        var expandOperatorIds = new HashSet<String>();
         if (CollectionUtils.isNotEmpty(instance.operatorIdSet)) {
-            var expandOperatorIds = ProcessEngineConfiguration.getConfiguration().handleExpandOperators(instance.operatorIdSet);
+            expandOperatorIds.addAll(ProcessEngineConfiguration.getConfiguration().handleExpandOperators(instance.operatorIdSet));
             instance.expandOperatorIdSet.addAll(expandOperatorIds);
         }
-
+        return expandOperatorIds;
     }
 }

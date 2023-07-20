@@ -79,7 +79,7 @@ public abstract class Node extends SimpleData {
      * @param instance
      * @return
      */
-    public abstract void resetCurrentOperators(Instance instance);
+    public abstract Set<String> resetCurrentOperators(Instance instance);
 
     /**
      * Clear all operators of the instance.
@@ -101,5 +101,5 @@ public abstract class Node extends SimpleData {
             return NotificationMode.NEVER;
         }
     }
-    
+
 }

@@ -86,6 +86,15 @@ public enum Action {
 
         var currentNode = NodeService.getNodeByNodeId(definition, instance.nodeId);
         if (actionResult.resetOperator) {
+            instance.preNodeId = "";
+            instance.preExpandOperatorIdSet.clear();
+
+            var previousNodeInfo = NodeService.getPreviousNodeInfo(definition, instance);
+            if (!previousNodeInfo.isEmpty()) {
+                instance.preNodeId = previousNodeInfo.nodeId;
+                instance.preExpandOperatorIdSet.addAll(previousNodeInfo.expandOperatorIdSet);
+            }
+
             currentNode.resetCurrentOperators(instance);
         }
 

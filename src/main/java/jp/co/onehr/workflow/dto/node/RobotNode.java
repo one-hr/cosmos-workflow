@@ -1,5 +1,8 @@
 package jp.co.onehr.workflow.dto.node;
 
+import java.util.Set;
+
+import com.google.common.collect.Sets;
 import jp.co.onehr.workflow.dto.Instance;
 
 /**
@@ -16,7 +19,8 @@ public class RobotNode extends Node {
     }
 
     @Override
-    public void resetCurrentOperators(Instance instance) {
+    public Set<String> resetCurrentOperators(Instance instance) {
         clearOperators(instance);
+        return Sets.newHashSet();
     }
 }
