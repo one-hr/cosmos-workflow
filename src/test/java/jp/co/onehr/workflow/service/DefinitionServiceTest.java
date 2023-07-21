@@ -116,7 +116,9 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
                 var definition = definitions.get(0);
                 assertThat(definition.nodes).hasSize(2);
 
-                definition.nodes.add(1, new SingleNode("DEFAULT_SINGLE_NODE_NAME-1"));
+                var singleNode = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+                singleNode.operatorId = "operator-1";
+                definition.nodes.add(1, singleNode);
                 getService().upsert(host, definition);
 
                 workflow = processEngine.getWorkflow(host, workflow.getId());
@@ -141,7 +143,9 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
                 var definition = definitions.get(0);
                 assertThat(definition.nodes).hasSize(3);
 
-                definition.nodes.add(2, new SingleNode("DEFAULT_SINGLE_NODE_NAME-2"));
+                var singleNode = new SingleNode("DEFAULT_SINGLE_NODE_NAME-2");
+                singleNode.operatorId = "operator-2";
+                definition.nodes.add(2, singleNode);
                 getService().upsert(host, definition);
 
                 workflow = processEngine.getWorkflow(host, workflow.getId());
@@ -271,8 +275,6 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
         {
             definition.nodes.clear();
             definition.nodes.add(new StartNode(DEFAULT_START_NODE_NAME));
-            definition.nodes.add(new SingleNode("DEFAULT_SINGLE_NODE_NAME-1"));
-            definition.nodes.add(new SingleNode("DEFAULT_SINGLE_NODE_NAME-2"));
             definition.nodes.add(new EndNode(DEFAULT_END_NODE_NAME));
             definition.nodes.add(new EndNode(DEFAULT_END_NODE_NAME));
             assertThatThrownBy(() -> getService().checkNodes(definition))

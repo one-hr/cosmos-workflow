@@ -82,6 +82,11 @@ public abstract class Node extends SimpleData {
     public abstract Set<String> resetCurrentOperators(Instance instance);
 
     /**
+     * Node settings validation
+     */
+    public abstract void checkNodeSetting();
+
+    /**
      * Clear all operators of the instance.
      *
      * @param instance

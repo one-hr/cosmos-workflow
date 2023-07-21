@@ -39,6 +39,10 @@ public enum WorkflowErrors implements ErrorInterface {
      */
     INSTANCE_NOT_EXIST(404),
     /**
+     * instance invalid
+     */
+    INSTANCE_INVALID(404),
+    /**
      * The movement action used by the node is invalid
      */
     NODE_ACTION_INVALID(400),
@@ -54,6 +58,10 @@ public enum WorkflowErrors implements ErrorInterface {
      * The node type in the workflow is invalid.
      */
     NODE_TYPE_INVALID(400),
+    /**
+     * The node configuration is invalid.
+     */
+    NODE_SETTING_INVALID(400),
     /**
      * The node type does not match the type in the system
      */

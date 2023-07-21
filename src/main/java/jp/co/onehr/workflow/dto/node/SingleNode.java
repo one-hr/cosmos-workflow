@@ -4,8 +4,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 import jp.co.onehr.workflow.ProcessEngineConfiguration;
+import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dto.Instance;
+import jp.co.onehr.workflow.exception.WorkflowException;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Single-user node
@@ -39,5 +42,12 @@ public class SingleNode extends ManualNode {
             instance.expandOperatorIdSet.addAll(expandOperatorIds);
         }
         return expandOperatorIds;
+    }
+
+    @Override
+    public void checkNodeSetting() {
+        if (StringUtils.isEmpty(operatorId)) {
+            throw new WorkflowException(WorkflowErrors.NODE_SETTING_INVALID, "The operator of a single node cannot be empty", nodeName);
+        }
     }
 }
