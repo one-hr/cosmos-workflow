@@ -68,7 +68,8 @@ public class ProcessEngineService {
     }
 
     public Instance getInstance(String host, String instanceId) throws Exception {
-        return InstanceService.singleton.readSuppressing404(host, instanceId);
+        Instance instance = InstanceService.singleton.readSuppressing404(host, instanceId);
+        return instance;
     }
 
     /**
@@ -84,6 +85,7 @@ public class ProcessEngineService {
         var instance = InstanceService.singleton.readSuppressing404(host, instanceId);
         var definition = DefinitionService.singleton.getDefinition(host, instance.definitionId);
         InstanceService.singleton.setAllowingActions(definition, instance, operatorId);
+
         return instance;
     }
 
@@ -92,6 +94,7 @@ public class ProcessEngineService {
     }
 
     public List<Instance> findInstances(String host, Condition cond) throws Exception {
-        return InstanceService.singleton.find(host, cond);
+        List<Instance> instances = InstanceService.singleton.find(host, cond);
+        return instances;
     }
 }
