@@ -6,7 +6,9 @@ import java.util.Set;
 import com.azure.cosmos.implementation.guava25.collect.Sets;
 import jp.co.onehr.workflow.ProcessEngineConfiguration;
 import jp.co.onehr.workflow.constant.ApprovalType;
+import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dto.Instance;
+import jp.co.onehr.workflow.exception.WorkflowException;
 import org.apache.commons.collections4.CollectionUtils;
 
 import static jp.co.onehr.workflow.constant.ApprovalType.OR;
@@ -96,4 +98,13 @@ public class MultipleNode extends ManualNode {
 
         return expandOperatorIds;
     }
+
+    @Override
+    public void checkNodeSetting() {
+        if (CollectionUtils.isEmpty(operatorIdSet) && CollectionUtils.isEmpty(operatorOrgIdSet)) {
+            throw new WorkflowException(WorkflowErrors.NODE_SETTING_INVALID,
+                    "The node's operator and operator organization cannot both be empty.", nodeName);
+        }
+    }
+
 }

@@ -9,6 +9,7 @@ import jp.co.onehr.workflow.dto.param.ActionExtendParam;
 import jp.co.onehr.workflow.service.ApprovalStrategy;
 import jp.co.onehr.workflow.service.PluginService;
 import jp.co.onehr.workflow.service.action.NextService;
+import org.apache.commons.lang3.ObjectUtils;
 
 public class SimpleNextService extends NextService implements ApprovalStrategy {
 
@@ -21,8 +22,10 @@ public class SimpleNextService extends NextService implements ApprovalStrategy {
         // only the robot node supports the use of plugins for processing during the next action.
         switch (currentNodeType) {
             case RobotNode -> {
-                var pluginResultMap = PluginService.singleton.processPlugin(node, extendParam.pluginParam);
-                result.pluginResult.putAll(pluginResultMap);
+                if (ObjectUtils.isNotEmpty(extendParam)) {
+                    var pluginResultMap = PluginService.singleton.processPlugin(node, extendParam.pluginParam);
+                    result.pluginResult.putAll(pluginResultMap);
+                }
                 handleSimpleNext(definition, instance);
             }
             default -> handleSimpleNext(definition, instance);

@@ -23,4 +23,9 @@ public class StartNode extends Node {
         clearOperators(instance);
         return Sets.newHashSet();
     }
+
+    @Override
+    public void checkNodeSetting() {
+        
+    }
 }

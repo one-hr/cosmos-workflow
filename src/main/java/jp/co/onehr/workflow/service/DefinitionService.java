@@ -195,6 +195,9 @@ public class DefinitionService extends BaseCRUDService<Definition> {
             if (StringUtils.isEmpty(node.nodeName)) {
                 throw new WorkflowException(WorkflowErrors.NODE_NAME_INVALID, "The name of a node cannot be empty", definition.id);
             }
+            
+            node.checkNodeSetting();
+
             if (typeSet.contains(node.getType())) {
                 if (NodeType.StartNode.isEqual(node.getType())) {
                     throw new WorkflowException(WorkflowErrors.NODE_TYPE_INVALID, "A workflow can only have one start node", definition.id);

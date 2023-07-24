@@ -139,16 +139,6 @@ public class ProcessEngineConfiguration {
         return pluginCache.get(pluginType);
     }
 
-    // === Configuration and registration for skip node type ===
-
-    public void registerSkipNodeTypes(Set<String> skipTypes) {
-        skipNodeTypes.addAll(skipTypes);
-    }
-
-    public boolean isSkipNode(String nodeType) {
-        return skipNodeTypes.contains(nodeType);
-    }
-
     // == Configuration and registration for notification sender ===
     public void registerNotificationSender(NotificationSender sender) {
         notificationSender = sender;

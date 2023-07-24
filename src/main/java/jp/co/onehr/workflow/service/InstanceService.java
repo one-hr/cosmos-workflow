@@ -20,12 +20,16 @@ import jp.co.onehr.workflow.dto.param.ActionExtendParam;
 import jp.co.onehr.workflow.dto.param.ApplicationParam;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import jp.co.onehr.workflow.service.base.BaseCRUDService;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 
 
 public class InstanceService extends BaseCRUDService<Instance> implements NotificationSendChangeable {
 
     public static final InstanceService singleton = new InstanceService();
+
+    // Enable recursive action for nodes.
+    public static final Set<Action> recursiveAction = Set.of(Action.NEXT, Action.BACK);
 
     private InstanceService() {
         super(Instance.class);
@@ -109,14 +113,9 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
 
         var result = action.execute(definition, existInstance, operatorId, extendParam);
 
+        result = recursiveInstance(definition, result, action, operatorId, extendParam, 0);
+
         var updatedInstance = result.instance;
-
-        var updatedNode = result.node;
-
-        if (configuration.isSkipNode(updatedNode.getType())) {
-            result = action.execute(definition, updatedInstance, operatorId, extendParam);
-            updatedInstance = result.instance;
-        }
 
         // Delete the instance if withdraw
         if (result.withdraw) {
@@ -132,6 +131,38 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         handleSendNotification(configuration, updatedInstance, existNode, action, extendParam);
 
         return result;
+    }
+
+    /**
+     * If there is no operator in the current node, it will move on to the next (or previous) node
+     * up to a maximum of 200 nodes for step movement.
+     *
+     * @param definition
+     * @param actionResult
+     * @param action
+     * @param operatorId
+     * @param extendParam
+     * @param count
+     * @return
+     */
+    private ActionResult recursiveInstance(Definition definition, ActionResult actionResult, Action action,
+                                           String operatorId, ActionExtendParam extendParam, int count) {
+        var instance = actionResult.instance;
+
+        if (NodeService.isLastNode(definition, instance.nodeId)) {
+            return actionResult;
+        }
+
+        if (count > 200) {
+            throw new WorkflowException(WorkflowErrors.INSTANCE_INVALID, "recursiveOperatorIds become Endless loop", instance.getId());
+        }
+
+        if (CollectionUtils.isEmpty(instance.expandOperatorIdSet) && recursiveAction.contains(action)) {
+            actionResult = action.executeWithoutCheck(definition, instance, operatorId, extendParam);
+            return recursiveInstance(definition, actionResult, action, operatorId, extendParam, ++count);
+        }
+
+        return actionResult;
     }
 
     /**

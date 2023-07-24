@@ -82,6 +82,10 @@ public enum Action {
             throw new WorkflowException(WorkflowErrors.NODE_ACTION_INVALID, "The current action is not allowed at the node for the instance", instance.getId());
         }
 
+        return executeWithoutCheck(definition, instance, operatorId, extendParam);
+    }
+
+    public ActionResult executeWithoutCheck(Definition definition, Instance instance, String operatorId, ActionExtendParam extendParam) {
         var actionResult = strategy.execute(definition, instance, operatorId, extendParam);
 
         var currentNode = NodeService.getNodeByNodeId(definition, instance.nodeId);
@@ -98,7 +102,6 @@ public enum Action {
             currentNode.resetCurrentOperators(instance);
         }
 
-        actionResult.node = currentNode;
         actionResult.instance = instance;
 
         return actionResult;

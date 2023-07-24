@@ -5,7 +5,6 @@ import java.util.Map;
 
 import com.google.common.collect.Maps;
 import jp.co.onehr.workflow.contract.plugin.PluginResult;
-import jp.co.onehr.workflow.dto.node.Node;
 
 /**
  * The execution result of the workflow action.
@@ -28,10 +27,8 @@ public class ActionResult {
     public Instance instance;
 
     /**
-     * The node where the action processing is completed
+     * Flag to indicate whether to withdraw the instance.
      */
-    public Node node;
-
     public boolean withdraw = false;
 
     public ActionResult() {

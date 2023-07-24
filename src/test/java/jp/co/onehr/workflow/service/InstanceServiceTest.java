@@ -18,6 +18,7 @@ import jp.co.onehr.workflow.dto.param.ApplicationParam;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import org.junit.jupiter.api.Test;
 
+import static jp.co.onehr.workflow.contract.operator.TestOperatorService.SKIP_OPERATOR;
 import static jp.co.onehr.workflow.service.DefinitionService.DEFAULT_END_NODE_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -614,6 +615,88 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-node-1");
                 assertThat(result1.operatorOrgIdSet).isEmpty();
                 assertThat(result1.expandOperatorIdSet).containsExactlyInAnyOrder("operator-node-1");
+                assertThat(result1.applicant).isEqualTo("operator-1");
+                assertThat(result1.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result1.status).isEqualTo(Status.PROCESSING);
+                assertThat(result1.nodeId).isEqualTo(singleNode1.nodeId);
+            }
+        } finally {
+            WorkflowService.singleton.purge(host, workflow.id);
+        }
+    }
+
+    @Test
+    void resolve_auto_skip_should_work() throws Exception {
+        var workflow = new Workflow(getUuid(), "resolve_auto_skip_should_work");
+        try {
+            workflow = processEngine.createWorkflow(host, workflow);
+            var definition = processEngine.getCurrentDefinition(host, workflow.id, 0);
+
+            var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+            singleNode1.operatorId = "operator-1";
+            definition.nodes.add(1, singleNode1);
+
+            var robotNode = new RobotNode("DEFAULT_ROBOT_NODE_NAME-2");
+            robotNode.plugins.add("TestPlugin");
+            var configMap = new HashMap<String, String>();
+            configMap.put("a", "1");
+            configMap.put("b", "2");
+            robotNode.configuration = configMap;
+            definition.nodes.add(2, robotNode);
+
+            var singleNode3 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-3");
+            singleNode3.operatorId = SKIP_OPERATOR;
+            definition.nodes.add(3, singleNode3);
+
+            var singleNode4 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-3");
+            singleNode4.operatorId = "operator-4";
+            definition.nodes.add(4, singleNode4);
+            processEngine.upsertDefinition(host, definition);
+
+            var endNode = definition.nodes.get(definition.nodes.size() - 1);
+
+            definition = processEngine.getCurrentDefinition(host, workflow.id, 1);
+
+            var param = new ApplicationParam();
+            param.workflowId = workflow.id;
+            param.applicant = "operator-1";
+            var instance = processEngine.startInstance(host, param);
+
+            assertThat(instance.workflowId).isEqualTo(workflow.id);
+            assertThat(instance.definitionId).isEqualTo(definition.id);
+            assertThat(instance.operatorIdSet).containsExactlyInAnyOrder("operator-1");
+            assertThat(instance.operatorOrgIdSet).isEmpty();
+            assertThat(instance.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1");
+            assertThat(instance.applicant).isEqualTo("operator-1");
+            assertThat(instance.applicationMode).isEqualTo(ApplicationMode.SELF);
+            assertThat(instance.status).isEqualTo(Status.PROCESSING);
+            assertThat(instance.nodeId).isEqualTo(singleNode1.nodeId);
+
+            // next skip
+            {
+
+                processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1");
+
+                var result1 = processEngine.getInstance(host, instance.getId());
+                assertThat(result1.definitionId).isEqualTo(definition.id);
+                assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-4");
+                assertThat(result1.operatorOrgIdSet).isEmpty();
+                assertThat(result1.expandOperatorIdSet).containsExactlyInAnyOrder("operator-4");
+                assertThat(result1.applicant).isEqualTo("operator-1");
+                assertThat(result1.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result1.status).isEqualTo(Status.PROCESSING);
+                assertThat(result1.nodeId).isEqualTo(singleNode4.nodeId);
+            }
+
+            // back skip
+            {
+                processEngine.resolve(host, instance.getId(), Action.BACK, "operator-4");
+
+                var result1 = processEngine.getInstance(host, instance.getId());
+                assertThat(result1.definitionId).isEqualTo(definition.id);
+                assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-1");
+                assertThat(result1.operatorOrgIdSet).isEmpty();
+                assertThat(result1.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1");
                 assertThat(result1.applicant).isEqualTo("operator-1");
                 assertThat(result1.applicationMode).isEqualTo(ApplicationMode.SELF);
                 assertThat(result1.status).isEqualTo(Status.PROCESSING);

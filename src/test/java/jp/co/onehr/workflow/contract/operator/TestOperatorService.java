@@ -11,8 +11,13 @@ public class TestOperatorService implements OperatorService {
 
     public static final TestOperatorService singleton = new TestOperatorService();
 
+    public static final String SKIP_OPERATOR = "skip_operator";
+
     @Override
     public Set<String> handleOperators(Set<String> operatorIds) {
+        if (operatorIds.contains(SKIP_OPERATOR)) {
+            operatorIds.remove(SKIP_OPERATOR);
+        }
         return operatorIds;
     }
 
