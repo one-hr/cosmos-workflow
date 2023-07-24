@@ -290,8 +290,6 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
                 if (!isInstanceApplicant(instance, operatorId)) {
                     actions.addAll(List.of(Action.values()));
                 }
-                // todo Rejection and cancellation handling involves returning to the first node.
-                //  If the first node's operator is not the applicant, the handling for the first node's operator needs to be determined.
             }
             case APPROVED -> {
 
