@@ -8,11 +8,16 @@ import jp.co.onehr.workflow.service.ActionStrategy;
 
 
 /**
- * todo Processing of the "Retrieve" action
+ * Processing of the "Retrieve" action
+ * <p>
+ * todo In the case of parallel approval, the retrieval action needs special handling.
  */
 public class RetrieveService implements ActionStrategy {
+
     @Override
     public ActionResult execute(Definition definition, Instance instance, String operatorId, ActionExtendParam extendParam) {
-        return null;
+        instance.nodeId = instance.preNodeId;
+        return new ActionResult();
     }
+
 }

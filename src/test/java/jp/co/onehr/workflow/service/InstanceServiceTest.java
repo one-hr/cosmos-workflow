@@ -681,7 +681,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1");
 
                 // second node not operator
-                var result2 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
+                var result2 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-5");
                 assertThat(result2.definitionId).isEqualTo(definition.id);
                 assertThat(result2.nodeId).isEqualTo(multipleNode2.nodeId);
                 assertThat(result2.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
@@ -691,6 +691,15 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result2.applicationMode).isEqualTo(ApplicationMode.SELF);
                 assertThat(result2.status).isEqualTo(Status.PROCESSING);
                 assertThat(result2.allowingActions).isEmpty();
+
+                // second node is pre operator
+                result2 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
+                assertThat(result2.nodeId).isEqualTo(multipleNode2.nodeId);
+                assertThat(result2.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
+                assertThat(result2.expandOperatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
+                assertThat(result2.applicant).isEqualTo("operator-1");
+                assertThat(result2.status).isEqualTo(Status.PROCESSING);
+                assertThat(result2.allowingActions).containsExactlyInAnyOrder(Action.RETRIEVE);
 
                 // second node operator
                 var result3 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
@@ -716,10 +725,16 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.CANCEL, Action.WITHDRAW);
 
                 // end node not applicant
-                var result2 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
+                var result2 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-2");
                 assertThat(result2.nodeId).isEqualTo(endNode.nodeId);
                 assertThat(result2.status).isEqualTo(Status.APPROVED);
                 assertThat(result2.allowingActions).isEmpty();
+
+                // end node pre operator
+                result2 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-3");
+                assertThat(result2.nodeId).isEqualTo(endNode.nodeId);
+                assertThat(result2.status).isEqualTo(Status.APPROVED);
+                assertThat(result2.allowingActions).containsExactlyInAnyOrder(Action.RETRIEVE);
             }
 
             // instance 2
@@ -837,6 +852,101 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var withdrawalInstance = processEngine.getInstance(host, instance.getId());
             assertThat(withdrawalInstance).isNull();
 
+        } finally {
+            WorkflowService.singleton.purge(host, workflow.id);
+        }
+    }
+
+    @Test
+    void resolve_retrieve_should_work() throws Exception {
+        var workflow = new Workflow(getUuid(), "resolve_retrieve_should_work");
+
+        try {
+            workflow = processEngine.createWorkflow(host, workflow);
+            var definition = processEngine.getCurrentDefinition(host, workflow.id, 0);
+
+            var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+            singleNode1.operatorId = "operator-1";
+            definition.nodes.add(1, singleNode1);
+
+            var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-2", "operator-3"), Set.of());
+            definition.nodes.add(2, multipleNode2);
+
+            var singleNode3 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-3");
+            singleNode3.operatorId = "operator-4";
+            definition.nodes.add(3, singleNode3);
+
+            processEngine.upsertDefinition(host, definition);
+
+            definition = processEngine.getCurrentDefinition(host, workflow.id, 1);
+
+            var param = new ApplicationParam();
+            param.workflowId = workflow.id;
+            param.applicant = "operator-test";
+
+            var instance = processEngine.startInstance(host, param);
+
+            assertThat(instance.workflowId).isEqualTo(workflow.id);
+            assertThat(instance.definitionId).isEqualTo(definition.id);
+            assertThat(instance.operatorIdSet).containsExactlyInAnyOrder("operator-1");
+            assertThat(instance.operatorOrgIdSet).isEmpty();
+            assertThat(instance.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1");
+            assertThat(instance.applicant).isEqualTo("operator-test");
+            assertThat(instance.applicationMode).isEqualTo(ApplicationMode.SELF);
+            assertThat(instance.status).isEqualTo(Status.PROCESSING);
+            assertThat(instance.nodeId).isEqualTo(singleNode1.nodeId);
+            assertThat(instance.preNodeId).isEqualTo("");
+            assertThat(instance.preExpandOperatorIdSet).isEmpty();
+
+            // second node
+            {
+                processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1");
+
+                var result1 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-2");
+                assertThat(result1.allowingActions).doesNotContain(Action.RETRIEVE);
+                assertThat(result1.nodeId).isEqualTo(multipleNode2.nodeId);
+
+                var result2 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
+                assertThat(result2.allowingActions).containsExactlyInAnyOrder(Action.RETRIEVE);
+                assertThat(result2.nodeId).isEqualTo(multipleNode2.nodeId);
+
+                // retrieve
+                processEngine.resolve(host, instance.getId(), Action.RETRIEVE, "operator-1");
+
+                var result3 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-1");
+                assertThat(result3.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1");
+                assertThat(result3.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result3.preNodeId).isEqualTo("");
+                assertThat(result3.preExpandOperatorIdSet).isEmpty();
+
+                processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1");
+            }
+
+            // third node
+            {
+                processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-2");
+
+                var result1 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-4");
+                assertThat(result1.allowingActions).doesNotContain(Action.RETRIEVE);
+                assertThat(result1.nodeId).isEqualTo(singleNode3.nodeId);
+                assertThat(result1.preNodeId).isEqualTo(multipleNode2.nodeId);
+                assertThat(result1.preExpandOperatorIdSet).containsExactlyInAnyOrder("operator-2", "operator-3");
+
+                var result2 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-2");
+                assertThat(result2.nodeId).isEqualTo(singleNode3.nodeId);
+                assertThat(result2.preNodeId).isEqualTo(multipleNode2.nodeId);
+                assertThat(result2.preExpandOperatorIdSet).containsExactlyInAnyOrder("operator-2", "operator-3");
+                assertThat(result2.allowingActions).containsExactlyInAnyOrder(Action.RETRIEVE);
+
+                // retrieve
+                processEngine.resolve(host, instance.getId(), Action.RETRIEVE, "operator-2");
+
+                var result3 = processEngine.getInstanceWithOps(host, instance.getId(), "operator-2");
+                assertThat(result3.expandOperatorIdSet).containsExactlyInAnyOrder("operator-2", "operator-3");
+                assertThat(result3.nodeId).isEqualTo(multipleNode2.nodeId);
+                assertThat(result3.preNodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result3.preExpandOperatorIdSet).containsExactlyInAnyOrder("operator-1");
+            }
         } finally {
             WorkflowService.singleton.purge(host, workflow.id);
         }

@@ -157,7 +157,6 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         instance.allowingActions.addAll(actions);
     }
 
-
     /**
      * Set action permissions entry point
      * Generate all available actions based on the status
@@ -233,7 +232,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
                     if (!instance.expandOperatorIdSet.contains(operatorId)) {
                         actions.addAll(List.of(Action.values()));
                         // If the operator has the permission to retrieve the instance, the retrieve action is not removed.
-                        if (isRetrieveOperator(definition, instance, operatorId)) {
+                        if (isRetrieveOperator(instance, operatorId)) {
                             actions.remove(Action.RETRIEVE);
                         }
                     }
@@ -257,7 +256,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
                     actions.add(Action.WITHDRAW);
                 }
                 // If the operator has the permission to retrieve the instance, the retrieve action is not removed.
-                if (isRetrieveOperator(definition, instance, operatorId)) {
+                if (isRetrieveOperator(instance, operatorId)) {
                     actions.remove(Action.RETRIEVE);
                 }
             }
@@ -306,8 +305,9 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         return false;
     }
 
-    // todo To determine if the operator is eligible to retrieve the instance
-    private boolean isRetrieveOperator(Definition definition, Instance instance, String operatorId) {
-        return false;
+    // To determine if the operator is eligible to retrieve the instance
+    private boolean isRetrieveOperator(Instance instance, String operatorId) {
+        return instance.preExpandOperatorIdSet.contains(operatorId);
     }
+
 }

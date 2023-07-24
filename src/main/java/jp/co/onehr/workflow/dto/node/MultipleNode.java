@@ -1,5 +1,6 @@
 package jp.co.onehr.workflow.dto.node;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import com.azure.cosmos.implementation.guava25.collect.Sets;
@@ -71,24 +72,28 @@ public class MultipleNode extends ManualNode {
     }
 
     @Override
-    public void resetCurrentOperators(Instance instance) {
+    public Set<String> resetCurrentOperators(Instance instance) {
         clearOperators(instance);
         instance.operatorIdSet.addAll(this.operatorIdSet);
         instance.operatorOrgIdSet.addAll(this.operatorOrgIdSet);
 
+        var expandOperatorIds = new HashSet<String>();
+
         if (CollectionUtils.isNotEmpty(instance.operatorIdSet)) {
-            var expandOperatorIds = ProcessEngineConfiguration.getConfiguration().handleExpandOperators(instance.operatorIdSet);
-            instance.expandOperatorIdSet.addAll(expandOperatorIds);
+            expandOperatorIds.addAll(ProcessEngineConfiguration.getConfiguration().handleExpandOperators(instance.operatorIdSet));
         }
 
         if (CollectionUtils.isNotEmpty(instance.operatorOrgIdSet)) {
-            var expandOperatorIds = ProcessEngineConfiguration.getConfiguration().handleExpandOrganizations(instance.operatorOrgIdSet);
-            instance.expandOperatorIdSet.addAll(expandOperatorIds);
+            expandOperatorIds.addAll(ProcessEngineConfiguration.getConfiguration().handleExpandOrganizations(instance.operatorOrgIdSet));
         }
+
+        instance.expandOperatorIdSet.addAll(expandOperatorIds);
 
         if (ApprovalType.AND.equals(approvalType)) {
             var parallelApprovalMap = ProcessEngineConfiguration.getConfiguration().handleParallelApproval(instance.operatorIdSet, instance.operatorOrgIdSet, instance.expandOperatorIdSet);
             instance.parallelApproval.putAll(parallelApprovalMap);
         }
+
+        return expandOperatorIds;
     }
 }
