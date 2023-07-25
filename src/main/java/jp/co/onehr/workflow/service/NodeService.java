@@ -14,6 +14,19 @@ import jp.co.onehr.workflow.exception.WorkflowException;
 public class NodeService {
 
     /**
+     * Get the start node of the workflow.
+     * <p>
+     * The reject and cancel actions will reset the instance's node to the start node.
+     *
+     * @param definition
+     * @return
+     */
+    public static Node getStartNode(Definition definition) {
+        var nodes = definition.nodes;
+        return nodes.get(0);
+    }
+
+    /**
      * Retrieve the first actionable node of the workflow
      * excluding the 'startNode' which is used as a marker for the beginning
      * but not considered as the first actionable node
