@@ -62,7 +62,7 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
         var workflow = new Workflow(getUuid(), "definition-test-create");
         var definition = new Definition(getUuid(), workflow.getId());
         try {
-            processEngine.createWorkflow(host, workflow);
+            processDesign.createWorkflow(host, workflow);
 
             var startNode = new StartNode("start-name");
 
@@ -79,7 +79,7 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
 
             // test node type
             {
-                var result = processEngine.getDefinition(host, definition.getId());
+                var result = processDesign.getDefinition(host, definition.getId());
                 assertThat(result).isNotNull();
 
                 var nodes = result.nodes;
@@ -101,17 +101,17 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
     void upsert_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "upsert_should_work");
         try {
-            workflow = processEngine.createWorkflow(host, workflow);
+            workflow = processDesign.createWorkflow(host, workflow);
 
-            workflow = processEngine.getWorkflow(host, workflow.getId());
+            workflow = processDesign.getWorkflow(host, workflow.getId());
             assertThat(workflow.enableVersion).isTrue();
             assertThat(workflow.currentVersion).isEqualTo(0);
 
             workflow.enableVersion = false;
-            processEngine.upsertWorkflow(host, workflow);
+            processDesign.upsertWorkflow(host, workflow);
 
             {
-                var definitions = processEngine.findDefinitions(host, Condition.filter("workflowId", workflow.id));
+                var definitions = processDesign.findDefinitions(host, Condition.filter("workflowId", workflow.id));
                 assertThat(definitions).hasSize(1);
                 var definition = definitions.get(0);
                 assertThat(definition.nodes).hasSize(2);
@@ -121,23 +121,23 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
                 definition.nodes.add(1, singleNode);
                 getService().upsert(host, definition);
 
-                workflow = processEngine.getWorkflow(host, workflow.getId());
+                workflow = processDesign.getWorkflow(host, workflow.getId());
                 assertThat(workflow.enableVersion).isFalse();
                 assertThat(workflow.currentVersion).isEqualTo(0);
 
-                definitions = processEngine.findDefinitions(host, Condition.filter("workflowId", workflow.id));
+                definitions = processDesign.findDefinitions(host, Condition.filter("workflowId", workflow.id));
                 assertThat(definitions).hasSize(1);
 
-                var result = processEngine.getDefinition(host, definition.id);
+                var result = processDesign.getDefinition(host, definition.id);
                 assertThat(result.nodes).hasSize(3);
                 assertThat(result.version).isEqualTo(0);
             }
 
             workflow.enableVersion = true;
-            processEngine.upsertWorkflow(host, workflow);
+            processDesign.upsertWorkflow(host, workflow);
 
             {
-                var definitions = processEngine.findDefinitions(host, Condition.filter("workflowId", workflow.id));
+                var definitions = processDesign.findDefinitions(host, Condition.filter("workflowId", workflow.id));
                 assertThat(definitions).hasSize(1);
 
                 var definition = definitions.get(0);
@@ -148,18 +148,18 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
                 definition.nodes.add(2, singleNode);
                 getService().upsert(host, definition);
 
-                workflow = processEngine.getWorkflow(host, workflow.getId());
+                workflow = processDesign.getWorkflow(host, workflow.getId());
                 assertThat(workflow.enableVersion).isTrue();
                 assertThat(workflow.currentVersion).isEqualTo(1);
 
-                definitions = processEngine.findDefinitions(host, Condition.filter("workflowId", workflow.id));
+                definitions = processDesign.findDefinitions(host, Condition.filter("workflowId", workflow.id));
                 assertThat(definitions).hasSize(2);
 
-                var result1 = processEngine.getCurrentDefinition(host, workflow.id, 0);
+                var result1 = processDesign.getCurrentDefinition(host, workflow.id, 0);
                 assertThat(result1.nodes).hasSize(3);
                 assertThat(result1.version).isEqualTo(0);
 
-                var result2 = processEngine.getCurrentDefinition(host, workflow.id, 1);
+                var result2 = processDesign.getCurrentDefinition(host, workflow.id, 1);
                 assertThat(result2.nodes).hasSize(4);
                 assertThat(result2.version).isEqualTo(1);
             }
@@ -172,17 +172,17 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
     void getDefinition_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "getDefinition_should_work");
         try {
-            workflow = processEngine.createWorkflow(host, workflow);
-            var definition = processEngine.getCurrentDefinition(host, workflow.id, workflow.currentVersion);
+            workflow = processDesign.createWorkflow(host, workflow);
+            var definition = processDesign.getCurrentDefinition(host, workflow.id, workflow.currentVersion);
             {
-                var result = processEngine.getDefinition(host, definition.getId());
+                var result = processDesign.getDefinition(host, definition.getId());
                 assertThat(result.id).isEqualTo(definition.id);
                 assertThat(result.version).isEqualTo(definition.version);
                 assertThat(result.workflowId).isEqualTo(workflow.id);
             }
 
             {
-                assertThatThrownBy(() -> processEngine.getDefinition(host, "error-id"))
+                assertThatThrownBy(() -> processDesign.getDefinition(host, "error-id"))
                         .isInstanceOf(WorkflowException.class)
                         .hasMessageContaining(WorkflowErrors.DEFINITION_NOT_EXIST.name());
             }
@@ -195,17 +195,17 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
     void getCurrentDefinition_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "getCurrentDefinition_should_work");
         try {
-            workflow = processEngine.createWorkflow(host, workflow);
-            workflow = processEngine.getWorkflow(host, workflow.getId());
+            workflow = processDesign.createWorkflow(host, workflow);
+            workflow = processDesign.getWorkflow(host, workflow.getId());
             var workflowId = workflow.id;
             {
-                var result = processEngine.getCurrentDefinition(host, workflowId, 0);
+                var result = processDesign.getCurrentDefinition(host, workflowId, 0);
                 assertThat(result.nodes).hasSize(2);
                 assertThat(result.version).isEqualTo(0);
             }
 
             {
-                assertThatThrownBy(() -> processEngine.getCurrentDefinition(host, workflowId, 1))
+                assertThatThrownBy(() -> processDesign.getCurrentDefinition(host, workflowId, 1))
                         .isInstanceOf(WorkflowException.class)
                         .hasMessageContaining(WorkflowErrors.DEFINITION_NOT_EXIST.name())
                         .hasMessageContaining("The definition for the current version of the workflow was not found");

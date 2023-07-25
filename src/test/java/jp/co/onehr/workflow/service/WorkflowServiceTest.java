@@ -28,14 +28,14 @@ public class WorkflowServiceTest extends BaseCRUDServiceTest<Workflow, WorkflowS
         var workflow = new Workflow();
         workflow.name = "create_new_workflow_test";
         try {
-            workflow = processEngine.createWorkflow(host, workflow);
+            workflow = processDesign.createWorkflow(host, workflow);
 
-            var result = processEngine.getWorkflow(host, workflow.getId());
+            var result = processDesign.getWorkflow(host, workflow.getId());
             assertThat(result.name).isEqualTo("create_new_workflow_test");
             assertThat(result.currentVersion).isEqualTo(0);
             assertThat(result.enableVersion).isTrue();
 
-            var definitions = processEngine.findDefinitions(host, Condition.filter("workflowId", workflow.getId()));
+            var definitions = processDesign.findDefinitions(host, Condition.filter("workflowId", workflow.getId()));
             assertThat(definitions).hasSize(1);
             assertThat(definitions.get(0).id).isNotEqualTo(workflow.getId());
             assertThat(definitions.get(0).workflowId).isEqualTo(workflow.getId());
@@ -52,15 +52,15 @@ public class WorkflowServiceTest extends BaseCRUDServiceTest<Workflow, WorkflowS
     void upsert_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "upsert_should_work");
         try {
-            processEngine.createWorkflow(host, workflow);
+            processDesign.createWorkflow(host, workflow);
 
-            workflow = processEngine.getWorkflow(host, workflow.id);
+            workflow = processDesign.getWorkflow(host, workflow.id);
             assertThat(workflow.enableVersion).isTrue();
             workflow.name = "workflow_name";
             workflow.enableVersion = false;
             getService().upsert(host, workflow);
 
-            workflow = processEngine.getWorkflow(host, workflow.id);
+            workflow = processDesign.getWorkflow(host, workflow.id);
             assertThat(workflow.name).isNotEqualTo("upsert_should_work");
             assertThat(workflow.name).isEqualTo("workflow_name");
             assertThat(workflow.enableVersion).isFalse();
@@ -73,16 +73,16 @@ public class WorkflowServiceTest extends BaseCRUDServiceTest<Workflow, WorkflowS
     void getWorkflow_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "getWorkflow_should_work");
         try {
-            processEngine.createWorkflow(host, workflow);
+            processDesign.createWorkflow(host, workflow);
 
             {
-                var result = processEngine.getWorkflow(host, workflow.getId());
+                var result = processDesign.getWorkflow(host, workflow.getId());
                 assertThat(result.id).isEqualTo(workflow.id);
                 assertThat(result.name).isEqualTo(workflow.name);
             }
 
             {
-                assertThatThrownBy(() -> processEngine.getWorkflow(host, "error-id"))
+                assertThatThrownBy(() -> processDesign.getWorkflow(host, "error-id"))
                         .isInstanceOf(WorkflowException.class)
                         .hasMessageContaining(WorkflowErrors.WORKFLOW_NOT_EXIST.name());
             }
