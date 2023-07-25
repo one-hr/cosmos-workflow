@@ -3,14 +3,12 @@ package jp.co.onehr.workflow.service;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 import io.github.thunderz99.cosmos.condition.Condition;
 import jp.co.onehr.workflow.ProcessEngineConfiguration;
-import jp.co.onehr.workflow.constant.Action;
-import jp.co.onehr.workflow.constant.ApplicationMode;
-import jp.co.onehr.workflow.constant.Status;
-import jp.co.onehr.workflow.constant.WorkflowErrors;
+import jp.co.onehr.workflow.constant.*;
 import jp.co.onehr.workflow.contract.notification.Notification;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
@@ -84,9 +82,11 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         instance.status = Status.PROCESSING;
         instance.setApplicationInfo(param);
 
+        var operatorId = ApplicationMode.SELF.equals(param.applicationMode) ? param.applicant : param.proxyApplicant;
         var firstNode = NodeService.getFirstNode(definition);
         instance.nodeId = firstNode.nodeId;
         firstNode.resetCurrentOperators(instance);
+        firstNode.resetParallelApproval(instance, firstNode.getApprovalType(), Action.APPLY, operatorId);
         firstNode.handleFirstNode(definition, instance);
 
         var operateLog = new OperateLog();
@@ -94,7 +94,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         operateLog.nodeName = firstNode.nodeName;
         operateLog.nodeType = firstNode.getClass().getSimpleName();
         operateLog.statusBefore = Status.NEW;
-        operateLog.operatorId = ApplicationMode.SELF.equals(param.applicationMode) ? param.applicant : param.proxyApplicant;
+        operateLog.operatorId = operatorId;
         operateLog.action = Action.APPLY;
         operateLog.statusAfter = Status.PROCESSING;
         operateLog.comment = param.comment;
@@ -281,6 +281,20 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
                         // If the operator has the permission to retrieve the instance, the retrieve action is not removed.
                         if (isRetrieveOperator(instance, operatorId)) {
                             actions.remove(Action.RETRIEVE);
+                        }
+                    }
+
+                    // In the case of parallel approval, if it is the operator of the instance
+                    // Operators who have already approved the action are not allowed to perform any further actions.
+                    if (instance.expandOperatorIdSet.contains(operatorId) && currentNode.getApprovalType().equals(ApprovalType.AND)) {
+
+                        var approvedIds = instance.parallelApproval.values().stream()
+                                .filter(approvalStatus -> approvalStatus.approved)
+                                .map(approvalStatus -> approvalStatus.operatorId)
+                                .collect(Collectors.toSet());
+
+                        if (approvedIds.contains(operatorId)) {
+                            actions.addAll(List.of(Action.values()));
                         }
                     }
                 }

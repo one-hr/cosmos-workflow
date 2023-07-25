@@ -102,6 +102,7 @@ public enum Action {
             }
 
             currentNode.resetCurrentOperators(instance);
+            currentNode.resetParallelApproval(instance, currentNode.getApprovalType(), this, operatorId);
         }
 
         generateOperateLog(operatorId, extendParam, currentStatus, currentNode, instance);

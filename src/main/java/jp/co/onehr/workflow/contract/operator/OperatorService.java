@@ -33,4 +33,16 @@ public interface OperatorService {
      */
     Map<String, ApprovalStatus> handleParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds);
 
+    /**
+     * Custom handling of parallel approval during retrieval
+     *
+     * @param operatorIds
+     * @param orgIds
+     * @param expandOperatorIds
+     * @param reset
+     * @param operatorId
+     * @return
+     */
+    Map<String, ApprovalStatus> handleRetrieveParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, boolean reset, String operatorId);
+
 }

@@ -1,5 +1,6 @@
 package jp.co.onehr.workflow.dto.node;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -7,9 +8,11 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import jp.co.onehr.workflow.ProcessEngineConfiguration;
 import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.ApprovalType;
 import jp.co.onehr.workflow.constant.NotificationMode;
+import jp.co.onehr.workflow.dto.ApprovalStatus;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.base.SimpleData;
@@ -80,6 +83,31 @@ public abstract class Node extends SimpleData {
      * @return
      */
     public abstract Set<String> resetCurrentOperators(Instance instance);
+
+    /**
+     * Resetting the parallel approval status
+     *
+     * @param instance
+     * @param approvalType
+     * @param action
+     * @param operatorId
+     */
+    public void resetParallelApproval(Instance instance, ApprovalType approvalType, Action action, String operatorId) {
+        if (ApprovalType.AND.equals(approvalType)) {
+            var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
+            if (action.equals(Action.RETRIEVE)) {
+                parallelApprovalMap.putAll(ProcessEngineConfiguration
+                        .getConfiguration()
+                        .handleRetrieveParallelApproval(instance.operatorIdSet, instance.operatorOrgIdSet, instance.expandOperatorIdSet, operatorId));
+            } else {
+                parallelApprovalMap.putAll(ProcessEngineConfiguration
+                        .getConfiguration()
+                        .handleParallelApproval(instance.operatorIdSet, instance.operatorOrgIdSet, instance.expandOperatorIdSet));
+            }
+
+            instance.parallelApproval.putAll(parallelApprovalMap);
+        }
+    }
 
     /**
      * Node settings validation

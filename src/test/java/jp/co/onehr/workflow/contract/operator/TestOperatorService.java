@@ -37,4 +37,27 @@ public class TestOperatorService implements OperatorService {
         return parallelApprovalMap;
     }
 
+    @Override
+    public Map<String, ApprovalStatus> handleRetrieveParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, boolean reset, String operatorId) {
+        var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
+
+        // If the retrieval reset is enabled, then each operator of the concurrent approval needs to approve.
+        if (reset) {
+            for (var expandOperatorId : expandOperatorIds) {
+                parallelApprovalMap.put(expandOperatorId, new ApprovalStatus(expandOperatorId, false));
+            }
+        } else {
+            // Other operators are already approved by default, only the operator needs to approve
+            for (var expandOperatorId : expandOperatorIds) {
+                parallelApprovalMap.put(expandOperatorId, new ApprovalStatus(expandOperatorId, true));
+                if (expandOperatorId.equals(operatorId)) {
+                    parallelApprovalMap.put(expandOperatorId, new ApprovalStatus(operatorId, false));
+                }
+            }
+        }
+
+        return parallelApprovalMap;
+    }
+
+
 }

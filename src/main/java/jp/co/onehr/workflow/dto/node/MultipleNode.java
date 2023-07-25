@@ -91,11 +91,6 @@ public class MultipleNode extends ManualNode {
 
         instance.expandOperatorIdSet.addAll(expandOperatorIds);
 
-        if (ApprovalType.AND.equals(approvalType)) {
-            var parallelApprovalMap = ProcessEngineConfiguration.getConfiguration().handleParallelApproval(instance.operatorIdSet, instance.operatorOrgIdSet, instance.expandOperatorIdSet);
-            instance.parallelApproval.putAll(parallelApprovalMap);
-        }
-
         return expandOperatorIds;
     }
 
