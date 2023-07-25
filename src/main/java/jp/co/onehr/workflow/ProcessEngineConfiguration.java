@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ProcessEngineConfiguration {
 
-    public final static Logger log = LoggerFactory.getLogger(ProcessEngineConfiguration.class);
+    public static final Logger log = LoggerFactory.getLogger(ProcessEngineConfiguration.class);
 
     private static final ProcessEngineConfiguration singleton = new ProcessEngineConfiguration();
 
@@ -69,6 +69,10 @@ public class ProcessEngineConfiguration {
 
     public static ProcessEngineConfiguration getConfiguration() {
         return singleton;
+    }
+
+    public ProcessDesign buildProcessDesign() {
+        return new ProcessDesign();
     }
 
     /**
@@ -162,5 +166,4 @@ public class ProcessEngineConfiguration {
         }
         return actions;
     }
-
 }

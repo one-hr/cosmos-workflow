@@ -5,9 +5,7 @@ import java.util.List;
 import io.github.thunderz99.cosmos.condition.Condition;
 import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.dto.ActionResult;
-import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
-import jp.co.onehr.workflow.dto.Workflow;
 import jp.co.onehr.workflow.dto.base.SimpleData;
 import jp.co.onehr.workflow.dto.param.ActionExtendParam;
 import jp.co.onehr.workflow.dto.param.ApplicationParam;
@@ -23,47 +21,13 @@ public class ProcessEngine extends SimpleData {
 
     public static final Logger log = LoggerFactory.getLogger(ProcessEngine.class);
 
-    private ProcessEngineConfiguration configuration;
+    private final ProcessEngineConfiguration configuration;
 
-    private ProcessEngineService service;
+    private final ProcessEngineService service;
 
     protected ProcessEngine(ProcessEngineConfiguration configuration) {
         this.configuration = configuration;
         this.service = ProcessEngineService.getService();
-    }
-
-    // === Workflow ===
-    public Workflow createWorkflow(String host, Workflow workflow) throws Exception {
-        return service.createWorkflow(host, workflow);
-    }
-
-    public Workflow upsertWorkflow(String host, Workflow workflow) throws Exception {
-        return service.upsertWorkflow(host, workflow);
-    }
-
-    public Workflow getWorkflow(String host, String workflowId) throws Exception {
-        return service.getWorkflow(host, workflowId);
-    }
-
-    public List<Workflow> findWorkflows(String host, Condition cond) throws Exception {
-        return service.findWorkflows(host, cond);
-    }
-
-    // === Definition ===
-    public Definition upsertDefinition(String host, Definition definition) throws Exception {
-        return service.upsertDefinition(host, definition);
-    }
-
-    public Definition getDefinition(String host, String definitionId) throws Exception {
-        return service.getDefinition(host, definitionId);
-    }
-
-    public Definition getCurrentDefinition(String host, String workflowId, int version) throws Exception {
-        return service.getCurrentDefinition(host, workflowId, version);
-    }
-
-    public List<Definition> findDefinitions(String host, Condition cond) throws Exception {
-        return service.findDefinitions(host, cond);
     }
 
     // === Instance ===
