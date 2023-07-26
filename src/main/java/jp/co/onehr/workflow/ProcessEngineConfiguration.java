@@ -44,7 +44,17 @@ public class ProcessEngineConfiguration {
      */
     private Map<String, String> collectionCache = Maps.newHashMap();
 
+    /**
+     *
+     */
     private OperatorService operatorService;
+
+    /**
+     * Whether to reset all parallel approval states during retrieval
+     * <p>
+     * By default, it is set to false, and only the operator who retrieves the instance needs to approve.
+     */
+    private boolean retrieveResetParallelApproval = false;
 
     /**
      * Customized plugins available for the workflow.
@@ -105,6 +115,10 @@ public class ProcessEngineConfiguration {
         operatorService = service;
     }
 
+    public void enableRetrieveResetParallelApproval(boolean enable) {
+        retrieveResetParallelApproval = enable;
+    }
+
     public Set<String> handleExpandOperators(Set<String> operatorIds) {
         if (operatorService != null) {
             return operatorService.handleOperators(operatorIds);
@@ -128,6 +142,30 @@ public class ProcessEngineConfiguration {
 
         for (var expandOperatorId : expandOperatorIds) {
             parallelApprovalMap.put(expandOperatorId, new ApprovalStatus(expandOperatorId, false));
+        }
+
+        return parallelApprovalMap;
+    }
+
+    public Map<String, ApprovalStatus> handleRetrieveParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, String operatorId) {
+        if (operatorService != null) {
+            return operatorService.handleRetrieveParallelApproval(operatorIds, orgIds, expandOperatorIds, retrieveResetParallelApproval, operatorId);
+        }
+        var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
+
+        // If the retrieval reset is enabled, then each operator of the concurrent approval needs to approve.
+        if (retrieveResetParallelApproval) {
+            for (var expandOperatorId : expandOperatorIds) {
+                parallelApprovalMap.put(expandOperatorId, new ApprovalStatus(expandOperatorId, false));
+            }
+        } else {
+            // Other operators are already approved by default, only the operator needs to approve
+            for (var expandOperatorId : expandOperatorIds) {
+                parallelApprovalMap.put(expandOperatorId, new ApprovalStatus(expandOperatorId, true));
+                if (expandOperatorId.equals(operatorId)) {
+                    parallelApprovalMap.put(expandOperatorId, new ApprovalStatus(operatorId, false));
+                }
+            }
         }
 
         return parallelApprovalMap;

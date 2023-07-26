@@ -60,13 +60,7 @@
         <dependency>
             <groupId>com.github.thunderz99</groupId>
             <artifactId>java-cosmos</artifactId>
-            <version>0.5.21</version>
-        </dependency>
-
-        <dependency>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
-            <version>1.15</version>
+            <version>0.5.23</version>
         </dependency>
 
         <dependency>
