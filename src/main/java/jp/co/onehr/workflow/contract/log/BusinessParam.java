@@ -1,4 +1,4 @@
-package jp.co.onehr.workflow.contract.plugin;
+package jp.co.onehr.workflow.contract.log;
 
 import jp.co.onehr.workflow.dto.base.SimpleData;
 
@@ -8,5 +8,7 @@ import jp.co.onehr.workflow.dto.base.SimpleData;
  * they need to extend this class.
  */
 public abstract class BusinessParam extends SimpleData {
+
     public Class clazz = this.getClass();
+
 }

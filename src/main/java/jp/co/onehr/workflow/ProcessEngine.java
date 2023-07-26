@@ -21,11 +21,11 @@ public class ProcessEngine extends SimpleData {
 
     public static final Logger log = LoggerFactory.getLogger(ProcessEngine.class);
 
-    private final ProcessEngineConfiguration configuration;
+    private final ProcessConfiguration configuration;
 
     private final ProcessEngineService service;
 
-    protected ProcessEngine(ProcessEngineConfiguration configuration) {
+    protected ProcessEngine(ProcessConfiguration configuration) {
         this.configuration = configuration;
         this.service = ProcessEngineService.getService();
     }

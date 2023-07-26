@@ -2,7 +2,7 @@ package jp.co.onehr.workflow.dto.param;
 
 
 import jp.co.onehr.workflow.constant.ApplicationMode;
-import jp.co.onehr.workflow.contract.plugin.BusinessParam;
+import jp.co.onehr.workflow.contract.log.BusinessParam;
 import jp.co.onehr.workflow.dto.base.SimpleData;
 
 /**

@@ -3,7 +3,7 @@ package jp.co.onehr.workflow.dto.node;
 import java.util.HashSet;
 import java.util.Set;
 
-import jp.co.onehr.workflow.ProcessEngineConfiguration;
+import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.exception.WorkflowException;
@@ -38,7 +38,7 @@ public class SingleNode extends ManualNode {
 
         var expandOperatorIds = new HashSet<String>();
         if (CollectionUtils.isNotEmpty(instance.operatorIdSet)) {
-            expandOperatorIds.addAll(ProcessEngineConfiguration.getConfiguration().handleExpandOperators(instance.operatorIdSet));
+            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOperators(instance.operatorIdSet));
             instance.expandOperatorIdSet.addAll(expandOperatorIds);
         }
         return expandOperatorIds;

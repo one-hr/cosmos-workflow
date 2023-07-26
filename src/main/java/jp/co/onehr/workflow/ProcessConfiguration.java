@@ -7,10 +7,8 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import io.github.thunderz99.cosmos.CosmosDatabase;
 import jp.co.onehr.workflow.constant.Action;
-import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.contract.notification.Notification;
 import jp.co.onehr.workflow.contract.notification.NotificationSender;
 import jp.co.onehr.workflow.contract.operator.OperatorService;
@@ -28,11 +26,11 @@ import org.slf4j.LoggerFactory;
  * Once the configuration is complete, the workflow engine can be built
  * the engine can only be constructed through the configuration class
  */
-public class ProcessEngineConfiguration {
+public class ProcessConfiguration {
 
-    public static final Logger log = LoggerFactory.getLogger(ProcessEngineConfiguration.class);
+    public static final Logger log = LoggerFactory.getLogger(ProcessConfiguration.class);
 
-    private static final ProcessEngineConfiguration singleton = new ProcessEngineConfiguration();
+    private static final ProcessConfiguration singleton = new ProcessConfiguration();
 
     /**
      * host -> database
@@ -45,7 +43,7 @@ public class ProcessEngineConfiguration {
     private Map<String, String> collectionCache = Maps.newHashMap();
 
     /**
-     *
+     * User-defined handling of operator IDs in the instance.
      */
     private OperatorService operatorService;
 
@@ -61,8 +59,6 @@ public class ProcessEngineConfiguration {
      */
     private Map<String, WorkflowPlugin> pluginCache = Maps.newHashMap();
 
-    private Set<String> skipNodeTypes = Sets.newHashSet(NodeType.RobotNode.name());
-
     /**
      * Customized sending message notification functionality.
      */
@@ -73,11 +69,11 @@ public class ProcessEngineConfiguration {
      */
     private ActionRestriction actionRestriction;
 
-    private ProcessEngineConfiguration() {
+    private ProcessConfiguration() {
 
     }
 
-    public static ProcessEngineConfiguration getConfiguration() {
+    public static ProcessConfiguration getConfiguration() {
         return singleton;
     }
 
@@ -90,7 +86,7 @@ public class ProcessEngineConfiguration {
      *
      * @return
      */
-    public ProcessEngine buildEngine() {
+    public ProcessEngine buildProcessEngine() {
         return new ProcessEngine(this);
     }
 

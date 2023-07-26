@@ -3,9 +3,9 @@ package jp.co.onehr.workflow.base;
 import java.util.Locale;
 
 import com.github.javafaker.Faker;
+import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.ProcessDesign;
 import jp.co.onehr.workflow.ProcessEngine;
-import jp.co.onehr.workflow.ProcessEngineConfiguration;
 import jp.co.onehr.workflow.base.faker.SafeFaker;
 import jp.co.onehr.workflow.contract.notification.TestNotificationSender;
 import jp.co.onehr.workflow.contract.operator.TestOperatorService;
@@ -46,13 +46,12 @@ public class BaseTest implements TestIdGeneratable {
     }
 
     private static void insertTestData() throws Exception {
-        var configuration = ProcessEngineConfiguration.getConfiguration();
+        var configuration = ProcessConfiguration.getConfiguration();
         configuration.registerPlugin(new TestPlugin());
         configuration.registerOperatorService(TestOperatorService.singleton);
         configuration.registerNotificationSender(TestNotificationSender.singleton);
         configuration.registerActionRestriction(TestActionRestriction.singleton);
         processDesign = configuration.buildProcessDesign();
-        processEngine = configuration.buildEngine();
-
+        processEngine = configuration.buildProcessEngine();
     }
 }

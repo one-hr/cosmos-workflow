@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import io.github.thunderz99.cosmos.util.JsonUtil;
 import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.Status;
-import jp.co.onehr.workflow.contract.plugin.BusinessParam;
+import jp.co.onehr.workflow.contract.log.BusinessParam;
 import jp.co.onehr.workflow.dto.base.SimpleData;
 
 /**

@@ -4,7 +4,7 @@ package jp.co.onehr.workflow.service;
 import java.util.HashMap;
 import java.util.Map;
 
-import jp.co.onehr.workflow.ProcessEngineConfiguration;
+import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.contract.plugin.PluginParam;
 import jp.co.onehr.workflow.contract.plugin.PluginResult;
@@ -36,7 +36,7 @@ public class PluginService {
         if (CollectionUtils.isNotEmpty(pluginTypes)) {
             for (var pluginType : pluginTypes) {
                 try {
-                    var plugin = ProcessEngineConfiguration.getConfiguration().getPlugin(pluginType);
+                    var plugin = ProcessConfiguration.getConfiguration().getPlugin(pluginType);
                     if (ObjectUtils.isNotEmpty(plugin)) {
                         var pluginResult = plugin.handle(node, param);
                         result.put(pluginType, pluginResult);

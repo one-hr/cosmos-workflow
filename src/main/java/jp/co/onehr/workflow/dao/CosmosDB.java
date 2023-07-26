@@ -2,7 +2,7 @@ package jp.co.onehr.workflow.dao;
 
 import io.github.thunderz99.cosmos.Cosmos;
 import io.github.thunderz99.cosmos.CosmosDatabase;
-import jp.co.onehr.workflow.ProcessEngineConfiguration;
+import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.service.base.BaseNoSqlService;
 import jp.co.onehr.workflow.util.EnvUtil;
 
@@ -37,7 +37,7 @@ public class CosmosDB {
     public static CosmosDatabase registerDefaultWorkflowDB(String host) {
         var collectionName = BaseNoSqlService.getCollectionNameByEnv(DEFAULT_COLLECTION);
         var db = getDefaultDatabaseByEnv();
-        ProcessEngineConfiguration.getConfiguration().registerDB(host, db, collectionName);
-        return ProcessEngineConfiguration.getConfiguration().getDatabase(host);
+        ProcessConfiguration.getConfiguration().registerDB(host, db, collectionName);
+        return ProcessConfiguration.getConfiguration().getDatabase(host);
     }
 }
