@@ -4,6 +4,7 @@ import java.util.List;
 
 import io.github.thunderz99.cosmos.condition.Condition;
 import jp.co.onehr.workflow.constant.Action;
+import jp.co.onehr.workflow.constant.OperationMode;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.base.SimpleData;
@@ -40,7 +41,11 @@ public class ProcessEngine extends SimpleData {
     }
 
     public Instance getInstanceWithOps(String host, String instanceId, String operatorId) throws Exception {
-        return service.getInstanceWithOps(host, instanceId, operatorId);
+        return service.getInstanceWithOps(host, instanceId, operatorId, OperationMode.OPERATOR_MODE);
+    }
+
+    public Instance getInstanceWithOps(String host, String instanceId, String operatorId, OperationMode operationMode) throws Exception {
+        return service.getInstanceWithOps(host, instanceId, operatorId, operationMode);
     }
 
     public ActionResult resolve(String host, String instanceId, Action action, String operatorId) throws Exception {

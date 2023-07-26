@@ -1,6 +1,7 @@
 package jp.co.onehr.workflow.service.action;
 
 import jp.co.onehr.workflow.constant.BackMode;
+import jp.co.onehr.workflow.constant.Status;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
@@ -33,6 +34,7 @@ public class BackService implements ActionStrategy {
             case FIRST -> moveToFirstNode(definition, instance);
             default -> moveToPreviousNode(definition, instance, backNodeId);
         }
+        instance.status = Status.PROCESSING;
     }
 
     /**

@@ -43,7 +43,6 @@ public interface ActionRestriction {
     Set<Action> handleCanceledByOperator(Definition definition, Instance instance, String operatorId);
 
     Set<Action> handleApprovedByOperator(Definition definition, Instance instance, String operatorId);
-    
-    Set<Action> handleFinishedByOperator(Definition definition, Instance instance, String operatorId);
 
+    Set<Action> handleFinishedByOperator(Definition definition, Instance instance, String operatorId);
 }

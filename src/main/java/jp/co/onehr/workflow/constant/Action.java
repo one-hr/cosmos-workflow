@@ -7,12 +7,9 @@ import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.OperateLog;
 import jp.co.onehr.workflow.dto.node.Node;
 import jp.co.onehr.workflow.dto.param.ActionExtendParam;
-import jp.co.onehr.workflow.exception.WorkflowException;
 import jp.co.onehr.workflow.service.ActionStrategy;
-import jp.co.onehr.workflow.service.InstanceService;
 import jp.co.onehr.workflow.service.NodeService;
 import jp.co.onehr.workflow.service.action.*;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * All the possible move actions that can be performed on a node
@@ -69,25 +66,7 @@ public enum Action {
     /**
      * Perform the corresponding action's handling
      */
-    public ActionResult execute(Definition definition, Instance existInstance, String operatorId, ActionExtendParam extendParam) {
-
-        Instance instance = existInstance.copy();
-
-        if (StringUtils.isEmpty(operatorId)) {
-            throw new WorkflowException(WorkflowErrors.INSTANCE_OPERATOR_INVALID, "The operator of the instance cannot be empty", instance.getId());
-        }
-
-        // Before executing an action, check if the user's action is allowed
-        InstanceService.singleton.setAllowingActions(definition, instance, operatorId);
-
-        if (!instance.allowingActions.contains(this)) {
-            throw new WorkflowException(WorkflowErrors.NODE_ACTION_INVALID, "The current action is not allowed at the node for the instance", instance.getId());
-        }
-
-        return executeWithoutCheck(definition, existInstance.status, instance, operatorId, extendParam);
-    }
-
-    public ActionResult executeWithoutCheck(Definition definition, Status currentStatus, Instance instance, String operatorId, ActionExtendParam extendParam) {
+    public ActionResult execute(Definition definition, Status currentStatus, Instance instance, String operatorId, ActionExtendParam extendParam) {
         var actionResult = strategy.execute(definition, instance, operatorId, extendParam);
 
         var currentNode = NodeService.getNodeByNodeId(definition, instance.nodeId);

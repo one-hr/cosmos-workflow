@@ -22,6 +22,7 @@ import jp.co.onehr.workflow.exception.WorkflowException;
 import jp.co.onehr.workflow.service.base.BaseCRUDService;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 
 
 public class InstanceService extends BaseCRUDService<Instance> implements NotificationSendChangeable {
@@ -59,11 +60,11 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
      * @throws Exception
      */
     protected Instance getInstance(String host, String instanceId) throws Exception {
-        var Instance = super.readSuppressing404(host, instanceId);
-        if (ObjectUtils.isEmpty(Instance)) {
+        var instance = super.readSuppressing404(host, instanceId);
+        if (ObjectUtils.isEmpty(instance)) {
             throw new WorkflowException(WorkflowErrors.INSTANCE_NOT_EXIST, "The instance does not exist in the database", instanceId);
         }
-        return Instance;
+        return instance;
     }
 
     /**
@@ -124,7 +125,11 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
 
         var existNode = NodeService.getNodeByInstance(definition, existInstance);
 
-        var result = action.execute(definition, existInstance, operatorId, extendParam);
+        Instance instance = existInstance.copy();
+
+        checkAllowingAction(operatorId, extendParam, definition, instance, action);
+
+        ActionResult result = action.execute(definition, existInstance.status, instance, operatorId, extendParam);
 
         result = recursiveInstance(definition, existInstance.status, result, action, operatorId, extendParam, 0);
 
@@ -149,6 +154,26 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         return result;
     }
 
+    private void checkAllowingAction(String operatorId, ActionExtendParam extendParam, Definition definition, Instance instance, Action action) {
+        OperationMode targetOperationMode = null;
+        // operator as not admin
+        if (extendParam == null || !extendParam.operationMode.isAdminMode()) {
+            if (StringUtils.isEmpty(operatorId)) {
+                throw new WorkflowException(WorkflowErrors.INSTANCE_OPERATOR_INVALID, "The operator of the instance cannot be empty", instance.getId());
+            }
+            targetOperationMode = OperationMode.OPERATOR_MODE;
+        } else {
+            targetOperationMode = OperationMode.ADMIN_MODE;
+        }
+
+        // Before executing an action, check if the user's action is allowed
+        InstanceService.singleton.setAllowingActions(definition, instance, operatorId, targetOperationMode);
+
+        if (!instance.allowingActions.contains(action)) {
+            throw new WorkflowException(WorkflowErrors.NODE_ACTION_INVALID, "The current action is not allowed at the node for the instance", instance.getId());
+        }
+    }
+
     /**
      * If there is no operator in the current node, it will move on to the next (or previous) node
      * up to a maximum of 200 nodes for step movement.
@@ -161,8 +186,8 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
      * @param count
      * @return
      */
-    private ActionResult recursiveInstance(Definition definition, Status currentStatus, ActionResult actionResult, Action action,
-                                           String operatorId, ActionExtendParam extendParam, int count) {
+    protected ActionResult recursiveInstance(Definition definition, Status currentStatus, ActionResult actionResult, Action action,
+                                             String operatorId, ActionExtendParam extendParam, int count) {
         var instance = actionResult.instance;
 
         if (NodeService.isLastNode(definition, instance.nodeId)) {
@@ -174,7 +199,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         }
 
         if (CollectionUtils.isEmpty(instance.expandOperatorIdSet) && recursiveAction.contains(action)) {
-            actionResult = action.executeWithoutCheck(definition, currentStatus, instance, operatorId, extendParam);
+            actionResult = action.execute(definition, currentStatus, instance, operatorId, extendParam);
             return recursiveInstance(definition, currentStatus, actionResult, action, operatorId, extendParam, ++count);
         }
 
@@ -188,18 +213,26 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
      * @param instance
      * @param operatorId
      */
-    public void setAllowingActions(Definition definition, Instance instance, String operatorId) {
+    public void setAllowingActions(Definition definition, Instance instance, String operatorId, OperationMode operationMode) {
         instance.allowingActions.clear();
 
         var configuration = ProcessConfiguration.getConfiguration();
 
         var actions = generateActionsByStatus(instance);
 
-        var customRemovalActions = configuration.generateCustomRemovalActionsByOperator(definition, instance, operatorId);
-        actions.removeAll(customRemovalActions);
+        if (operationMode != null && operationMode.isAdminMode()) {
+            var customRemovalActions = configuration.generateCustomRemovalActionsByAdmin(definition, instance, operatorId);
+            actions.removeAll(customRemovalActions);
 
-        var removalActions = generateRemovalActionsByOperator(definition, instance, operatorId);
-        actions.removeAll(removalActions);
+            var removalActions = generateRemovalActionsByAdmin(definition, instance, operatorId);
+            actions.removeAll(removalActions);
+        } else {
+            var customRemovalActions = configuration.generateCustomRemovalActionsByOperator(definition, instance, operatorId);
+            actions.removeAll(customRemovalActions);
+
+            var removalActions = generateRemovalActionsByOperator(definition, instance, operatorId);
+            actions.removeAll(removalActions);
+        }
 
         instance.allowingActions.addAll(actions);
     }
@@ -327,6 +360,46 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
     }
 
     /**
+     * Generating the most basic action that needs to be removed
+     *
+     * @param definition
+     * @param instance
+     * @param operatorId
+     * @return
+     */
+    private Set<Action> generateRemovalActionsByAdmin(Definition definition, Instance instance, String operatorId) {
+        var actions = new HashSet<Action>();
+
+        var status = instance.status;
+        switch (status) {
+            case PROCESSING -> {
+                actions.add(Action.CANCEL);
+                actions.add(Action.REJECT);
+                actions.add(Action.WITHDRAW);
+                actions.add(Action.RETRIEVE);
+                actions.add(Action.APPLY);
+
+                //If it is the first node, back and retrieve action is not allowed.
+                if (NodeService.isFirstNode(definition, instance.nodeId)) {
+                    actions.add(Action.BACK);
+                }
+
+                // If it is the last node, next action is not allowed.
+                if (NodeService.isLastNode(definition, instance.nodeId)) {
+                    actions.add(Action.NEXT);
+                }
+
+            }
+            case REJECTED, CANCELED -> actions.addAll(List.of(Action.values()));
+            case APPROVED -> actions.addAll(List.of(Action.values()));
+            //No actions are allowed in the finished status
+            case FINISHED -> actions.addAll(List.of(Action.values()));
+        }
+
+        return Sets.newHashSet(actions);
+    }
+
+    /**
      * After the instance is complete, determine if the notification needs to be sent, and send the notification
      *
      * @param configuration
@@ -335,7 +408,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
      * @param action
      * @param extendParam
      */
-    private void handleSendNotification(ProcessConfiguration configuration, Instance instance, Node node, Action action, ActionExtendParam extendParam) {
+    protected void handleSendNotification(ProcessConfiguration configuration, Instance instance, Node node, Action action, ActionExtendParam extendParam) {
         var send = false;
         var notificationMode = node.getNotificationModesByAction(action);
 

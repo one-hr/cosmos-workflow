@@ -1614,4 +1614,190 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
         }
     }
 
+    @Test
+    void resolve_multipleNode_and_should_work_admin() throws Exception {
+        var workflow = new Workflow(getUuid(), "resolve_multipleNode_or_should_work");
+        try {
+            workflow = processDesign.createWorkflow(host, workflow);
+
+            var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
+
+            var multipleNode1 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-1", ApprovalType.AND, Set.of("operator-1", "operator-2"), Set.of());
+            definition.nodes.add(1, multipleNode1);
+            var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.AND, Set.of("operator-3", "operator-4"), Set.of());
+            definition.nodes.add(2, multipleNode2);
+            var multipleNode3 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-3", ApprovalType.AND, Set.of("operator-1", "operator-4"), Set.of());
+            definition.nodes.add(3, multipleNode3);
+            processDesign.upsertDefinition(host, definition);
+
+            definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
+
+            var param = new ApplicationParam();
+            param.workflowId = workflow.id;
+            param.applicant = "operator-0";
+            var instance = processEngine.startInstance(host, param);
+
+            assertThat(instance.workflowId).isEqualTo(workflow.id);
+            assertThat(instance.definitionId).isEqualTo(definition.id);
+            assertThat(instance.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-2");
+            assertThat(instance.operatorOrgIdSet).isEmpty();
+            assertThat(instance.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-2");
+            assertThat(instance.applicant).isEqualTo("operator-0");
+            assertThat(instance.applicationMode).isEqualTo(ApplicationMode.SELF);
+            assertThat(instance.status).isEqualTo(Status.PROCESSING);
+            assertThat(instance.nodeId).isEqualTo(multipleNode1.nodeId);
+
+            ActionExtendParam extendParam = new ActionExtendParam();
+            extendParam.operationMode = OperationMode.ADMIN_MODE;
+
+            // and next
+            {
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "admin", extendParam);
+                instance = actionResult.instance;
+
+                var result1 = processEngine.getInstanceWithOps(host, instance.getId(), "admin", OperationMode.ADMIN_MODE);
+                assertThat(result1.definitionId).isEqualTo(definition.id);
+                assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
+                assertThat(result1.operatorOrgIdSet).isEmpty();
+                assertThat(result1.expandOperatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
+                assertThat(result1.applicant).isEqualTo("operator-0");
+                assertThat(result1.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result1.status).isEqualTo(Status.PROCESSING);
+                assertThat(result1.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK);
+
+                assertThat(result1.nodeId).isEqualTo(multipleNode2.nodeId);
+
+                assertThat(result1.parallelApproval).hasSize(2);
+                assertThat(result1.parallelApproval.get("operator-3").operatorId).isEqualTo("operator-3");
+                assertThat(result1.parallelApproval.get("operator-3").approved).isFalse();
+                assertThat(result1.parallelApproval.get("operator-4").operatorId).isEqualTo("operator-4");
+                assertThat(result1.parallelApproval.get("operator-4").approved).isFalse();
+
+                // moving to the third node
+                actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "admin", extendParam);
+                instance = actionResult.instance;
+
+                var result2 = processEngine.getInstanceWithOps(host, instance.getId(), "admin", OperationMode.ADMIN_MODE);
+                assertThat(result2.definitionId).isEqualTo(definition.id);
+                assertThat(result2.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-4");
+                assertThat(result2.operatorOrgIdSet).isEmpty();
+                assertThat(result2.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-4");
+                assertThat(result2.applicant).isEqualTo("operator-0");
+                assertThat(result2.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result2.status).isEqualTo(Status.PROCESSING);
+                assertThat(result2.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK);
+
+                assertThat(result2.nodeId).isEqualTo(multipleNode3.nodeId);
+
+                assertThat(result2.parallelApproval).hasSize(2);
+                assertThat(result2.parallelApproval.get("operator-1").operatorId).isEqualTo("operator-1");
+                assertThat(result2.parallelApproval.get("operator-1").approved).isFalse();
+                assertThat(result2.parallelApproval.get("operator-4").operatorId).isEqualTo("operator-4");
+                assertThat(result2.parallelApproval.get("operator-4").approved).isFalse();
+
+                // The save action does not clear the approval status
+                actionResult = processEngine.resolve(host, instance.getId(), Action.SAVE, "admin", extendParam);
+                instance = actionResult.instance;
+
+                var result3 = processEngine.getInstanceWithOps(host, instance.getId(), "admin", OperationMode.ADMIN_MODE);
+                assertThat(result3.definitionId).isEqualTo(definition.id);
+                assertThat(result3.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-4");
+                assertThat(result3.operatorOrgIdSet).isEmpty();
+                assertThat(result3.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-4");
+                assertThat(result3.applicant).isEqualTo("operator-0");
+                assertThat(result3.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result3.status).isEqualTo(Status.PROCESSING);
+                assertThat(result3.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK);
+
+                assertThat(result3.nodeId).isEqualTo(multipleNode3.nodeId);
+
+                assertThat(result3.parallelApproval).hasSize(2);
+                assertThat(result3.parallelApproval.get("operator-1").operatorId).isEqualTo("operator-1");
+                assertThat(result3.parallelApproval.get("operator-1").approved).isFalse();
+                assertThat(result3.parallelApproval.get("operator-4").operatorId).isEqualTo("operator-4");
+                assertThat(result3.parallelApproval.get("operator-4").approved).isFalse();
+            }
+
+            // test save
+            {
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.SAVE, "admin", extendParam);
+                instance = actionResult.instance;
+
+                var result = processEngine.getInstanceWithOps(host, instance.getId(), "admin", OperationMode.ADMIN_MODE);
+                assertThat(result.definitionId).isEqualTo(definition.id);
+                assertThat(result.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-4");
+                assertThat(result.operatorOrgIdSet).isEmpty();
+                assertThat(result.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-4");
+                assertThat(result.applicant).isEqualTo("operator-0");
+                assertThat(result.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result.status).isEqualTo(Status.PROCESSING);
+                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK);
+
+                assertThat(result.nodeId).isEqualTo(multipleNode3.nodeId);
+
+                assertThat(result.parallelApproval).hasSize(2);
+                assertThat(result.parallelApproval.get("operator-1").operatorId).isEqualTo("operator-1");
+                assertThat(result.parallelApproval.get("operator-1").approved).isFalse();
+                assertThat(result.parallelApproval.get("operator-4").operatorId).isEqualTo("operator-4");
+                assertThat(result.parallelApproval.get("operator-4").approved).isFalse();
+            }
+
+            // test and back PREVIOUS
+            {
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.BACK, "admin", extendParam);
+                instance = actionResult.instance;
+
+                var result1 = processEngine.getInstanceWithOps(host, instance.getId(), "admin", OperationMode.ADMIN_MODE);
+                assertThat(result1.definitionId).isEqualTo(definition.id);
+                assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
+                assertThat(result1.operatorOrgIdSet).isEmpty();
+                assertThat(result1.expandOperatorIdSet).containsExactlyInAnyOrder("operator-3", "operator-4");
+                assertThat(result1.applicant).isEqualTo("operator-0");
+                assertThat(result1.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result1.status).isEqualTo(Status.PROCESSING);
+                assertThat(result1.nodeId).isEqualTo(multipleNode2.nodeId);
+            }
+
+            // test and back FIRST
+            {
+                extendParam.backMode = BackMode.FIRST;
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.BACK, "admin", extendParam);
+                instance = actionResult.instance;
+
+                var result1 = processEngine.getInstance(host, instance.getId());
+                assertThat(result1.definitionId).isEqualTo(definition.id);
+                assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-2");
+                assertThat(result1.operatorOrgIdSet).isEmpty();
+                assertThat(result1.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-2");
+                assertThat(result1.applicant).isEqualTo("operator-0");
+                assertThat(result1.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result1.status).isEqualTo(Status.PROCESSING);
+                assertThat(result1.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK);
+                assertThat(result1.nodeId).isEqualTo(multipleNode1.nodeId);
+            }
+
+            Instance finalInstance = instance;
+            assertThatThrownBy(() -> processEngine.resolve(host, finalInstance.getId(), Action.CANCEL, "admin", extendParam))
+                    .isInstanceOf(WorkflowException.class)
+                    .hasMessageContaining("The current action is not allowed at the node for the instance");
+
+            assertThatThrownBy(() -> processEngine.resolve(host, finalInstance.getId(), Action.REJECT, "admin", extendParam))
+                    .isInstanceOf(WorkflowException.class)
+                    .hasMessageContaining("The current action is not allowed at the node for the instance");
+
+            assertThatThrownBy(() -> processEngine.resolve(host, finalInstance.getId(), Action.WITHDRAW, "admin", extendParam))
+                    .isInstanceOf(WorkflowException.class)
+                    .hasMessageContaining("The current action is not allowed at the node for the instance");
+
+            assertThatThrownBy(() -> processEngine.resolve(host, finalInstance.getId(), Action.RETRIEVE, "admin", extendParam))
+                    .isInstanceOf(WorkflowException.class)
+                    .hasMessageContaining("The current action is not allowed at the node for the instance");
+
+            assertThatThrownBy(() -> processEngine.resolve(host, finalInstance.getId(), Action.APPLY, "admin", extendParam))
+                    .isInstanceOf(WorkflowException.class)
+                    .hasMessageContaining("The current action is not allowed at the node for the instance");
+        } finally {
+            WorkflowService.singleton.purge(host, workflow.id);
+        }
+    }
 }
