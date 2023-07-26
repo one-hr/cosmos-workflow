@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 import io.github.thunderz99.cosmos.condition.Condition;
-import jp.co.onehr.workflow.ProcessEngineConfiguration;
+import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.constant.*;
 import jp.co.onehr.workflow.contract.notification.Notification;
 import jp.co.onehr.workflow.dto.ActionResult;
@@ -120,7 +120,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
 
         var definition = DefinitionService.singleton.getDefinition(host, existInstance.definitionId);
 
-        var configuration = ProcessEngineConfiguration.getConfiguration();
+        var configuration = ProcessConfiguration.getConfiguration();
 
         var existNode = NodeService.getNodeByInstance(definition, existInstance);
 
@@ -191,7 +191,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
     public void setAllowingActions(Definition definition, Instance instance, String operatorId) {
         instance.allowingActions.clear();
 
-        var configuration = ProcessEngineConfiguration.getConfiguration();
+        var configuration = ProcessConfiguration.getConfiguration();
 
         var actions = generateActionsByStatus(instance);
 
@@ -335,7 +335,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
      * @param action
      * @param extendParam
      */
-    private void handleSendNotification(ProcessEngineConfiguration configuration, Instance instance, Node node, Action action, ActionExtendParam extendParam) {
+    private void handleSendNotification(ProcessConfiguration configuration, Instance instance, Node node, Action action, ActionExtendParam extendParam) {
         var send = false;
         var notificationMode = node.getNotificationModesByAction(action);
 

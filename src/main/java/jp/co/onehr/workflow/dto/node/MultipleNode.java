@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.azure.cosmos.implementation.guava25.collect.Sets;
-import jp.co.onehr.workflow.ProcessEngineConfiguration;
+import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.constant.ApprovalType;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dto.Instance;
@@ -82,11 +82,11 @@ public class MultipleNode extends ManualNode {
         var expandOperatorIds = new HashSet<String>();
 
         if (CollectionUtils.isNotEmpty(instance.operatorIdSet)) {
-            expandOperatorIds.addAll(ProcessEngineConfiguration.getConfiguration().handleExpandOperators(instance.operatorIdSet));
+            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOperators(instance.operatorIdSet));
         }
 
         if (CollectionUtils.isNotEmpty(instance.operatorOrgIdSet)) {
-            expandOperatorIds.addAll(ProcessEngineConfiguration.getConfiguration().handleExpandOrganizations(instance.operatorOrgIdSet));
+            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOrganizations(instance.operatorOrgIdSet));
         }
 
         instance.expandOperatorIdSet.addAll(expandOperatorIds);

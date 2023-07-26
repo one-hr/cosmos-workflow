@@ -8,7 +8,7 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import jp.co.onehr.workflow.ProcessEngineConfiguration;
+import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.ApprovalType;
 import jp.co.onehr.workflow.constant.NotificationMode;
@@ -96,11 +96,11 @@ public abstract class Node extends SimpleData {
         if (ApprovalType.AND.equals(approvalType)) {
             var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
             if (action.equals(Action.RETRIEVE)) {
-                parallelApprovalMap.putAll(ProcessEngineConfiguration
+                parallelApprovalMap.putAll(ProcessConfiguration
                         .getConfiguration()
                         .handleRetrieveParallelApproval(instance.operatorIdSet, instance.operatorOrgIdSet, instance.expandOperatorIdSet, operatorId));
             } else {
-                parallelApprovalMap.putAll(ProcessEngineConfiguration
+                parallelApprovalMap.putAll(ProcessConfiguration
                         .getConfiguration()
                         .handleParallelApproval(instance.operatorIdSet, instance.operatorOrgIdSet, instance.expandOperatorIdSet));
             }
