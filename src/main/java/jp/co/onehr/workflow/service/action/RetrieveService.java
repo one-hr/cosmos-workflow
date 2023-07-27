@@ -9,8 +9,6 @@ import jp.co.onehr.workflow.service.ActionStrategy;
 
 /**
  * Processing of the "Retrieve" action
- * <p>
- * todo In the case of parallel approval, the retrieval action needs special handling.
  */
 public class RetrieveService implements ActionStrategy {
 

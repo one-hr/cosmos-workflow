@@ -74,22 +74,27 @@ public class MultipleNode extends ManualNode {
     }
 
     @Override
-    public Set<String> resetCurrentOperators(Instance instance) {
+    public void resetCurrentOperators(Instance instance) {
         clearOperators(instance);
         instance.operatorIdSet.addAll(this.operatorIdSet);
         instance.operatorOrgIdSet.addAll(this.operatorOrgIdSet);
 
-        var expandOperatorIds = new HashSet<String>();
-
-        if (CollectionUtils.isNotEmpty(instance.operatorIdSet)) {
-            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOperators(instance.operatorIdSet));
-        }
-
-        if (CollectionUtils.isNotEmpty(instance.operatorOrgIdSet)) {
-            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOrganizations(instance.operatorOrgIdSet));
-        }
+        var expandOperatorIds = generateExpandOperatorIds();
 
         instance.expandOperatorIdSet.addAll(expandOperatorIds);
+    }
+
+    @Override
+    public Set<String> generateExpandOperatorIds() {
+        var expandOperatorIds = new HashSet<String>();
+
+        if (CollectionUtils.isNotEmpty(this.operatorIdSet)) {
+            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOperators(this.operatorIdSet));
+        }
+
+        if (CollectionUtils.isNotEmpty(this.operatorOrgIdSet)) {
+            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOrganizations(this.operatorOrgIdSet));
+        }
 
         return expandOperatorIds;
     }
