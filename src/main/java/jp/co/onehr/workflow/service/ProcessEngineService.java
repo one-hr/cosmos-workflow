@@ -4,6 +4,7 @@ import java.util.List;
 
 import io.github.thunderz99.cosmos.condition.Condition;
 import jp.co.onehr.workflow.constant.Action;
+import jp.co.onehr.workflow.constant.OperationMode;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.param.ActionExtendParam;
@@ -46,10 +47,10 @@ public class ProcessEngineService {
      * @return
      * @throws Exception
      */
-    public Instance getInstanceWithOps(String host, String instanceId, String operatorId) throws Exception {
+    public Instance getInstanceWithOps(String host, String instanceId, String operatorId, OperationMode operationMode) throws Exception {
         var instance = InstanceService.singleton.readSuppressing404(host, instanceId);
         var definition = DefinitionService.singleton.getDefinition(host, instance.definitionId);
-        InstanceService.singleton.setAllowingActions(definition, instance, operatorId);
+        InstanceService.singleton.setAllowingActions(definition, instance, operatorId, operationMode);
 
         return instance;
     }

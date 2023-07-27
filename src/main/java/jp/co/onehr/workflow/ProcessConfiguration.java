@@ -200,4 +200,12 @@ public class ProcessConfiguration {
         }
         return actions;
     }
+
+    public Set<Action> generateCustomRemovalActionsByAdmin(Definition definition, Instance instance, String operatorId) {
+        var actions = new HashSet<Action>();
+        if (actionRestriction != null) {
+            actions.addAll(actionRestriction.generateCustomRemovalActionsByOperator(definition, instance, operatorId));
+        }
+        return actions;
+    }
 }

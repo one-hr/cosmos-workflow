@@ -26,7 +26,7 @@ public class AndNextService extends NextService implements ApprovalStrategy {
             }
         }
 
-        if (allApproved) {
+        if (allApproved || (extendParam != null && extendParam.operationMode.isAdminMode())) {
             handleSimpleNext(definition, instance);
             actionResult.resetOperator = true;
         }

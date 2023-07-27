@@ -2,6 +2,7 @@ package jp.co.onehr.workflow.dto.param;
 
 
 import jp.co.onehr.workflow.constant.BackMode;
+import jp.co.onehr.workflow.constant.OperationMode;
 import jp.co.onehr.workflow.contract.log.BusinessParam;
 import jp.co.onehr.workflow.contract.notification.Notification;
 import jp.co.onehr.workflow.contract.plugin.PluginParam;
@@ -47,6 +48,11 @@ public class ActionExtendParam extends SimpleData {
      * business param
      */
     public BusinessParam businessParam;
+
+    /**
+     * operation mode
+     */
+    public OperationMode operationMode = OperationMode.OPERATOR_MODE;
 
     public ActionExtendParam() {
 
