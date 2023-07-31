@@ -155,7 +155,7 @@ public class NodeService {
                 return recursivePreviousNode(definition, instance, nodeIndex - 1, count);
             }
 
-            var expandOperatorIds = currentNode.resetCurrentOperators(instance);
+            var expandOperatorIds = currentNode.generateExpandOperatorIds();
             if (expandOperatorIds.isEmpty()) {
                 return recursivePreviousNode(definition, instance, nodeIndex - 1, count);
             }

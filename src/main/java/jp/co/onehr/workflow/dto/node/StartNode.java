@@ -19,13 +19,17 @@ public class StartNode extends Node {
     }
 
     @Override
-    public Set<String> resetCurrentOperators(Instance instance) {
+    public void resetCurrentOperators(Instance instance) {
         clearOperators(instance);
+    }
+
+    @Override
+    public Set<String> generateExpandOperatorIds() {
         return Sets.newHashSet();
     }
 
     @Override
     public void checkNodeSetting() {
-        
+
     }
 }

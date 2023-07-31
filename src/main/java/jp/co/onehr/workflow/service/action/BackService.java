@@ -2,10 +2,12 @@ package jp.co.onehr.workflow.service.action;
 
 import jp.co.onehr.workflow.constant.BackMode;
 import jp.co.onehr.workflow.constant.Status;
+import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.param.ActionExtendParam;
+import jp.co.onehr.workflow.exception.WorkflowException;
 import jp.co.onehr.workflow.service.ActionStrategy;
 import jp.co.onehr.workflow.service.NodeService;
 import org.apache.commons.lang3.ObjectUtils;
@@ -53,7 +55,10 @@ public class BackService implements ActionStrategy {
             var backNode = nodes.get(currentNodeIndex - 1);
             instance.nodeId = backNode.nodeId;
         } else {
-            // todo add a restriction where you can only go back to a previous node
+            var backNodeIndex = NodeService.getNodeIndexByNodeId(definition, backStepId);
+            if (backNodeIndex >= currentNodeIndex) {
+                throw new WorkflowException(WorkflowErrors.BACK_NODE_INVALID, "Back is only allowed to go back to the previous nodes before the current node", instance.id);
+            }
             var backNode = NodeService.getNodeByNodeId(definition, backStepId);
             instance.nodeId = backNode.nodeId;
         }

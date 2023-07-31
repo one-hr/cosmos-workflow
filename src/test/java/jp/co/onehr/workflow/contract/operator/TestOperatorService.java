@@ -59,5 +59,20 @@ public class TestOperatorService implements OperatorService {
         return parallelApprovalMap;
     }
 
+    @Override
+    public Map<String, ApprovalStatus> handleModificationParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, Map<String, ApprovalStatus> existParallelApproval) {
+        var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
+
+        for (var expandOperatorId : expandOperatorIds) {
+            if (existParallelApproval.containsKey(expandOperatorId)) {
+                parallelApprovalMap.put(expandOperatorId, existParallelApproval.get(expandOperatorId));
+            } else {
+                parallelApprovalMap.put(expandOperatorId, new ApprovalStatus(expandOperatorId, false));
+            }
+        }
+
+        return parallelApprovalMap;
+    }
+
 
 }

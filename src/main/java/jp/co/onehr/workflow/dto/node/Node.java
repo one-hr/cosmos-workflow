@@ -82,7 +82,14 @@ public abstract class Node extends SimpleData {
      * @param instance
      * @return
      */
-    public abstract Set<String> resetCurrentOperators(Instance instance);
+    public abstract void resetCurrentOperators(Instance instance);
+
+    /**
+     * Generate the actual operator IDs based on the node definition.
+     *
+     * @return
+     */
+    public abstract Set<String> generateExpandOperatorIds();
 
     /**
      * Resetting the parallel approval status

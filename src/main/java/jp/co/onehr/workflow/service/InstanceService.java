@@ -221,9 +221,6 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         var actions = generateActionsByStatus(instance);
 
         if (operationMode != null && operationMode.isAdminMode()) {
-            var customRemovalActions = configuration.generateCustomRemovalActionsByAdmin(definition, instance, operatorId);
-            actions.removeAll(customRemovalActions);
-
             var removalActions = generateRemovalActionsByAdmin(definition, instance, operatorId);
             actions.removeAll(removalActions);
         } else {
@@ -390,10 +387,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
                 }
 
             }
-            case REJECTED, CANCELED -> actions.addAll(List.of(Action.values()));
-            case APPROVED -> actions.addAll(List.of(Action.values()));
-            //No actions are allowed in the finished status
-            case FINISHED -> actions.addAll(List.of(Action.values()));
+            case REJECTED, CANCELED, APPROVED, FINISHED -> actions.addAll(List.of(Action.values()));
         }
 
         return Sets.newHashSet(actions);

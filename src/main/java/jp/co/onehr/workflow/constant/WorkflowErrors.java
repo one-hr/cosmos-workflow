@@ -47,6 +47,10 @@ public enum WorkflowErrors implements ErrorInterface {
      */
     NODE_ACTION_INVALID(400),
     /**
+     * The back action's node is invalid.
+     */
+    BACK_NODE_INVALID(400),
+    /**
      * The plugin's handle method is invalid
      */
     PLUGIN_HANDLE_INVALID(400),

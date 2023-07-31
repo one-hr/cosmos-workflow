@@ -3,11 +3,11 @@ package jp.co.onehr.workflow.dto.node;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.google.common.collect.Sets;
 import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.exception.WorkflowException;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -32,14 +32,20 @@ public class SingleNode extends ManualNode {
     }
 
     @Override
-    public Set<String> resetCurrentOperators(Instance instance) {
+    public void resetCurrentOperators(Instance instance) {
         clearOperators(instance);
         instance.operatorIdSet.add(this.operatorId);
 
+        var expandOperatorIds = generateExpandOperatorIds();
+
+        instance.expandOperatorIdSet.addAll(expandOperatorIds);
+    }
+
+    @Override
+    public Set<String> generateExpandOperatorIds() {
         var expandOperatorIds = new HashSet<String>();
-        if (CollectionUtils.isNotEmpty(instance.operatorIdSet)) {
-            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOperators(instance.operatorIdSet));
-            instance.expandOperatorIdSet.addAll(expandOperatorIds);
+        if (StringUtils.isNotEmpty(this.operatorId)) {
+            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOperators(Sets.newHashSet(this.operatorId)));
         }
         return expandOperatorIds;
     }

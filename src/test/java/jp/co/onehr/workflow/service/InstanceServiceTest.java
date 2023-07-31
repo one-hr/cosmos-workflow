@@ -242,6 +242,16 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.status).isEqualTo(Status.PROCESSING);
                 assertThat(result1.nodeId).isEqualTo(singleNode2.nodeId);
 
+                // error back
+                var actionParam = new ActionExtendParam();
+                actionParam.backMode = BackMode.PREVIOUS;
+                actionParam.backNodeId = singleNode3.nodeId;
+
+                Instance finalInstance = instance;
+                assertThatThrownBy(() -> processEngine.resolve(host, finalInstance.getId(), Action.BACK, "operator-node-2", actionParam))
+                        .isInstanceOf(WorkflowException.class)
+                        .hasMessageContaining(WorkflowErrors.BACK_NODE_INVALID.name());
+
                 // operate operateLog
                 assertThat(result1.operateLogList).hasSize(4);
                 var operateLog4 = result1.operateLogList.get(3);

@@ -167,6 +167,23 @@ public class ProcessConfiguration {
         return parallelApprovalMap;
     }
 
+    public Map<String, ApprovalStatus> handleModificationParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, Map<String, ApprovalStatus> existParallelApproval) {
+        if (operatorService != null) {
+            return operatorService.handleModificationParallelApproval(operatorIds, orgIds, expandOperatorIds, existParallelApproval);
+        }
+        var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
+
+        for (var expandOperatorId : expandOperatorIds) {
+            if (existParallelApproval.containsKey(expandOperatorId)) {
+                parallelApprovalMap.put(expandOperatorId, existParallelApproval.get(expandOperatorId));
+            } else {
+                parallelApprovalMap.put(expandOperatorId, new ApprovalStatus(expandOperatorId, false));
+            }
+        }
+
+        return parallelApprovalMap;
+    }
+
     // === Configuration and registration for plugin ===
 
     public void registerPlugin(WorkflowPlugin plugin) {
@@ -194,14 +211,6 @@ public class ProcessConfiguration {
     }
 
     public Set<Action> generateCustomRemovalActionsByOperator(Definition definition, Instance instance, String operatorId) {
-        var actions = new HashSet<Action>();
-        if (actionRestriction != null) {
-            actions.addAll(actionRestriction.generateCustomRemovalActionsByOperator(definition, instance, operatorId));
-        }
-        return actions;
-    }
-
-    public Set<Action> generateCustomRemovalActionsByAdmin(Definition definition, Instance instance, String operatorId) {
         var actions = new HashSet<Action>();
         if (actionRestriction != null) {
             actions.addAll(actionRestriction.generateCustomRemovalActionsByOperator(definition, instance, operatorId));
