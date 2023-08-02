@@ -52,7 +52,7 @@ public class SingleNode extends ManualNode {
 
     @Override
     public void checkNodeSetting() {
-        if (StringUtils.isEmpty(operatorId)) {
+        if (StringUtils.isBlank(operatorId)) {
             throw new WorkflowException(WorkflowErrors.NODE_SETTING_INVALID, "The operator of a single node cannot be empty", nodeName);
         }
     }

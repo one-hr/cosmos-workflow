@@ -11,12 +11,13 @@ import jp.co.onehr.workflow.contract.operator.TestBusinessParam;
 import jp.co.onehr.workflow.contract.plugin.TestPluginParam;
 import jp.co.onehr.workflow.contract.plugin.TestPluginResult;
 import jp.co.onehr.workflow.dto.Instance;
-import jp.co.onehr.workflow.dto.Workflow;
 import jp.co.onehr.workflow.dto.node.MultipleNode;
 import jp.co.onehr.workflow.dto.node.RobotNode;
 import jp.co.onehr.workflow.dto.node.SingleNode;
 import jp.co.onehr.workflow.dto.param.ActionExtendParam;
 import jp.co.onehr.workflow.dto.param.ApplicationParam;
+import jp.co.onehr.workflow.dto.param.DefinitionParam;
+import jp.co.onehr.workflow.dto.param.WorkflowCreationParam;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import org.junit.jupiter.api.Test;
 
@@ -40,9 +41,12 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
     @Test
     void start_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "start_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "start_should_work";
+        var workflowId = "";
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
 
             var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
             {
@@ -66,7 +70,11 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var singleNode = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
             singleNode.operatorId = "operator-node";
             definition.nodes.add(1, singleNode);
-            processDesign.upsertDefinition(host, definition);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
 
             definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
 
@@ -109,15 +117,18 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(node.nodeName).isEqualTo("DEFAULT_SINGLE_NODE_NAME-1");
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void resolve_singleNode_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "resolve_singleNode_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_singleNode_should_work";
+        var workflowId = "";
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
 
             var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
 
@@ -130,7 +141,11 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var singleNode3 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-3");
             singleNode3.operatorId = "operator-node-3";
             definition.nodes.add(3, singleNode3);
-            processDesign.upsertDefinition(host, definition);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
 
             definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
 
@@ -321,15 +336,18 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(operateLog6.comment).isEqualTo("back to first node");
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void resolve_multipleNode_or_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "resolve_multipleNode_or_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_multipleNode_or_should_work";
+        var workflowId = "";
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
 
             var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
 
@@ -339,7 +357,11 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             definition.nodes.add(2, multipleNode2);
             var multipleNode3 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-3", Set.of("operator-1", "operator-4"), Set.of());
             definition.nodes.add(3, multipleNode3);
-            processDesign.upsertDefinition(host, definition);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
 
             definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
 
@@ -435,16 +457,18 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.nodeId).isEqualTo(multipleNode1.nodeId);
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void resolve_multipleNode_and_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "resolve_multipleNode_or_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_multipleNode_or_should_work";
+        var workflowId = "";
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
-
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
             var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
 
             var multipleNode1 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-1", ApprovalType.AND, Set.of("operator-1", "operator-2"), Set.of());
@@ -453,7 +477,11 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             definition.nodes.add(2, multipleNode2);
             var multipleNode3 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-3", ApprovalType.AND, Set.of("operator-1", "operator-4"), Set.of());
             definition.nodes.add(3, multipleNode3);
-            processDesign.upsertDefinition(host, definition);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
 
             definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
 
@@ -639,15 +667,18 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.nodeId).isEqualTo(multipleNode1.nodeId);
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void resolve_robotNode_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "resolve_multipleNode_or_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_multipleNode_or_should_work";
+        var workflowId = "";
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
             var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
 
             var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
@@ -665,7 +696,11 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var singleNode3 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-3");
             singleNode3.operatorId = "operator-node-3";
             definition.nodes.add(3, singleNode3);
-            processDesign.upsertDefinition(host, definition);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
 
             definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
 
@@ -752,15 +787,18 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.nodeId).isEqualTo(singleNode1.nodeId);
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void resolve_auto_skip_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "resolve_auto_skip_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_auto_skip_should_work";
+        var workflowId = "";
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
             var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
 
             var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
@@ -782,7 +820,11 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var singleNode4 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-3");
             singleNode4.operatorId = "operator-4";
             definition.nodes.add(4, singleNode4);
-            processDesign.upsertDefinition(host, definition);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
 
             var endNode = definition.nodes.get(definition.nodes.size() - 1);
 
@@ -834,15 +876,18 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.nodeId).isEqualTo(singleNode1.nodeId);
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void resolve_reject_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "resolve_reject_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_reject_should_work";
+        var workflowId = "";
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
             var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
 
             var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
@@ -852,7 +897,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-3", "operator-4"), Set.of());
             definition.nodes.add(2, multipleNode2);
 
-            processDesign.upsertDefinition(host, definition);
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
 
             var startNode = definition.nodes.get(0);
 
@@ -873,15 +921,18 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             assertThat(instance.nodeId).isEqualTo(singleNode1.nodeId);
 
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void resolve_withdraw_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "resolve_withdraw_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_withdraw_should_work";
+        var workflowId = "";
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
             var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
 
             var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
@@ -891,7 +942,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-3", "operator-4"), Set.of());
             definition.nodes.add(2, multipleNode2);
 
-            processDesign.upsertDefinition(host, definition);
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
 
             var param = new ApplicationParam();
             param.workflowId = workflow.id;
@@ -906,16 +960,19 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             assertThat(withdrawalInstance).isNull();
 
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void resolve_retrieve_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "resolve_retrieve_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_retrieve_should_work";
+        var workflowId = "";
 
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
             var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
 
             var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
@@ -929,7 +986,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             singleNode3.operatorId = "operator-4";
             definition.nodes.add(3, singleNode3);
 
-            processDesign.upsertDefinition(host, definition);
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
 
             definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
 
@@ -1001,16 +1061,19 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result3.preExpandOperatorIdSet).containsExactlyInAnyOrder("operator-1");
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void resolve_retrieve_parallel_approval_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "resolve_retrieve_parallel_approval_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_retrieve_parallel_approval_should_work";
+        var workflowId = "";
 
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
             var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
 
             var multipleNode1 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-1", ApprovalType.AND, Set.of("operator-1", "operator-2"), Set.of());
@@ -1020,7 +1083,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             singleNode2.operatorId = "operator-3";
             definition.nodes.add(2, singleNode2);
 
-            processDesign.upsertDefinition(host, definition);
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
 
             definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
 
@@ -1103,16 +1169,19 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.allowingActions).containsExactlyInAnyOrder(Action.REJECT, Action.WITHDRAW, Action.NEXT, Action.BACK, Action.CANCEL);
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void resolve_apply_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "resolve_apply_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_apply_should_work";
+        var workflowId = "";
 
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
             var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
 
             var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
@@ -1126,7 +1195,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             singleNode3.operatorId = "operator-4";
             definition.nodes.add(3, singleNode3);
 
-            processDesign.upsertDefinition(host, definition);
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
 
             definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
 
@@ -1274,15 +1346,18 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result3.operateLogList.get(5).action).isEqualTo(Action.NEXT);
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void resolve_allowingActions_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "resolve_allowingActions_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_allowingActions_should_work";
+        var workflowId = "";
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
             var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
 
             var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
@@ -1292,7 +1367,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-3", "operator-4"), Set.of());
             definition.nodes.add(2, multipleNode2);
 
-            processDesign.upsertDefinition(host, definition);
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
 
             definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
 
@@ -1445,15 +1523,19 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result2.allowingActions).containsExactlyInAnyOrder(Action.WITHDRAW, Action.APPLY);
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void resolve_send_notification_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "resolve_send_notification_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_send_notification_should_work";
+        var workflowId = "";
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
+
             var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
 
             var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
@@ -1472,7 +1554,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             singleNode3.notificationModes.put(Action.BACK, NotificationMode.USER_DEFAULT_NOT_SEND);
             definition.nodes.add(3, singleNode3);
 
-            processDesign.upsertDefinition(host, definition);
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.nodes.addAll(definition.nodes);
+            definition = processDesign.upsertDefinition(host, definitionParam);
 
             var startNode = definition.nodes.get(0);
 
@@ -1620,15 +1705,18 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(testNotification.result).isEqualTo("reject content");
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void resolve_multipleNode_and_should_work_admin() throws Exception {
-        var workflow = new Workflow(getUuid(), "resolve_multipleNode_or_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_multipleNode_or_should_work";
+        var workflowId = "";
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
 
             var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
 
@@ -1638,7 +1726,11 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             definition.nodes.add(2, multipleNode2);
             var multipleNode3 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-3", ApprovalType.AND, Set.of("operator-1", "operator-4"), Set.of());
             definition.nodes.add(3, multipleNode3);
-            processDesign.upsertDefinition(host, definition);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
 
             definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
 
@@ -1807,7 +1899,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                     .isInstanceOf(WorkflowException.class)
                     .hasMessageContaining("The current action is not allowed at the node for the instance");
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 }

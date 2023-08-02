@@ -10,6 +10,9 @@ import jp.co.onehr.workflow.dto.Workflow;
 import jp.co.onehr.workflow.dto.node.EndNode;
 import jp.co.onehr.workflow.dto.node.SingleNode;
 import jp.co.onehr.workflow.dto.node.StartNode;
+import jp.co.onehr.workflow.dto.param.DefinitionParam;
+import jp.co.onehr.workflow.dto.param.WorkflowCreationParam;
+import jp.co.onehr.workflow.dto.param.WorkflowUpdatingParam;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +39,10 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
         var workflow = new Workflow(getUuid(), "createInitialDefinition_should_work");
         Definition definition = null;
         try {
-            definition = getService().createInitialDefinition(host, workflow);
+            var creationParam = new WorkflowCreationParam();
+            creationParam.name = workflow.name;
+
+            definition = getService().createInitialDefinition(host, workflow, creationParam);
 
             var result = getService().readSuppressing404(host, definition.id);
 
@@ -59,10 +65,15 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
 
     @Test
     void create_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "definition-test-create");
-        var definition = new Definition(getUuid(), workflow.getId());
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "definition-test-create";
+        var workflowId = "";
+
         try {
-            processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
+
+            var definition = new Definition(getUuid(), workflow.getId());
 
             var startNode = new StartNode("start-name");
 
@@ -93,22 +104,27 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
                 assertThat(nodes.get(2).nodeName).isEqualTo("end-name");
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void upsert_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "upsert_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "upsert_should_work";
+        var workflowId = "";
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
 
             workflow = processDesign.getWorkflow(host, workflow.getId());
             assertThat(workflow.enableVersion).isTrue();
             assertThat(workflow.currentVersion).isEqualTo(0);
 
-            workflow.enableVersion = false;
-            processDesign.upsertWorkflow(host, workflow);
+            var updatingParam = new WorkflowUpdatingParam();
+            updatingParam.id = workflowId;
+            updatingParam.enableVersion = false;
+            processDesign.updateWorkflow(host, updatingParam);
 
             {
                 var definitions = processDesign.findDefinitions(host, Condition.filter("workflowId", workflow.id));
@@ -119,7 +135,11 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
                 var singleNode = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
                 singleNode.operatorId = "operator-1";
                 definition.nodes.add(1, singleNode);
-                getService().upsert(host, definition);
+
+                var param = new DefinitionParam();
+                param.workflowId = workflowId;
+                param.nodes.addAll(definition.nodes);
+                getService().upsert(host, param);
 
                 workflow = processDesign.getWorkflow(host, workflow.getId());
                 assertThat(workflow.enableVersion).isFalse();
@@ -133,8 +153,10 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
                 assertThat(result.version).isEqualTo(0);
             }
 
-            workflow.enableVersion = true;
-            processDesign.upsertWorkflow(host, workflow);
+
+            updatingParam.id = workflowId;
+            updatingParam.enableVersion = true;
+            processDesign.updateWorkflow(host, updatingParam);
 
             {
                 var definitions = processDesign.findDefinitions(host, Condition.filter("workflowId", workflow.id));
@@ -146,7 +168,11 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
                 var singleNode = new SingleNode("DEFAULT_SINGLE_NODE_NAME-2");
                 singleNode.operatorId = "operator-2";
                 definition.nodes.add(2, singleNode);
-                getService().upsert(host, definition);
+
+                var param = new DefinitionParam();
+                param.workflowId = workflowId;
+                param.nodes.addAll(definition.nodes);
+                getService().upsert(host, param);
 
                 workflow = processDesign.getWorkflow(host, workflow.getId());
                 assertThat(workflow.enableVersion).isTrue();
@@ -164,15 +190,18 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
                 assertThat(result2.version).isEqualTo(1);
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void getDefinition_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "getDefinition_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "getDefinition_should_work";
+        var workflowId = "";
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
             var definition = processDesign.getCurrentDefinition(host, workflow.id, workflow.currentVersion);
             {
                 var result = processDesign.getDefinition(host, definition.getId());
@@ -187,17 +216,20 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
                         .hasMessageContaining(WorkflowErrors.DEFINITION_NOT_EXIST.name());
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void getCurrentDefinition_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "getCurrentDefinition_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "getCurrentDefinition_should_work";
+        var workflowId = "";
+
         try {
-            workflow = processDesign.createWorkflow(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
             workflow = processDesign.getWorkflow(host, workflow.getId());
-            var workflowId = workflow.id;
+            workflowId = workflow.id;
             {
                 var result = processDesign.getCurrentDefinition(host, workflowId, 0);
                 assertThat(result.nodes).hasSize(2);
@@ -205,13 +237,14 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
             }
 
             {
-                assertThatThrownBy(() -> processDesign.getCurrentDefinition(host, workflowId, 1))
+                String finalWorkflowId = workflowId;
+                assertThatThrownBy(() -> processDesign.getCurrentDefinition(host, finalWorkflowId, 1))
                         .isInstanceOf(WorkflowException.class)
                         .hasMessageContaining(WorkflowErrors.DEFINITION_NOT_EXIST.name())
                         .hasMessageContaining("The definition for the current version of the workflow was not found");
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 

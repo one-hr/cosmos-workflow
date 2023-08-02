@@ -13,9 +13,12 @@ import jp.co.onehr.workflow.dto.Workflow;
 import jp.co.onehr.workflow.dto.base.DeletedObject;
 import jp.co.onehr.workflow.dto.node.EndNode;
 import jp.co.onehr.workflow.dto.node.StartNode;
+import jp.co.onehr.workflow.dto.param.DefinitionParam;
+import jp.co.onehr.workflow.dto.param.WorkflowCreationParam;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import jp.co.onehr.workflow.service.base.BaseCRUDService;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -37,9 +40,8 @@ public class DefinitionService extends BaseCRUDService<Definition> {
      * @param workflow
      * @return
      */
-    protected Definition createInitialDefinition(String host, Workflow workflow) throws Exception {
-        var definition = generateInitialDefinition(workflow);
-
+    protected Definition createInitialDefinition(String host, Workflow workflow, WorkflowCreationParam creationParam) throws Exception {
+        var definition = generateInitialDefinition(workflow, creationParam);
         checkNodes(definition);
         return super.create(host, definition);
     }
@@ -60,9 +62,10 @@ public class DefinitionService extends BaseCRUDService<Definition> {
         return super.readSuppressing404(host, id);
     }
 
-    @Override
-    protected Definition upsert(String host, Definition definition) throws Exception {
-        var workflow = WorkflowService.singleton.getWorkflow(host, definition.workflowId);
+    protected Definition upsert(String host, DefinitionParam param) throws Exception {
+        var workflow = WorkflowService.singleton.getWorkflow(host, param.workflowId);
+
+        var definition = this.getCurrentDefinition(host, workflow.getId(), workflow.currentVersion);
 
         // increment the version number of the definition by 1
         if (workflow.enableVersion) {
@@ -70,19 +73,26 @@ public class DefinitionService extends BaseCRUDService<Definition> {
             definition.version++;
         }
 
-        definition.id = generateId(definition);
-        definition.workflowId = workflow.getId();
+        definition.nodes = param.nodes;
 
         checkNodes(definition);
-        var result = super.upsert(host, definition);
+
+        definition.applicationModes = param.applicationModes;
+
+        var result = this.upsert(host, definition);
 
         // updating the definition would require updating the current version number of the workflow.
         if (workflow.enableVersion) {
             workflow.currentVersion = result.version;
-            WorkflowService.singleton.upsert(host, workflow);
+            WorkflowService.singleton.update(host, workflow);
         }
 
         return result;
+    }
+
+    @Override
+    protected DeletedObject delete(String host, String id) throws Exception {
+        return super.delete(host, id);
     }
 
     @Override
@@ -137,13 +147,13 @@ public class DefinitionService extends BaseCRUDService<Definition> {
      * @return
      * @throws Exception
      */
-    private Definition generateInitialDefinition(Workflow workflow) {
+    private Definition generateInitialDefinition(Workflow workflow, WorkflowCreationParam creationParam) {
         var definition = new Definition();
         definition.id = generateId(definition);
         definition.workflowId = workflow.getId();
         definition.version = 0;
-        definition.nodes.add(generateStartNode());
-        definition.nodes.add(generateEndNode());
+        definition.nodes.add(generateStartNode(creationParam));
+        definition.nodes.add(generateEndNode(creationParam));
         definition.applicationModes.add(ApplicationMode.SELF);
         return definition;
     }
@@ -153,8 +163,16 @@ public class DefinitionService extends BaseCRUDService<Definition> {
      *
      * @return
      */
-    private StartNode generateStartNode() {
-        return new StartNode(DEFAULT_START_NODE_NAME);
+    private StartNode generateStartNode(WorkflowCreationParam creationParam) {
+        var nodeName = StringUtils.isNotEmpty(creationParam.startNodeName) ? creationParam.startNodeName : DEFAULT_START_NODE_NAME;
+
+        var startNode = new StartNode(nodeName);
+
+        if (MapUtils.isNotEmpty(creationParam.startLocalNames)) {
+            startNode.localNames.putAll(creationParam.startLocalNames);
+        }
+
+        return startNode;
     }
 
     /**
@@ -162,8 +180,16 @@ public class DefinitionService extends BaseCRUDService<Definition> {
      *
      * @return
      */
-    private EndNode generateEndNode() {
-        return new EndNode(DEFAULT_END_NODE_NAME);
+    private EndNode generateEndNode(WorkflowCreationParam creationParam) {
+        var nodeName = StringUtils.isNotEmpty(creationParam.endNodeName) ? creationParam.endNodeName : DEFAULT_END_NODE_NAME;
+
+        var endNode = new EndNode(nodeName);
+
+        if (MapUtils.isNotEmpty(creationParam.endLocalNames)) {
+            endNode.localNames.putAll(creationParam.endLocalNames);
+        }
+
+        return endNode;
     }
 
     /**
@@ -192,10 +218,10 @@ public class DefinitionService extends BaseCRUDService<Definition> {
         var typeSet = new HashSet<String>();
 
         for (var node : nodes) {
-            if (StringUtils.isEmpty(node.nodeName)) {
+            if (StringUtils.isBlank(node.nodeName)) {
                 throw new WorkflowException(WorkflowErrors.NODE_NAME_INVALID, "The name of a node cannot be empty", definition.id);
             }
-            
+
             node.checkNodeSetting();
 
             if (typeSet.contains(node.getType())) {

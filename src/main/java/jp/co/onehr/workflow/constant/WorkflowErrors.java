@@ -11,6 +11,14 @@ public enum WorkflowErrors implements ErrorInterface {
      */
     WORKFLOW_NOT_EXIST(400),//
     /**
+     * The workflow id is invalid.
+     */
+    WORKFLOW_ID_INVALID(400),//
+    /**
+     * The workflow name is invalid.
+     */
+    WORKFLOW_NANE_INVALID(400),//
+    /**
      * The definition should have at least one start node and one end node.
      */
     DEFINITION_NODE_SIZE_INVALID(400),

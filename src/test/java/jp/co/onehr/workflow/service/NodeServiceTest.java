@@ -2,8 +2,8 @@ package jp.co.onehr.workflow.service;
 
 import jp.co.onehr.workflow.base.BaseTest;
 import jp.co.onehr.workflow.constant.NodeType;
-import jp.co.onehr.workflow.dto.Workflow;
 import jp.co.onehr.workflow.dto.node.SingleNode;
+import jp.co.onehr.workflow.dto.param.WorkflowCreationParam;
 import org.junit.jupiter.api.Test;
 
 import static jp.co.onehr.workflow.service.DefinitionService.DEFAULT_END_NODE_NAME;
@@ -15,9 +15,13 @@ public class NodeServiceTest extends BaseTest {
 
     @Test
     void getFirstNode_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "getFirstNode_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "getFirstNode_should_work";
+        var workflowId = "";
+
         try {
-            workflow = WorkflowService.singleton.create(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
 
             var definition = DefinitionService.singleton.getCurrentDefinition(host, workflow.id, 0);
 
@@ -34,16 +38,18 @@ public class NodeServiceTest extends BaseTest {
                 assertThat(result.nodeName).isEqualTo("DEFAULT_SINGLE_NODE_NAME-1");
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void getAllNodes_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "getAllNodes_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "getAllNodes_should_work";
+        var workflowId = "";
         try {
-            workflow = WorkflowService.singleton.create(host, workflow);
-
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
             var definition = DefinitionService.singleton.getCurrentDefinition(host, workflow.id, 0);
 
             {
@@ -68,15 +74,18 @@ public class NodeServiceTest extends BaseTest {
                 assertThat(result.get(2).nodeName).isEqualTo(DEFAULT_END_NODE_NAME);
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void getNodeIndexByNodeId_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "getNodeIndexByNodeId_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "getNodeIndexByNodeId_should_work";
+        var workflowId = "";
         try {
-            workflow = WorkflowService.singleton.create(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
 
             var definition = DefinitionService.singleton.getCurrentDefinition(host, workflow.id, 0);
 
@@ -105,15 +114,18 @@ public class NodeServiceTest extends BaseTest {
                 assertThat(result3).isEqualTo(1);
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void getNodeByNodeId_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "getNodeByNodeId_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "getNodeByNodeId_should_work";
+        var workflowId = "";
         try {
-            workflow = WorkflowService.singleton.create(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
 
             var definition = DefinitionService.singleton.getCurrentDefinition(host, workflow.id, 0);
 
@@ -141,15 +153,18 @@ public class NodeServiceTest extends BaseTest {
                 assertThat(result2.getType()).isEqualTo(NodeType.SingleNode.name());
             }
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void isFirstNode_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "isFirstNode_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "isFirstNode_should_work";
+        var workflowId = "";
         try {
-            workflow = WorkflowService.singleton.create(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
 
             var definition = DefinitionService.singleton.getCurrentDefinition(host, workflow.id, 0);
 
@@ -172,15 +187,18 @@ public class NodeServiceTest extends BaseTest {
             var result4 = NodeService.isFirstNode(definition, singleNode.nodeId);
             assertThat(result4).isTrue();
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
     @Test
     void isLastNode_should_work() throws Exception {
-        var workflow = new Workflow(getUuid(), "isLastNode_should_work");
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "isLastNode_should_work";
+        var workflowId = "";
         try {
-            workflow = WorkflowService.singleton.create(host, workflow);
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
 
             var definition = DefinitionService.singleton.getCurrentDefinition(host, workflow.id, 0);
 
@@ -207,7 +225,7 @@ public class NodeServiceTest extends BaseTest {
             assertThat(result5).isTrue();
 
         } finally {
-            WorkflowService.singleton.purge(host, workflow.id);
+            WorkflowService.singleton.purge(host, workflowId);
         }
     }
 
