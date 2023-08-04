@@ -27,7 +27,7 @@ public class PreviousNodeInfo extends BaseData {
     }
 
     public boolean isEmpty() {
-        if (StringUtils.isEmpty(nodeId)) {
+        if (StringUtils.isBlank(nodeId)) {
             return true;
         }
         if (CollectionUtils.isEmpty(expandOperatorIdSet)) {

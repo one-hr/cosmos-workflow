@@ -42,6 +42,11 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
     }
 
     @Override
+    protected DeletedObject delete(String host, String id) throws Exception {
+        return super.delete(host, id);
+    }
+
+    @Override
     protected DeletedObject purge(String host, String id) throws Exception {
         return super.purge(host, id);
     }
@@ -158,7 +163,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         OperationMode targetOperationMode = null;
         // operator as not admin
         if (extendParam == null || !extendParam.operationMode.isAdminMode()) {
-            if (StringUtils.isEmpty(operatorId)) {
+            if (StringUtils.isBlank(operatorId)) {
                 throw new WorkflowException(WorkflowErrors.INSTANCE_OPERATOR_INVALID, "The operator of the instance cannot be empty", instance.getId());
             }
             targetOperationMode = OperationMode.OPERATOR_MODE;

@@ -6,6 +6,8 @@ import io.github.thunderz99.cosmos.condition.Condition;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dto.Workflow;
 import jp.co.onehr.workflow.dto.base.DeletedObject;
+import jp.co.onehr.workflow.dto.param.WorkflowCreationParam;
+import jp.co.onehr.workflow.dto.param.WorkflowUpdatingParam;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import jp.co.onehr.workflow.service.base.BaseCRUDService;
 import org.apache.commons.lang3.ObjectUtils;
@@ -20,23 +22,51 @@ public class WorkflowService extends BaseCRUDService<Workflow> {
         super(Workflow.class);
     }
 
-    @Override
-    protected Workflow create(String host, Workflow workflow) throws Exception {
-        workflow.id = generateId(workflow);
-        var definition = DefinitionService.singleton.createInitialDefinition(host, workflow);
+    protected Workflow create(String host, WorkflowCreationParam creationParam) throws Exception {
+        if (StringUtils.isBlank(creationParam.name)) {
+            throw new WorkflowException(WorkflowErrors.WORKFLOW_NANE_INVALID, "The name field is mandatory when creating a workflow", host);
+        }
+
+        var workflow = new Workflow();
+        var id = creationParam.id;
+        if (StringUtils.isBlank(id)) {
+            id = generateId(workflow);
+        }
+
+        workflow.id = id;
+        workflow.name = creationParam.name;
+        workflow.enableVersion = creationParam.enableVersion;
+
+        var definition = DefinitionService.singleton.createInitialDefinition(host, workflow, creationParam);
         workflow.currentVersion = definition.version;
-        return super.create(host, workflow);
+        return this.create(host, workflow);
+    }
+
+    protected Workflow update(String host, WorkflowUpdatingParam updatingParam) throws Exception {
+        if (StringUtils.isBlank(updatingParam.id)) {
+            throw new WorkflowException(WorkflowErrors.WORKFLOW_ID_INVALID, "The id field is mandatory when creating a workflow", host);
+        }
+
+        var workflow = this.readSuppressing404(host, updatingParam.id);
+
+        if (StringUtils.isNotEmpty(updatingParam.name)) {
+            workflow.name = updatingParam.name;
+        }
+
+        if (ObjectUtils.isNotEmpty(updatingParam.enableVersion)) {
+            workflow.enableVersion = updatingParam.enableVersion;
+        }
+        return this.update(host, workflow);
+    }
+
+    @Override
+    protected Workflow update(String host, Workflow data) throws Exception {
+        return super.update(host, data);
     }
 
     @Override
     protected Workflow readSuppressing404(String host, String id) throws Exception {
         return super.readSuppressing404(host, id);
-    }
-
-    @Override
-    protected Workflow upsert(String host, Workflow workflow) throws Exception {
-        workflow.id = generateId(workflow);
-        return super.upsert(host, workflow);
     }
 
     @Override
@@ -57,6 +87,26 @@ public class WorkflowService extends BaseCRUDService<Workflow> {
         }
 
         return super.purge(host, id);
+    }
+
+    @Override
+    protected DeletedObject delete(String host, String id) throws Exception {
+
+        var definitions = DefinitionService.singleton.find(host, Condition.filter("workflowId", id).fields("id"));
+        for (var definition : definitions) {
+            if (StringUtils.isNotEmpty(definition.getId())) {
+                DefinitionService.singleton.delete(host, definition.getId());
+            }
+        }
+
+        var instances = InstanceService.singleton.find(host, Condition.filter("workflowId", id).fields("id"));
+        for (var instance : instances) {
+            if (StringUtils.isNotEmpty(instance.getId())) {
+                InstanceService.singleton.delete(host, instance.getId());
+            }
+        }
+
+        return super.delete(host, id);
     }
 
     @Override

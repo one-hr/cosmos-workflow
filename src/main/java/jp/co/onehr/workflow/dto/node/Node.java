@@ -1,9 +1,6 @@
 package jp.co.onehr.workflow.dto.node;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Maps;
@@ -26,6 +23,11 @@ public abstract class Node extends SimpleData {
     public String nodeId = UUID.randomUUID().toString();
 
     public String nodeName = "";
+
+    /**
+     * Internationalized Node Name
+     */
+    public LinkedHashMap<String, String> localNames = Maps.newLinkedHashMap();
 
     private String type;
 

@@ -51,7 +51,7 @@ public class BackService implements ActionStrategy {
         var nodes = NodeService.getAllNodes(definition);
         var currentNodeIndex = NodeService.getNodeIndexByNodeId(nodes, instance.nodeId);
 
-        if (StringUtils.isEmpty(backStepId)) {
+        if (StringUtils.isBlank(backStepId)) {
             var backNode = nodes.get(currentNodeIndex - 1);
             instance.nodeId = backNode.nodeId;
         } else {

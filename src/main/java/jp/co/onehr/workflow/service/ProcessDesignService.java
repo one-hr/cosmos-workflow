@@ -5,6 +5,10 @@ import java.util.List;
 import io.github.thunderz99.cosmos.condition.Condition;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Workflow;
+import jp.co.onehr.workflow.dto.base.DeletedObject;
+import jp.co.onehr.workflow.dto.param.DefinitionParam;
+import jp.co.onehr.workflow.dto.param.WorkflowCreationParam;
+import jp.co.onehr.workflow.dto.param.WorkflowUpdatingParam;
 
 public class ProcessDesignService {
 
@@ -19,16 +23,24 @@ public class ProcessDesignService {
 
 
     // === Workflow ===
-    public Workflow createWorkflow(String host, Workflow workflow) throws Exception {
-        return WorkflowService.singleton.create(host, workflow);
+    public Workflow createWorkflow(String host, WorkflowCreationParam creationParam) throws Exception {
+        return WorkflowService.singleton.create(host, creationParam);
     }
 
-    public Workflow upsertWorkflow(String host, Workflow workflow) throws Exception {
-        return WorkflowService.singleton.upsert(host, workflow);
+    public Workflow updateWorkflow(String host, WorkflowUpdatingParam updatingParam) throws Exception {
+        return WorkflowService.singleton.update(host, updatingParam);
     }
 
     public Workflow getWorkflow(String host, String workflowId) throws Exception {
         return WorkflowService.singleton.getWorkflow(host, workflowId);
+    }
+
+    public Workflow readWorkflow(String host, String workflowId) throws Exception {
+        return WorkflowService.singleton.readSuppressing404(host, workflowId);
+    }
+
+    public DeletedObject deleteWorkflow(String host, String workflowId) throws Exception {
+        return WorkflowService.singleton.delete(host, workflowId);
     }
 
     public List<Workflow> findWorkflows(String host, Condition cond) throws Exception {
@@ -36,8 +48,8 @@ public class ProcessDesignService {
     }
 
     // === Definition ===
-    public Definition upsertDefinition(String host, Definition definition) throws Exception {
-        return DefinitionService.singleton.upsert(host, definition);
+    public Definition upsertDefinition(String host, DefinitionParam param) throws Exception {
+        return DefinitionService.singleton.upsert(host, param);
     }
 
     public Definition getDefinition(String host, String definitionId) throws Exception {
