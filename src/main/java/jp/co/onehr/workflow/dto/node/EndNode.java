@@ -1,5 +1,6 @@
 package jp.co.onehr.workflow.dto.node;
 
+import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -45,6 +46,11 @@ public class EndNode extends Node {
 
     @Override
     public void checkNodeSetting() {
+
+    }
+
+    @Override
+    public void checkOperators(List<String> allowedOperatorIds) {
 
     }
 }

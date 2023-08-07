@@ -1,7 +1,9 @@
 package jp.co.onehr.workflow.dto.param;
 
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import com.google.common.collect.Maps;
 import jp.co.onehr.workflow.dto.base.SimpleData;
@@ -22,6 +24,16 @@ public class WorkflowCreationParam extends SimpleData {
      * Whether to enable workflow version control.
      */
     public boolean enableVersion = true;
+
+    /**
+     * Enable restricting operators for workflow definition
+     */
+    public boolean enableOperatorControl = true;
+
+    /**
+     * Allowed operator IDs for workflow definition
+     */
+    public List<String> allowedOperatorIds = new ArrayList<>();
 
     /**
      * Custom name for the start node.

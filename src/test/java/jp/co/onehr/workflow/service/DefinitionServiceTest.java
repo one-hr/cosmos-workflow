@@ -67,6 +67,7 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
     void create_should_work() throws Exception {
         var creationParam = new WorkflowCreationParam();
         creationParam.name = "definition-test-create";
+        creationParam.enableOperatorControl = false;
         var workflowId = "";
 
         try {
@@ -74,6 +75,7 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
             workflowId = workflow.getId();
 
             var definition = new Definition(getUuid(), workflow.getId());
+            definition.enableOperatorControl = false;
 
             var startNode = new StartNode("start-name");
 
@@ -112,6 +114,7 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
     void upsert_should_work() throws Exception {
         var creationParam = new WorkflowCreationParam();
         creationParam.name = "upsert_should_work";
+        creationParam.enableOperatorControl = false;
         var workflowId = "";
         try {
             var workflow = processDesign.createWorkflow(host, creationParam);
@@ -138,6 +141,7 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
 
                 var param = new DefinitionParam();
                 param.workflowId = workflowId;
+                param.enableOperatorControl = false;
                 param.nodes.addAll(definition.nodes);
                 getService().upsert(host, param);
 
@@ -171,6 +175,7 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
 
                 var param = new DefinitionParam();
                 param.workflowId = workflowId;
+                param.enableOperatorControl = false;
                 param.nodes.addAll(definition.nodes);
                 getService().upsert(host, param);
 

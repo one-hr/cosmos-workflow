@@ -75,6 +75,10 @@ public enum WorkflowErrors implements ErrorInterface {
      */
     NODE_SETTING_INVALID(400),
     /**
+     * The operator of the node is invalid.
+     */
+    NODE_OPERATOR_INVALID(400),
+    /**
      * The node type does not match the type in the system
      */
     NODE_TYPE_MISMATCH(400);//
