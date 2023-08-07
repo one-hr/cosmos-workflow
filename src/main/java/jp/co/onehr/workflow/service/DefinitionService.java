@@ -74,6 +74,8 @@ public class DefinitionService extends BaseCRUDService<Definition> {
         }
 
         definition.nodes = param.nodes;
+        definition.enableOperatorControl = param.enableOperatorControl;
+        definition.allowedOperatorIds = param.allowedOperatorIds;
 
         checkNodes(definition);
 
@@ -152,6 +154,8 @@ public class DefinitionService extends BaseCRUDService<Definition> {
         definition.id = generateId(definition);
         definition.workflowId = workflow.getId();
         definition.version = 0;
+        definition.enableOperatorControl = creationParam.enableOperatorControl;
+        definition.allowedOperatorIds = creationParam.allowedOperatorIds;
         definition.nodes.add(generateStartNode(creationParam));
         definition.nodes.add(generateEndNode(creationParam));
         definition.applicationModes.add(ApplicationMode.SELF);
@@ -223,6 +227,10 @@ public class DefinitionService extends BaseCRUDService<Definition> {
             }
 
             node.checkNodeSetting();
+
+            if (definition.enableOperatorControl) {
+                node.checkOperators(definition.allowedOperatorIds);
+            }
 
             if (typeSet.contains(node.getType())) {
                 if (NodeType.StartNode.isEqual(node.getType())) {

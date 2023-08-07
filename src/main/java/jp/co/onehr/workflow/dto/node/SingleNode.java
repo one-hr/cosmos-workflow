@@ -1,6 +1,7 @@
 package jp.co.onehr.workflow.dto.node;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -54,6 +55,13 @@ public class SingleNode extends ManualNode {
     public void checkNodeSetting() {
         if (StringUtils.isBlank(operatorId)) {
             throw new WorkflowException(WorkflowErrors.NODE_SETTING_INVALID, "The operator of a single node cannot be empty", nodeName);
+        }
+    }
+
+    @Override
+    public void checkOperators(List<String> allowedOperatorIds) {
+        if (!allowedOperatorIds.contains(operatorId)) {
+            throw new WorkflowException(WorkflowErrors.NODE_OPERATOR_INVALID, "The operator of the node is not allowed as per the definition", nodeId);
         }
     }
 }

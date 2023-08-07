@@ -1,6 +1,7 @@
 package jp.co.onehr.workflow.dto.param;
 
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -12,6 +13,10 @@ import jp.co.onehr.workflow.dto.node.Node;
 public class DefinitionParam {
 
     public String workflowId = "";
+
+    public boolean enableOperatorControl = true;
+
+    public List<String> allowedOperatorIds = new ArrayList<>();
 
     public List<Node> nodes = Lists.newLinkedList();
 

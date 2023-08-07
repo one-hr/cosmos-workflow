@@ -73,6 +73,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             var definitionParam = new DefinitionParam();
             definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
             definitionParam.nodes.addAll(definition.nodes);
             processDesign.upsertDefinition(host, definitionParam);
 
@@ -144,6 +145,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             var definitionParam = new DefinitionParam();
             definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
             definitionParam.nodes.addAll(definition.nodes);
             processDesign.upsertDefinition(host, definitionParam);
 
@@ -360,6 +362,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             var definitionParam = new DefinitionParam();
             definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
             definitionParam.nodes.addAll(definition.nodes);
             processDesign.upsertDefinition(host, definitionParam);
 
@@ -480,6 +483,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             var definitionParam = new DefinitionParam();
             definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
             definitionParam.nodes.addAll(definition.nodes);
             processDesign.upsertDefinition(host, definitionParam);
 
@@ -699,6 +703,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             var definitionParam = new DefinitionParam();
             definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
             definitionParam.nodes.addAll(definition.nodes);
             processDesign.upsertDefinition(host, definitionParam);
 
@@ -823,6 +828,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             var definitionParam = new DefinitionParam();
             definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
             definitionParam.nodes.addAll(definition.nodes);
             processDesign.upsertDefinition(host, definitionParam);
 
@@ -899,6 +905,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             var definitionParam = new DefinitionParam();
             definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
             definitionParam.nodes.addAll(definition.nodes);
             processDesign.upsertDefinition(host, definitionParam);
 
@@ -944,6 +951,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             var definitionParam = new DefinitionParam();
             definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
             definitionParam.nodes.addAll(definition.nodes);
             processDesign.upsertDefinition(host, definitionParam);
 
@@ -988,6 +996,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             var definitionParam = new DefinitionParam();
             definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
             definitionParam.nodes.addAll(definition.nodes);
             processDesign.upsertDefinition(host, definitionParam);
 
@@ -1085,6 +1094,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             var definitionParam = new DefinitionParam();
             definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
             definitionParam.nodes.addAll(definition.nodes);
             processDesign.upsertDefinition(host, definitionParam);
 
@@ -1197,6 +1207,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             var definitionParam = new DefinitionParam();
             definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
             definitionParam.nodes.addAll(definition.nodes);
             processDesign.upsertDefinition(host, definitionParam);
 
@@ -1369,6 +1380,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             var definitionParam = new DefinitionParam();
             definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
             definitionParam.nodes.addAll(definition.nodes);
             processDesign.upsertDefinition(host, definitionParam);
 
@@ -1556,6 +1568,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             var definitionParam = new DefinitionParam();
             definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
             definitionParam.nodes.addAll(definition.nodes);
             definition = processDesign.upsertDefinition(host, definitionParam);
 
@@ -1729,6 +1742,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             var definitionParam = new DefinitionParam();
             definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
             definitionParam.nodes.addAll(definition.nodes);
             processDesign.upsertDefinition(host, definitionParam);
 

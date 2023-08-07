@@ -124,6 +124,11 @@ public abstract class Node extends SimpleData {
     public abstract void checkNodeSetting();
 
     /**
+     * When operator restriction is enabled in the definition, check if the node operator is allowed to use it
+     */
+    public abstract void checkOperators(List<String> allowedOperatorIds);
+
+    /**
      * Clear all operators of the instance.
      *
      * @param instance

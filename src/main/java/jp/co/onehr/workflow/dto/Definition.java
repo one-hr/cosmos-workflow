@@ -1,5 +1,6 @@
 package jp.co.onehr.workflow.dto;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +42,16 @@ public class Definition extends BaseData {
      * The allowed application modes for the workflow: proxy/self.
      */
     public Set<ApplicationMode> applicationModes = Sets.newHashSet();
+
+    /**
+     * Enable restricting operators for workflow definition
+     */
+    public boolean enableOperatorControl = true;
+
+    /**
+     * Allowed operator IDs for workflow definition
+     */
+    public List<String> allowedOperatorIds = new ArrayList<>();
 
     public Definition() {
 

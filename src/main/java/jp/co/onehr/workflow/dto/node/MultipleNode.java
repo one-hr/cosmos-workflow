@@ -1,6 +1,7 @@
 package jp.co.onehr.workflow.dto.node;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import com.azure.cosmos.implementation.guava25.collect.Sets;
@@ -104,6 +105,13 @@ public class MultipleNode extends ManualNode {
         if (CollectionUtils.isEmpty(operatorIdSet) && CollectionUtils.isEmpty(operatorOrgIdSet)) {
             throw new WorkflowException(WorkflowErrors.NODE_SETTING_INVALID,
                     "The node's operator and operator organization cannot both be empty.", nodeName);
+        }
+    }
+
+    @Override
+    public void checkOperators(List<String> allowedOperatorIds) {
+        if (!allowedOperatorIds.containsAll(operatorIdSet) || !allowedOperatorIds.containsAll(operatorOrgIdSet)) {
+            throw new WorkflowException(WorkflowErrors.NODE_OPERATOR_INVALID, "The operator of the node is not allowed as per the definition", nodeId);
         }
     }
 
