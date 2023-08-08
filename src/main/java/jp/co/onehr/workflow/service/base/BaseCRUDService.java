@@ -279,7 +279,7 @@ public abstract class BaseCRUDService<T extends BaseData> extends BaseNoSqlServi
 
         upsertRaw(host, recycle, true);
         // hard delete
-        purge(getColl(host), StringUtils.strip(id));
+        purge(host, StringUtils.strip(id));
 
         return JsonUtil.fromMap(oldMap, this.classOfT);
     }
