@@ -1,7 +1,5 @@
 package jp.co.onehr.workflow.dto.node;
 
-import java.util.*;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -9,10 +7,13 @@ import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.ApprovalType;
 import jp.co.onehr.workflow.constant.NotificationMode;
+import jp.co.onehr.workflow.contract.context.InstanceContext;
 import jp.co.onehr.workflow.dto.ApprovalStatus;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.base.SimpleData;
+
+import java.util.*;
 
 /**
  * The basic definition of a workflow node
@@ -84,14 +85,14 @@ public abstract class Node extends SimpleData {
      * @param instance
      * @return
      */
-    public abstract void resetCurrentOperators(Instance instance);
+    public abstract void resetCurrentOperators(Instance instance, InstanceContext instanceContext);
 
     /**
      * Generate the actual operator IDs based on the node definition.
      *
      * @return
      */
-    public abstract Set<String> generateExpandOperatorIds();
+    public abstract Set<String> generateExpandOperatorIds(InstanceContext instanceContext);
 
     /**
      * Resetting the parallel approval status
@@ -101,17 +102,17 @@ public abstract class Node extends SimpleData {
      * @param action
      * @param operatorId
      */
-    public void resetParallelApproval(Instance instance, ApprovalType approvalType, Action action, String operatorId) {
+    public void resetParallelApproval(Instance instance, ApprovalType approvalType, Action action, String operatorId, InstanceContext instanceContext) {
         if (ApprovalType.AND.equals(approvalType)) {
             var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
             if (action.equals(Action.RETRIEVE)) {
                 parallelApprovalMap.putAll(ProcessConfiguration
                         .getConfiguration()
-                        .handleRetrieveParallelApproval(instance.operatorIdSet, instance.operatorOrgIdSet, instance.expandOperatorIdSet, operatorId));
+                        .handleRetrieveParallelApproval(instance.operatorIdSet, instance.operatorOrgIdSet, instance.expandOperatorIdSet, operatorId, instanceContext));
             } else {
                 parallelApprovalMap.putAll(ProcessConfiguration
                         .getConfiguration()
-                        .handleParallelApproval(instance.operatorIdSet, instance.operatorOrgIdSet, instance.expandOperatorIdSet));
+                        .handleParallelApproval(instance.operatorIdSet, instance.operatorOrgIdSet, instance.expandOperatorIdSet, instanceContext));
             }
 
             instance.parallelApproval.putAll(parallelApprovalMap);

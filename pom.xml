@@ -7,7 +7,7 @@
     <groupId>jp.co.onehr.workflow</groupId>
     <artifactId>cosmos-workflow</artifactId>
     <packaging>jar</packaging>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
     <name>cosmos-workflow</name>
     <url>https://github.com/one-hr/cosmos-workflow</url>
 

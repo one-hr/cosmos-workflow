@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import jp.co.onehr.workflow.contract.context.InstanceContext;
 import jp.co.onehr.workflow.dto.ApprovalStatus;
 
 
@@ -14,7 +15,7 @@ public class TestOperatorService implements OperatorService {
     public static final String SKIP_OPERATOR = "skip_operator";
 
     @Override
-    public Set<String> handleOperators(Set<String> operatorIds) {
+    public Set<String> handleOperators(Set<String> operatorIds, InstanceContext instanceContext) {
         if (operatorIds.contains(SKIP_OPERATOR)) {
             operatorIds.remove(SKIP_OPERATOR);
         }
@@ -22,12 +23,12 @@ public class TestOperatorService implements OperatorService {
     }
 
     @Override
-    public Set<String> handleOrganizations(Set<String> orgIds) {
+    public Set<String> handleOrganizations(Set<String> orgIds, InstanceContext instanceContext) {
         return orgIds;
     }
 
     @Override
-    public Map<String, ApprovalStatus> handleParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds) {
+    public Map<String, ApprovalStatus> handleParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, InstanceContext instanceContext) {
         var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
 
         for (var expandOperatorId : expandOperatorIds) {
@@ -38,7 +39,7 @@ public class TestOperatorService implements OperatorService {
     }
 
     @Override
-    public Map<String, ApprovalStatus> handleRetrieveParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, boolean reset, String operatorId) {
+    public Map<String, ApprovalStatus> handleRetrieveParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, boolean reset, String operatorId, InstanceContext instanceContext) {
         var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
 
         // If the retrieval reset is enabled, then each operator of the concurrent approval needs to approve.
@@ -60,7 +61,7 @@ public class TestOperatorService implements OperatorService {
     }
 
     @Override
-    public Map<String, ApprovalStatus> handleModificationParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, Map<String, ApprovalStatus> existParallelApproval) {
+    public Map<String, ApprovalStatus> handleModificationParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, Map<String, ApprovalStatus> existParallelApproval, InstanceContext instanceContext) {
         var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
 
         for (var expandOperatorId : expandOperatorIds) {

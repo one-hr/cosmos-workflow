@@ -6,8 +6,8 @@ import java.util.Set;
 
 import jp.co.onehr.workflow.base.BaseCRUDServiceTest;
 import jp.co.onehr.workflow.constant.*;
+import jp.co.onehr.workflow.contract.context.TestOperatorLogContext;
 import jp.co.onehr.workflow.contract.notification.TestNotification;
-import jp.co.onehr.workflow.contract.operator.TestBusinessParam;
 import jp.co.onehr.workflow.contract.plugin.TestPluginParam;
 import jp.co.onehr.workflow.contract.plugin.TestPluginResult;
 import jp.co.onehr.workflow.dto.Instance;
@@ -80,13 +80,13 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
 
             {
-                var businessParam = new TestBusinessParam();
-                businessParam.operator = Map.of("operator-1-name", "operator-1-name-value");
+                var logContext = new TestOperatorLogContext();
+                logContext.operator = Map.of("operator-1-name", "operator-1-name-value");
 
                 var param = new ApplicationParam();
                 param.workflowId = workflow.id;
                 param.applicant = "operator-1";
-                param.businessParam = businessParam;
+                param.logContext = logContext;
                 param.comment = "operator-1-comment";
                 var instance = processEngine.startInstance(host, param);
                 assertThat(instance.workflowId).isEqualTo(workflow.id);
@@ -109,9 +109,9 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(firstNodeOperateLog.action).isEqualTo(Action.APPLY);
                 assertThat(firstNodeOperateLog.statusAfter).isEqualTo(Status.PROCESSING);
                 assertThat(firstNodeOperateLog.comment).isEqualTo(param.comment);
-                assertThat(firstNodeOperateLog.businessParam).isNotNull();
-                assertThat(((TestBusinessParam) firstNodeOperateLog.businessParam).operator).isNotEmpty();
-                assertThat(((TestBusinessParam) firstNodeOperateLog.businessParam).operator).containsEntry("operator-1-name", "operator-1-name-value");
+                assertThat(firstNodeOperateLog.logContext).isNotNull();
+                assertThat(((TestOperatorLogContext) firstNodeOperateLog.logContext).operator).isNotEmpty();
+                assertThat(((TestOperatorLogContext) firstNodeOperateLog.logContext).operator).containsEntry("operator-1-name", "operator-1-name-value");
 
                 var node = NodeService.getNodeByNodeId(definition, instance.nodeId);
                 assertThat(node.getType()).isEqualTo(NodeType.SingleNode.name());
@@ -169,12 +169,12 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
             // simple next
             {
-                var businessParam = new TestBusinessParam();
-                businessParam.operator = Map.of("operator-node-1-name", "operator-node-1-name-value");
+                var logContext = new TestOperatorLogContext();
+                logContext.operator = Map.of("operator-node-1-name", "operator-node-1-name-value");
 
                 ActionExtendParam extendParam = new ActionExtendParam();
                 extendParam.comment = "operator-node-1-comment";
-                extendParam.businessParam = businessParam;
+                extendParam.logContext = logContext;
 
                 var actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-1", extendParam);
                 instance = actionResult.instance;
@@ -203,7 +203,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(operateLog1.action).isEqualTo(Action.APPLY);
                 assertThat(operateLog1.statusAfter).isEqualTo(Status.PROCESSING);
                 assertThat(operateLog1.comment).isEqualTo("apply comment");
-                assertThat(operateLog1.businessParam).isNull();
+                assertThat(operateLog1.logContext).isNull();
 
                 var operateLog2 = operateLogList.get(1);
                 assertThat(operateLog2).isNotNull();
@@ -214,9 +214,9 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(operateLog2.action).isEqualTo(Action.NEXT);
                 assertThat(operateLog2.statusAfter).isEqualTo(Status.PROCESSING);
                 assertThat(operateLog2.comment).isEqualTo(extendParam.comment);
-                assertThat(operateLog2.businessParam).isNotNull();
-                assertThat(((TestBusinessParam) operateLog2.businessParam).operator).isNotEmpty();
-                assertThat(((TestBusinessParam) operateLog2.businessParam).operator).containsEntry("operator-node-1-name", "operator-node-1-name-value");
+                assertThat(operateLog2.logContext).isNotNull();
+                assertThat(((TestOperatorLogContext) operateLog2.logContext).operator).isNotEmpty();
+                assertThat(((TestOperatorLogContext) operateLog2.logContext).operator).containsEntry("operator-node-1-name", "operator-node-1-name-value");
 
                 actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-2");
                 instance = actionResult.instance;
@@ -766,7 +766,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(operateLog2.action).isEqualTo(Action.NEXT);
                 assertThat(operateLog2.statusAfter).isEqualTo(Status.PROCESSING);
                 assertThat(operateLog2.comment).isEqualTo(extendParam.comment);
-                assertThat(operateLog2.businessParam).isNull();
+                assertThat(operateLog2.logContext).isNull();
             }
 
             // back cannot use plugins

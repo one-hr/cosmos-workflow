@@ -2,6 +2,7 @@ package jp.co.onehr.workflow.service.action;
 
 import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.constant.ApprovalType;
+import jp.co.onehr.workflow.contract.context.InstanceContext;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
@@ -18,7 +19,14 @@ public class SaveService implements ActionStrategy {
         var actionResult = new ActionResult();
 
         var currentNode = NodeService.getNodeByNodeId(definition, instance.nodeId);
-        var expandOperatorIds = currentNode.generateExpandOperatorIds();
+
+        InstanceContext instanceContext = null;
+
+        if (extendParam != null) {
+            instanceContext = extendParam.instanceContext;
+        }
+
+        var expandOperatorIds = currentNode.generateExpandOperatorIds(instanceContext);
 
         if (!CollectionUtils.containsAll(expandOperatorIds, instance.expandOperatorIdSet)) {
             instance.expandOperatorIdSet.clear();
@@ -28,7 +36,7 @@ public class SaveService implements ActionStrategy {
                 instance.parallelApproval.putAll(
                         ProcessConfiguration.getConfiguration()
                                 .handleModificationParallelApproval(instance.operatorIdSet, instance.operatorOrgIdSet,
-                                        instance.expandOperatorIdSet, instance.parallelApproval));
+                                        instance.expandOperatorIdSet, instance.parallelApproval, instanceContext));
             }
         }
 

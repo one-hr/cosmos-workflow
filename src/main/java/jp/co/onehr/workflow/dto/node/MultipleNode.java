@@ -8,6 +8,7 @@ import com.azure.cosmos.implementation.guava25.collect.Sets;
 import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.constant.ApprovalType;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
+import jp.co.onehr.workflow.contract.context.InstanceContext;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import org.apache.commons.collections4.CollectionUtils;
@@ -75,26 +76,26 @@ public class MultipleNode extends ManualNode {
     }
 
     @Override
-    public void resetCurrentOperators(Instance instance) {
+    public void resetCurrentOperators(Instance instance, InstanceContext instanceContext) {
         clearOperators(instance);
         instance.operatorIdSet.addAll(this.operatorIdSet);
         instance.operatorOrgIdSet.addAll(this.operatorOrgIdSet);
 
-        var expandOperatorIds = generateExpandOperatorIds();
+        var expandOperatorIds = generateExpandOperatorIds(instanceContext);
 
         instance.expandOperatorIdSet.addAll(expandOperatorIds);
     }
 
     @Override
-    public Set<String> generateExpandOperatorIds() {
+    public Set<String> generateExpandOperatorIds(InstanceContext instanceContext) {
         var expandOperatorIds = new HashSet<String>();
 
         if (CollectionUtils.isNotEmpty(this.operatorIdSet)) {
-            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOperators(this.operatorIdSet));
+            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOperators(this.operatorIdSet, instanceContext));
         }
 
         if (CollectionUtils.isNotEmpty(this.operatorOrgIdSet)) {
-            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOrganizations(this.operatorOrgIdSet));
+            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOrganizations(this.operatorOrgIdSet, instanceContext));
         }
 
         return expandOperatorIds;

@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import io.github.thunderz99.cosmos.util.JsonUtil;
 import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.Status;
-import jp.co.onehr.workflow.contract.log.BusinessParam;
+import jp.co.onehr.workflow.contract.context.OperatorLogContext;
 import jp.co.onehr.workflow.dto.base.SimpleData;
 
 /**
@@ -57,14 +57,14 @@ public class OperateLog extends SimpleData {
     /**
      * business param. not required
      */
-    public BusinessParam businessParam;
+    public OperatorLogContext logContext;
 
     public OperateLog() {
     }
 
     @JsonSetter
-    public void setBusinessParam(Map<String, Object> map) throws ClassNotFoundException {
+    public void setLogContext(Map<String, Object> map) throws ClassNotFoundException {
         Class<?> clazz = Class.forName((String) map.get("clazz"));
-        this.businessParam = (BusinessParam) JsonUtil.fromJson(JsonUtil.toJson(map), clazz);
+        this.logContext = (OperatorLogContext) JsonUtil.fromJson(JsonUtil.toJson(map), clazz);
     }
 }

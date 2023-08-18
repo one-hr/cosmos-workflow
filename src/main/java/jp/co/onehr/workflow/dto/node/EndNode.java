@@ -5,6 +5,7 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 import jp.co.onehr.workflow.constant.Status;
+import jp.co.onehr.workflow.contract.context.InstanceContext;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 
@@ -35,12 +36,12 @@ public class EndNode extends Node {
     }
 
     @Override
-    public void resetCurrentOperators(Instance instance) {
+    public void resetCurrentOperators(Instance instance, InstanceContext instanceContext) {
         clearOperators(instance);
     }
 
     @Override
-    public Set<String> generateExpandOperatorIds() {
+    public Set<String> generateExpandOperatorIds(InstanceContext instanceContext) {
         return Sets.newHashSet();
     }
 

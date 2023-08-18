@@ -5,6 +5,7 @@ import java.util.List;
 
 import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
+import jp.co.onehr.workflow.contract.context.InstanceContext;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.PreviousNodeInfo;
@@ -127,10 +128,10 @@ public class NodeService {
      * @param instance
      * @return
      */
-    public static PreviousNodeInfo getPreviousNodeInfo(Definition definition, Instance instance) {
+    public static PreviousNodeInfo getPreviousNodeInfo(Definition definition, Instance instance, InstanceContext instanceContext) {
         var nodeIndex = NodeService.getNodeIndexByNodeId(definition, instance.nodeId);
 
-        return recursivePreviousNode(definition, instance, nodeIndex, 0);
+        return recursivePreviousNode(definition, instance, instanceContext, nodeIndex, 0);
     }
 
     /**
@@ -142,7 +143,7 @@ public class NodeService {
      * @param count
      * @return
      */
-    private static PreviousNodeInfo recursivePreviousNode(Definition definition, Instance instance, int nodeIndex, int count) {
+    private static PreviousNodeInfo recursivePreviousNode(Definition definition, Instance instance, InstanceContext instanceContext, int nodeIndex, int count) {
 
         if (count > 100) {
             throw new WorkflowException(WorkflowErrors.INSTANCE_OPERATOR_INVALID, "Too many recursion when finding previous node's operator ", instance.id);
@@ -152,12 +153,12 @@ public class NodeService {
         if (nodeIndex - 1 >= 0) {
             var currentNode = definition.nodes.get(nodeIndex - 1);
             if (!NodeService.isManualNode(currentNode.getType())) {
-                return recursivePreviousNode(definition, instance, nodeIndex - 1, count);
+                return recursivePreviousNode(definition, instance, instanceContext, nodeIndex - 1, count);
             }
 
-            var expandOperatorIds = currentNode.generateExpandOperatorIds();
+            var expandOperatorIds = currentNode.generateExpandOperatorIds(instanceContext);
             if (expandOperatorIds.isEmpty()) {
-                return recursivePreviousNode(definition, instance, nodeIndex - 1, count);
+                return recursivePreviousNode(definition, instance, instanceContext, nodeIndex - 1, count);
             }
 
             return new PreviousNodeInfo(currentNode.nodeId, expandOperatorIds);
