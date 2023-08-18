@@ -43,6 +43,11 @@ public class ProcessConfiguration {
     private Map<String, String> collectionCache = Maps.newHashMap();
 
     /**
+     * Custom suffix for partition
+     */
+    private String partitionSuffix;
+
+    /**
      * User-defined handling of operator IDs in the instance.
      */
     private OperatorService operatorService;
@@ -103,6 +108,14 @@ public class ProcessConfiguration {
 
     public String getCollectionName(String host) {
         return collectionCache.get(host);
+    }
+
+    public void setPartitionSuffix(String partitionSuffix) {
+        this.partitionSuffix = partitionSuffix;
+    }
+
+    public String getPartitionSuffix() {
+        return this.partitionSuffix;
     }
 
     // === Handling of custom node operators  ===

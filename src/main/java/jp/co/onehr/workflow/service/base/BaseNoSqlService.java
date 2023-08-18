@@ -35,19 +35,19 @@ public abstract class BaseNoSqlService<T> {
     public BaseNoSqlService(Class<T> classOfT) {
         this.classOfT = classOfT;
         this.defaultCollection = DEFAULT_COLLECTION;
-        this.partition = English.plural(classOfT.getSimpleName());
+        this.partition = addSuffixToPartition(English.plural(classOfT.getSimpleName()));
     }
 
     public BaseNoSqlService(Class<T> classOfT, String partition) {
         this.classOfT = classOfT;
         this.defaultCollection = DEFAULT_COLLECTION;
-        this.partition = partition;
+        this.partition = addSuffixToPartition(partition);
     }
 
     public BaseNoSqlService(Class<T> classOfT, String defaultCollection, String partition) {
         this.classOfT = classOfT;
         this.defaultCollection = defaultCollection;
-        this.partition = partition;
+        this.partition = addSuffixToPartition(partition);
     }
 
     /**
@@ -127,4 +127,17 @@ public abstract class BaseNoSqlService<T> {
         return StringUtils.isEmpty(collectionName) ? defaultCollection : collectionName;
     }
 
+    /**
+     * Add a custom suffix to the partition.
+     *
+     * @param partition
+     * @return
+     */
+    public String addSuffixToPartition(String partition) {
+        var suffix = ProcessConfiguration.getConfiguration().getPartitionSuffix();
+        if (StringUtils.isNotEmpty(suffix)) {
+            partition = partition + "_" + suffix;
+        }
+        return partition;
+    }
 }
