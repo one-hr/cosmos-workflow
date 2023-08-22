@@ -47,6 +47,7 @@ public class BaseTest implements TestIdGeneratable {
 
     private static void insertTestData() throws Exception {
         var configuration = ProcessConfiguration.getConfiguration();
+        configuration.setPartitionSuffix("Test");
         configuration.registerPlugin(new TestPlugin());
         configuration.registerOperatorService(TestOperatorService.singleton);
         configuration.registerNotificationSender(TestNotificationSender.singleton);

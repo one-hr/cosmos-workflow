@@ -91,8 +91,8 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         var operatorId = ApplicationMode.SELF.equals(param.applicationMode) ? param.applicant : param.proxyApplicant;
         var firstNode = NodeService.getFirstNode(definition);
         instance.nodeId = firstNode.nodeId;
-        firstNode.resetCurrentOperators(instance);
-        firstNode.resetParallelApproval(instance, firstNode.getApprovalType(), Action.APPLY, operatorId);
+        firstNode.resetCurrentOperators(instance, param.instanceContext);
+        firstNode.resetParallelApproval(instance, firstNode.getApprovalType(), Action.APPLY, operatorId, param.instanceContext);
         firstNode.handleFirstNode(definition, instance);
 
         var operateLog = new OperateLog();
@@ -104,7 +104,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         operateLog.action = Action.APPLY;
         operateLog.statusAfter = Status.PROCESSING;
         operateLog.comment = param.comment;
-        operateLog.businessParam = param.businessParam;
+        operateLog.logContext = param.logContext;
         instance.operateLogList.add(operateLog);
 
         return super.create(host, instance);

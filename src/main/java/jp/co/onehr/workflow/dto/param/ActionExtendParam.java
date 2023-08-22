@@ -3,7 +3,8 @@ package jp.co.onehr.workflow.dto.param;
 
 import jp.co.onehr.workflow.constant.BackMode;
 import jp.co.onehr.workflow.constant.OperationMode;
-import jp.co.onehr.workflow.contract.log.BusinessParam;
+import jp.co.onehr.workflow.contract.context.InstanceContext;
+import jp.co.onehr.workflow.contract.context.OperatorLogContext;
 import jp.co.onehr.workflow.contract.notification.Notification;
 import jp.co.onehr.workflow.contract.plugin.PluginParam;
 import jp.co.onehr.workflow.dto.base.SimpleData;
@@ -45,9 +46,14 @@ public class ActionExtendParam extends SimpleData {
     public String comment = "";
 
     /**
-     * business param
+     * Context of business data corresponding to a workflow instance.
      */
-    public BusinessParam businessParam;
+    public InstanceContext instanceContext;
+
+    /**
+     * Context of the operation corresponding to the workflow history.
+     */
+    public OperatorLogContext logContext;
 
     /**
      * operation mode

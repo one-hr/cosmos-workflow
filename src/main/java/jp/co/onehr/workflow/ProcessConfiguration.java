@@ -9,6 +9,7 @@ import java.util.Set;
 import com.google.common.collect.Maps;
 import io.github.thunderz99.cosmos.CosmosDatabase;
 import jp.co.onehr.workflow.constant.Action;
+import jp.co.onehr.workflow.contract.context.InstanceContext;
 import jp.co.onehr.workflow.contract.notification.Notification;
 import jp.co.onehr.workflow.contract.notification.NotificationSender;
 import jp.co.onehr.workflow.contract.operator.OperatorService;
@@ -41,6 +42,11 @@ public class ProcessConfiguration {
      * host -> collectionName
      */
     private Map<String, String> collectionCache = Maps.newHashMap();
+
+    /**
+     * Custom suffix for partition
+     */
+    private String partitionSuffix;
 
     /**
      * User-defined handling of operator IDs in the instance.
@@ -105,6 +111,14 @@ public class ProcessConfiguration {
         return collectionCache.get(host);
     }
 
+    public void setPartitionSuffix(String partitionSuffix) {
+        this.partitionSuffix = partitionSuffix;
+    }
+
+    public String getPartitionSuffix() {
+        return this.partitionSuffix;
+    }
+
     // === Handling of custom node operators  ===
 
     public void registerOperatorService(OperatorService service) {
@@ -115,23 +129,23 @@ public class ProcessConfiguration {
         retrieveResetParallelApproval = enable;
     }
 
-    public Set<String> handleExpandOperators(Set<String> operatorIds) {
+    public Set<String> handleExpandOperators(Set<String> operatorIds, InstanceContext instanceContext) {
         if (operatorService != null) {
-            return operatorService.handleOperators(operatorIds);
+            return operatorService.handleOperators(operatorIds, instanceContext);
         }
         return operatorIds;
     }
 
-    public Set<String> handleExpandOrganizations(Set<String> orgIds) {
+    public Set<String> handleExpandOrganizations(Set<String> orgIds, InstanceContext instanceContext) {
         if (operatorService != null) {
-            return operatorService.handleOrganizations(orgIds);
+            return operatorService.handleOrganizations(orgIds, instanceContext);
         }
         return orgIds;
     }
 
-    public Map<String, ApprovalStatus> handleParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds) {
+    public Map<String, ApprovalStatus> handleParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, InstanceContext instanceContext) {
         if (operatorService != null) {
-            return operatorService.handleParallelApproval(operatorIds, orgIds, expandOperatorIds);
+            return operatorService.handleParallelApproval(operatorIds, orgIds, expandOperatorIds, instanceContext);
         }
 
         var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
@@ -143,9 +157,9 @@ public class ProcessConfiguration {
         return parallelApprovalMap;
     }
 
-    public Map<String, ApprovalStatus> handleRetrieveParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, String operatorId) {
+    public Map<String, ApprovalStatus> handleRetrieveParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, String operatorId, InstanceContext instanceContext) {
         if (operatorService != null) {
-            return operatorService.handleRetrieveParallelApproval(operatorIds, orgIds, expandOperatorIds, retrieveResetParallelApproval, operatorId);
+            return operatorService.handleRetrieveParallelApproval(operatorIds, orgIds, expandOperatorIds, retrieveResetParallelApproval, operatorId, instanceContext);
         }
         var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
 
@@ -167,9 +181,9 @@ public class ProcessConfiguration {
         return parallelApprovalMap;
     }
 
-    public Map<String, ApprovalStatus> handleModificationParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, Map<String, ApprovalStatus> existParallelApproval) {
+    public Map<String, ApprovalStatus> handleModificationParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, Map<String, ApprovalStatus> existParallelApproval, InstanceContext instanceContext) {
         if (operatorService != null) {
-            return operatorService.handleModificationParallelApproval(operatorIds, orgIds, expandOperatorIds, existParallelApproval);
+            return operatorService.handleModificationParallelApproval(operatorIds, orgIds, expandOperatorIds, existParallelApproval, instanceContext);
         }
         var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
 

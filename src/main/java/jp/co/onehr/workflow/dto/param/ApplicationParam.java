@@ -2,7 +2,8 @@ package jp.co.onehr.workflow.dto.param;
 
 
 import jp.co.onehr.workflow.constant.ApplicationMode;
-import jp.co.onehr.workflow.contract.log.BusinessParam;
+import jp.co.onehr.workflow.contract.context.InstanceContext;
+import jp.co.onehr.workflow.contract.context.OperatorLogContext;
 import jp.co.onehr.workflow.dto.base.SimpleData;
 
 /**
@@ -20,7 +21,9 @@ public class ApplicationParam extends SimpleData {
 
     public String comment = "";
 
-    public BusinessParam businessParam;
+    public InstanceContext instanceContext;
+
+    public OperatorLogContext logContext;
 
     public ApplicationParam() {
 

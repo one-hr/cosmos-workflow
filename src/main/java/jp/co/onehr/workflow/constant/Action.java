@@ -1,6 +1,7 @@
 package jp.co.onehr.workflow.constant;
 
 
+import jp.co.onehr.workflow.contract.context.InstanceContext;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
@@ -74,14 +75,21 @@ public enum Action {
             instance.preNodeId = "";
             instance.preExpandOperatorIdSet.clear();
 
-            var previousNodeInfo = NodeService.getPreviousNodeInfo(definition, instance);
+            InstanceContext instanceContext = null;
+
+            if (extendParam != null) {
+                instanceContext = extendParam.instanceContext;
+            }
+
+            var previousNodeInfo = NodeService.getPreviousNodeInfo(definition, instance, instanceContext);
             if (!previousNodeInfo.isEmpty()) {
                 instance.preNodeId = previousNodeInfo.nodeId;
                 instance.preExpandOperatorIdSet.addAll(previousNodeInfo.expandOperatorIdSet);
             }
 
-            currentNode.resetCurrentOperators(instance);
-            currentNode.resetParallelApproval(instance, currentNode.getApprovalType(), this, operatorId);
+            currentNode.resetCurrentOperators(instance, instanceContext);
+
+            currentNode.resetParallelApproval(instance, currentNode.getApprovalType(), this, operatorId, instanceContext);
         }
 
         generateOperateLog(operatorId, extendParam, currentStatus, currentNode, instance);
@@ -100,7 +108,7 @@ public enum Action {
         operateLog.action = this;
         operateLog.statusAfter = updatedInstance.status;
         operateLog.comment = extendParam != null ? extendParam.comment : operateLog.comment;
-        operateLog.businessParam = extendParam != null ? extendParam.businessParam : null;
+        operateLog.logContext = extendParam != null ? extendParam.logContext : null;
         updatedInstance.operateLogList.add(operateLog);
     }
 }

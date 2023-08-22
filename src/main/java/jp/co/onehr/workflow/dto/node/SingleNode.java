@@ -7,6 +7,7 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
+import jp.co.onehr.workflow.contract.context.InstanceContext;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import org.apache.commons.lang3.StringUtils;
@@ -33,20 +34,20 @@ public class SingleNode extends ManualNode {
     }
 
     @Override
-    public void resetCurrentOperators(Instance instance) {
+    public void resetCurrentOperators(Instance instance, InstanceContext instanceContext) {
         clearOperators(instance);
         instance.operatorIdSet.add(this.operatorId);
 
-        var expandOperatorIds = generateExpandOperatorIds();
+        var expandOperatorIds = generateExpandOperatorIds(instanceContext);
 
         instance.expandOperatorIdSet.addAll(expandOperatorIds);
     }
 
     @Override
-    public Set<String> generateExpandOperatorIds() {
+    public Set<String> generateExpandOperatorIds(InstanceContext instanceContext) {
         var expandOperatorIds = new HashSet<String>();
         if (StringUtils.isNotEmpty(this.operatorId)) {
-            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOperators(Sets.newHashSet(this.operatorId)));
+            expandOperatorIds.addAll(ProcessConfiguration.getConfiguration().handleExpandOperators(Sets.newHashSet(this.operatorId), instanceContext));
         }
         return expandOperatorIds;
     }
