@@ -7,4 +7,6 @@ import jp.co.onehr.workflow.dto.base.SimpleData;
  */
 public abstract class PluginParam extends SimpleData {
 
+    public Object nodeConfiguration;
+
 }
