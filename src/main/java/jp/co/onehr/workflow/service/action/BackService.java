@@ -30,6 +30,7 @@ public class BackService implements ActionStrategy {
             if (ObjectUtils.isNotEmpty(extendParam.backMode)) {
                 backMode = extendParam.backMode;
             }
+            extendParam.backNodeId = "";
         }
 
         switch (backMode) {
