@@ -31,11 +31,6 @@ public class ActionExtendParam extends SimpleData {
     public PluginParam pluginParam;
 
     /**
-     * User selects whether to send notifications
-     */
-    public Boolean selectedSend;
-
-    /**
      * Content of the message notification
      */
     public Notification notification;
