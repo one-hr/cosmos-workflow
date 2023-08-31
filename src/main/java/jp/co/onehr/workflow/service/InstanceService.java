@@ -84,6 +84,8 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         var workflow = WorkflowService.singleton.getWorkflow(host, param.workflowId);
         var definition = DefinitionService.singleton.getCurrentDefinition(host, workflow.id, workflow.currentVersion);
 
+        var configuration = ProcessConfiguration.getConfiguration();
+
         var instance = new Instance(workflow.id, definition.id);
         instance.status = Status.PROCESSING;
         instance.setApplicationInfo(param);
@@ -107,7 +109,17 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         operateLog.logContext = param.logContext;
         instance.operateLogList.add(operateLog);
 
-        return super.create(host, instance);
+        var result = super.create(host, instance);
+
+        Notification notification = null;
+        if (ObjectUtils.isNotEmpty(param)) {
+            notification = param.notification;
+        }
+
+        var startNode = NodeService.getStartNode(definition);
+        handleSendNotification(configuration, result, startNode, Action.APPLY, notification);
+
+        return result;
     }
 
     /**
@@ -154,7 +166,11 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
             result.instance = super.update(host, updatedInstance);
         }
 
-        handleSendNotification(configuration, updatedInstance, existNode, action, extendParam);
+        Notification notification = null;
+        if (ObjectUtils.isNotEmpty(extendParam)) {
+            notification = extendParam.notification;
+        }
+        handleSendNotification(configuration, updatedInstance, existNode, action, notification);
 
         return result;
     }
@@ -405,20 +421,16 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
      * @param instance
      * @param node
      * @param action
-     * @param extendParam
+     * @param notification
      */
-    protected void handleSendNotification(ProcessConfiguration configuration, Instance instance, Node node, Action action, ActionExtendParam extendParam) {
+    protected void handleSendNotification(ProcessConfiguration configuration, Instance instance, Node node, Action action, Notification notification) {
         var send = false;
         var notificationMode = node.getNotificationModesByAction(action);
 
-        Boolean selectedSend = null;
-        Notification notification = null;
-        if (ObjectUtils.isNotEmpty(extendParam)) {
-            selectedSend = extendParam.selectedSend;
-            notification = extendParam.notification;
+        if (ObjectUtils.isNotEmpty(notification)) {
+            Boolean selectedSend = notification.selectedSend;
+            send = whetherSendNotification(notificationMode, selectedSend);
         }
-
-        send = whetherSendNotification(notificationMode, selectedSend);
 
         if (send) {
             configuration.sendNotification(instance, action, notification);

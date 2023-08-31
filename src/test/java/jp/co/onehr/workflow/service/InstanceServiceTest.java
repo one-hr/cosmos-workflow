@@ -1656,9 +1656,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 var actionParam = new ActionExtendParam();
                 var testNotification = new TestNotification();
                 testNotification.content = "third test";
+                testNotification.selectedSend = true;
 
                 actionParam.notification = testNotification;
-                actionParam.selectedSend = true;
+
 
                 var result = processEngine.resolve(host, instance.getId(), Action.BACK, "operator-3", actionParam);
 
@@ -1678,9 +1679,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 var actionParam = new ActionExtendParam();
                 var testNotification = new TestNotification();
                 testNotification.content = "fourth test";
+                testNotification.selectedSend = true;
 
                 actionParam.notification = testNotification;
-                actionParam.selectedSend = true;
+
 
                 var result = processEngine.resolve(host, instance.getId(), Action.BACK, "operator-2", actionParam);
 
