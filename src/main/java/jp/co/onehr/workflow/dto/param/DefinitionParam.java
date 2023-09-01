@@ -30,6 +30,13 @@ public class DefinitionParam {
 
     public Set<ApplicationMode> applicationModes = Sets.newHashSet();
 
+    /**
+     * When the user performs rejection and cancellation, the instance returns to the start node
+     * true: Return to the start node.
+     * false: Stay at the current node
+     */
+    public boolean returnToStartNode = true;
+
     @JsonSetter
     public void setNodes(List<Map<String, Object>> nodeMapList) {
         this.nodes.clear();

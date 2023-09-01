@@ -1,13 +1,18 @@
 package jp.co.onehr.workflow.service;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.thunderz99.cosmos.condition.Condition;
 import jp.co.onehr.workflow.base.BaseCRUDServiceTest;
 import jp.co.onehr.workflow.constant.ApplicationMode;
+import jp.co.onehr.workflow.constant.ApprovalType;
 import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Workflow;
 import jp.co.onehr.workflow.dto.node.EndNode;
+import jp.co.onehr.workflow.dto.node.MultipleNode;
 import jp.co.onehr.workflow.dto.node.SingleNode;
 import jp.co.onehr.workflow.dto.node.StartNode;
 import jp.co.onehr.workflow.dto.param.DefinitionParam;
@@ -37,12 +42,11 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
     @Test
     void createInitialDefinition_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "createInitialDefinition_should_work");
-        Definition definition = null;
         try {
             var creationParam = new WorkflowCreationParam();
             creationParam.name = workflow.name;
 
-            definition = getService().createInitialDefinition(host, workflow, creationParam);
+            var definition = getService().createInitialDefinition(host, workflow, creationParam);
 
             var result = getService().readSuppressing404(host, definition.id);
 
@@ -57,9 +61,52 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
             assertThat(result.nodes.get(1).nodeName).isEqualTo("End_Node");
             assertThat(result.nodes.get(1).getType()).isEqualTo(NodeType.EndNode.name());
         } finally {
-            if (definition != null) {
-                DefinitionService.singleton.purge(host, definition.id);
-            }
+            WorkflowService.singleton.purge(host, workflow.id);
+        }
+    }
+
+    @Test
+    void createInitialDefinition_with_nodes_should_work() throws Exception {
+        var workflow = new Workflow(getUuid(), "createInitialDefinition_should_work");
+        try {
+            var creationParam = new WorkflowCreationParam();
+            creationParam.name = workflow.name;
+            creationParam.returnToStartNode = false;
+            creationParam.enableOperatorControl = true;
+            creationParam.allowedOperatorIds.addAll(List.of("operator-2", "operator-3", "operator-4"));
+
+            var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+            singleNode1.operatorId = "operator-2";
+            creationParam.nodes.add(singleNode1);
+
+            var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-3", "operator-4"), Set.of());
+            creationParam.nodes.add(multipleNode2);
+
+
+            var definition = getService().createInitialDefinition(host, workflow, creationParam);
+
+            var result = getService().readSuppressing404(host, definition.id);
+
+            assertThat(result.workflowId).isEqualTo(workflow.id);
+            assertThat(result.version).isEqualTo(0);
+            assertThat(result.applicationModes).hasSize(1);
+            assertThat(result.applicationModes).containsExactlyInAnyOrder(ApplicationMode.SELF);
+            assertThat(result.returnToStartNode).isFalse();
+
+            assertThat(result.nodes).hasSize(4);
+            assertThat(result.nodes.get(0).nodeName).isEqualTo("Start_Node");
+            assertThat(result.nodes.get(0).getType()).isEqualTo(NodeType.StartNode.name());
+
+            assertThat(result.nodes.get(1).nodeName).isEqualTo("DEFAULT_SINGLE_NODE_NAME-1");
+            assertThat(result.nodes.get(1).getType()).isEqualTo(NodeType.SingleNode.name());
+
+            assertThat(result.nodes.get(2).nodeName).isEqualTo("DEFAULT_MULTIPLE_NODE_NAME-2");
+            assertThat(result.nodes.get(2).getType()).isEqualTo(NodeType.MultipleNode.name());
+
+            assertThat(result.nodes.get(3).nodeName).isEqualTo("End_Node");
+            assertThat(result.nodes.get(3).getType()).isEqualTo(NodeType.EndNode.name());
+        } finally {
+            WorkflowService.singleton.purge(host, workflow.id);
         }
     }
 

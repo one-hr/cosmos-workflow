@@ -933,6 +933,76 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
     }
 
     @Test
+    void resolve_with_returnToStartNode_should_work() throws Exception {
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_reject_should_work";
+        creationParam.returnToStartNode = false;
+        var workflowId = "";
+        try {
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
+            var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
+
+            var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+            singleNode1.operatorId = "operator-2";
+            definition.nodes.add(1, singleNode1);
+
+            var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-3", "operator-4"), Set.of());
+            definition.nodes.add(2, multipleNode2);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
+            definitionParam.nodes.addAll(definition.nodes);
+            definitionParam.returnToStartNode = false;
+            processDesign.upsertDefinition(host, definitionParam);
+
+            // reject
+            {
+                var param = new ApplicationParam();
+                param.workflowId = workflow.id;
+                param.applicant = "operator-1";
+                var instance = processEngine.startInstance(host, param);
+
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.REJECT, "operator-2", null);
+
+                var rejectedInstance = actionResult.instance;
+                assertThat(rejectedInstance).isNotNull();
+                assertThat(rejectedInstance.status).isEqualTo(Status.REJECTED);
+                assertThat(rejectedInstance.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(rejectedInstance.operatorOrgIdSet).isEmpty();
+                assertThat(rejectedInstance.operatorIdSet).contains("operator-2");
+                assertThat(rejectedInstance.expandOperatorIdSet).contains("operator-2");
+
+                assertThat(instance.nodeId).isEqualTo(singleNode1.nodeId);
+            }
+
+            // cancel
+            {
+                var param = new ApplicationParam();
+                param.workflowId = workflow.id;
+                param.applicant = "operator-1";
+                var instance = processEngine.startInstance(host, param);
+
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.CANCEL, "operator-2", null);
+
+                var rejectedInstance = actionResult.instance;
+                assertThat(rejectedInstance).isNotNull();
+                assertThat(rejectedInstance.status).isEqualTo(Status.CANCELED);
+                assertThat(rejectedInstance.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(rejectedInstance.operatorOrgIdSet).isEmpty();
+                assertThat(rejectedInstance.operatorIdSet).contains("operator-2");
+                assertThat(rejectedInstance.expandOperatorIdSet).contains("operator-2");
+
+                assertThat(instance.nodeId).isEqualTo(singleNode1.nodeId);
+            }
+
+        } finally {
+            WorkflowService.singleton.purge(host, workflowId);
+        }
+    }
+
+    @Test
     void resolve_withdraw_should_work() throws Exception {
         var creationParam = new WorkflowCreationParam();
         creationParam.name = "resolve_withdraw_should_work";

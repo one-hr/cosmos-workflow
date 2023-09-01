@@ -11,8 +11,10 @@ import jp.co.onehr.workflow.service.NodeService;
 public class RejectService implements ActionStrategy {
     @Override
     public ActionResult execute(Definition definition, Instance instance, String operatorId, ActionExtendParam extendParam) {
-        var startNode = NodeService.getStartNode(definition);
-        instance.nodeId = startNode.nodeId;
+        if (definition.returnToStartNode) {
+            var startNode = NodeService.getStartNode(definition);
+            instance.nodeId = startNode.nodeId;
+        }
         instance.status = Status.REJECTED;
         return new ActionResult();
     }

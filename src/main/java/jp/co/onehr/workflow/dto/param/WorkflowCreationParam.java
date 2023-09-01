@@ -3,10 +3,12 @@ package jp.co.onehr.workflow.dto.param;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 
 import com.google.common.collect.Maps;
 import jp.co.onehr.workflow.dto.base.SimpleData;
+import jp.co.onehr.workflow.dto.node.Node;
 
 /**
  * The parameters required for creating a workflow.
@@ -48,6 +50,18 @@ public class WorkflowCreationParam extends SimpleData {
     public String endNodeName = "";
 
     public LinkedHashMap<String, String> endLocalNames = Maps.newLinkedHashMap();
+
+    /**
+     * When the user performs rejection and cancellation, the instance returns to the start node
+     * true: Return to the start node.
+     * false: Stay at the current node
+     */
+    public boolean returnToStartNode = true;
+
+    /**
+     * User-defined nodes in the initialization of the definition
+     */
+    public List<Node> nodes = new LinkedList<>();
 
     public WorkflowCreationParam() {
 
