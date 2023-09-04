@@ -76,6 +76,7 @@ public class DefinitionService extends BaseCRUDService<Definition> {
         definition.nodes = param.nodes;
         definition.enableOperatorControl = param.enableOperatorControl;
         definition.allowedOperatorIds = param.allowedOperatorIds;
+        definition.returnToStartNode = param.returnToStartNode;
 
         checkNodes(definition);
 
@@ -156,7 +157,12 @@ public class DefinitionService extends BaseCRUDService<Definition> {
         definition.version = 0;
         definition.enableOperatorControl = creationParam.enableOperatorControl;
         definition.allowedOperatorIds = creationParam.allowedOperatorIds;
+        definition.returnToStartNode = creationParam.returnToStartNode;
         definition.nodes.add(generateStartNode(creationParam));
+        // If the user sets an initial node, add the node to the first definition
+        if (CollectionUtils.isNotEmpty(creationParam.nodes)) {
+            definition.nodes.addAll(creationParam.nodes);
+        }
         definition.nodes.add(generateEndNode(creationParam));
         definition.applicationModes.add(ApplicationMode.SELF);
         return definition;

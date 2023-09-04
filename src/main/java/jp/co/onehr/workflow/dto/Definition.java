@@ -53,6 +53,13 @@ public class Definition extends BaseData {
      */
     public List<String> allowedOperatorIds = new ArrayList<>();
 
+    /**
+     * When the user performs rejection and cancellation, the instance returns to the start node
+     * true: Return to the start node.
+     * false: Stay at the current node
+     */
+    public boolean returnToStartNode = true;
+
     public Definition() {
 
     }
