@@ -11,6 +11,7 @@ import jp.co.onehr.workflow.dto.param.ActionExtendParam;
 import jp.co.onehr.workflow.service.ActionStrategy;
 import jp.co.onehr.workflow.service.NodeService;
 import jp.co.onehr.workflow.service.action.*;
+import jp.co.onehr.workflow.util.DateUtil;
 
 /**
  * All the possible move actions that can be performed on a node
@@ -109,6 +110,7 @@ public enum Action {
         operateLog.statusAfter = updatedInstance.status;
         operateLog.comment = extendParam != null ? extendParam.comment : operateLog.comment;
         operateLog.logContext = extendParam != null ? extendParam.logContext : null;
+        operateLog.operatorAt = DateUtil.nowDateTimeStringUTC();
         updatedInstance.operateLogList.add(operateLog);
     }
 }
