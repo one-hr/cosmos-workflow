@@ -110,6 +110,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(firstNodeOperateLog.statusAfter).isEqualTo(Status.PROCESSING);
                 assertThat(firstNodeOperateLog.comment).isEqualTo(param.comment);
                 assertThat(firstNodeOperateLog.logContext).isNotNull();
+                assertThat(firstNodeOperateLog.operatorAt).isNotNull();
                 assertThat(((TestOperatorLogContext) firstNodeOperateLog.logContext).operator).isNotEmpty();
                 assertThat(((TestOperatorLogContext) firstNodeOperateLog.logContext).operator).containsEntry("operator-1-name", "operator-1-name-value");
 
@@ -280,6 +281,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(operateLog4.action).isEqualTo(Action.BACK);
                 assertThat(operateLog4.statusAfter).isEqualTo(Status.PROCESSING);
                 assertThat(operateLog4.comment).isEmpty();
+                assertThat(operateLog4.operatorAt).isNotNull();
 
                 actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-2");
                 instance = actionResult.instance;

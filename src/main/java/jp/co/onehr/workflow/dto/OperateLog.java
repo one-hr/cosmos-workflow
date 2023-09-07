@@ -59,6 +59,11 @@ public class OperateLog extends SimpleData {
      */
     public OperatorLogContext logContext;
 
+    /**
+     * The operator's action time for the instance
+     */
+    public String operatorAt = "";
+
     public OperateLog() {
     }
 

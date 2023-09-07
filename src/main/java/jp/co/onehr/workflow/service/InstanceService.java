@@ -20,6 +20,7 @@ import jp.co.onehr.workflow.dto.param.ActionExtendParam;
 import jp.co.onehr.workflow.dto.param.ApplicationParam;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import jp.co.onehr.workflow.service.base.BaseCRUDService;
+import jp.co.onehr.workflow.util.DateUtil;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -107,6 +108,8 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         operateLog.statusAfter = Status.PROCESSING;
         operateLog.comment = param.comment;
         operateLog.logContext = param.logContext;
+        operateLog.operatorAt = DateUtil.nowDateTimeStringUTC();
+
         instance.operateLogList.add(operateLog);
 
         var result = super.create(host, instance);
