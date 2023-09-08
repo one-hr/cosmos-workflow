@@ -8,6 +8,7 @@ import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.Status;
 import jp.co.onehr.workflow.contract.context.OperatorLogContext;
 import jp.co.onehr.workflow.dto.base.SimpleData;
+import org.apache.commons.collections4.MapUtils;
 
 /**
  * operate operateLog
@@ -69,7 +70,9 @@ public class OperateLog extends SimpleData {
 
     @JsonSetter
     public void setLogContext(Map<String, Object> map) throws ClassNotFoundException {
-        Class<?> clazz = Class.forName((String) map.get("clazz"));
-        this.logContext = (OperatorLogContext) JsonUtil.fromJson(JsonUtil.toJson(map), clazz);
+        if (MapUtils.isNotEmpty(map) && map.containsKey("clazz")) {
+            Class<?> clazz = Class.forName((String) map.get("clazz"));
+            this.logContext = (OperatorLogContext) JsonUtil.fromJson(JsonUtil.toJson(map), clazz);
+        }
     }
 }
