@@ -1,6 +1,7 @@
 package jp.co.onehr.workflow.constant;
 
 
+import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.contract.context.InstanceContext;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
@@ -69,9 +70,13 @@ public enum Action {
      * Perform the corresponding action's handling
      */
     public ActionResult execute(Definition definition, Status currentStatus, Instance instance, String operatorId, ActionExtendParam extendParam) {
+
+        var beforeNode = NodeService.getNodeByNodeId(definition, instance.nodeId);
+
         var actionResult = strategy.execute(definition, instance, operatorId, extendParam);
 
-        var currentNode = NodeService.getNodeByNodeId(definition, instance.nodeId);
+        var afterNode = NodeService.getNodeByNodeId(definition, instance.nodeId);
+
         if (actionResult.resetOperator) {
             instance.preNodeId = "";
             instance.preExpandOperatorIdSet.clear();
@@ -88,18 +93,18 @@ public enum Action {
                 instance.preExpandOperatorIdSet.addAll(previousNodeInfo.expandOperatorIdSet);
             }
 
-            currentNode.resetCurrentOperators(instance, instanceContext);
+            afterNode.resetCurrentOperators(instance, instanceContext);
 
-            currentNode.resetParallelApproval(instance, currentNode.getApprovalType(), this, operatorId, instanceContext);
+            afterNode.resetParallelApproval(instance, afterNode.getApprovalType(), this, operatorId, instanceContext);
         }
 
-        generateOperateLog(operatorId, extendParam, currentStatus, currentNode, instance);
+        generateOperateLog(operatorId, extendParam, currentStatus, beforeNode, instance, actionResult);
         actionResult.instance = instance;
 
         return actionResult;
     }
 
-    private void generateOperateLog(String operatorId, ActionExtendParam extendParam, Status currentStatus, Node currentNode, Instance updatedInstance) {
+    private void generateOperateLog(String operatorId, ActionExtendParam extendParam, Status currentStatus, Node currentNode, Instance updatedInstance, ActionResult actionResult) {
         var operateLog = new OperateLog();
         operateLog.nodeId = currentNode.nodeId;
         operateLog.nodeName = currentNode.nodeName;
@@ -111,6 +116,16 @@ public enum Action {
         operateLog.comment = extendParam != null ? extendParam.comment : operateLog.comment;
         operateLog.logContext = extendParam != null ? extendParam.logContext : null;
         operateLog.operatorAt = DateUtil.nowDateTimeStringUTC();
+
+        var configuration = ProcessConfiguration.getConfiguration();
+        configuration.handlingActionResultLog(operateLog, actionResult);
+
         updatedInstance.operateLogList.add(operateLog);
+
+        // Reset after use to avoid reusing duplicates during recursion
+        if (extendParam != null) {
+            extendParam.logContext = null;
+            extendParam.comment = "";
+        }
     }
 }

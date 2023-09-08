@@ -10,14 +10,13 @@ import com.google.common.collect.Maps;
 import io.github.thunderz99.cosmos.CosmosDatabase;
 import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.contract.context.InstanceContext;
+import jp.co.onehr.workflow.contract.log.OperateLogService;
 import jp.co.onehr.workflow.contract.notification.Notification;
 import jp.co.onehr.workflow.contract.notification.NotificationSender;
 import jp.co.onehr.workflow.contract.operator.OperatorService;
 import jp.co.onehr.workflow.contract.plugin.WorkflowPlugin;
 import jp.co.onehr.workflow.contract.restriction.ActionRestriction;
-import jp.co.onehr.workflow.dto.ApprovalStatus;
-import jp.co.onehr.workflow.dto.Definition;
-import jp.co.onehr.workflow.dto.Instance;
+import jp.co.onehr.workflow.dto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +73,11 @@ public class ProcessConfiguration {
      * Customized instance action restrictions.
      */
     private ActionRestriction actionRestriction;
+
+    /**
+     * Custom Processing of Operation Logs
+     */
+    private OperateLogService operateLogService;
 
     private ProcessConfiguration() {
 
@@ -230,5 +234,16 @@ public class ProcessConfiguration {
             actions.addAll(actionRestriction.generateCustomRemovalActionsByOperator(definition, instance, operatorId));
         }
         return actions;
+    }
+
+    // === Configuration and registration for Operator Log  ==
+    public void registerOperatorLogService(OperateLogService operateLogService) {
+        this.operateLogService = operateLogService;
+    }
+
+    public void handlingActionResultLog(OperateLog log, ActionResult actionResult) {
+        if (operateLogService != null) {
+            operateLogService.handleActionResult(log, actionResult);
+        }
     }
 }

@@ -158,6 +158,8 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             param.comment = "apply comment";
             var instance = processEngine.startInstance(host, param);
 
+            var firstNode = NodeService.getFirstNode(definition);
+
             assertThat(instance.workflowId).isEqualTo(workflow.id);
             assertThat(instance.definitionId).isEqualTo(definition.id);
             assertThat(instance.operatorIdSet).containsExactlyInAnyOrder("operator-node-1");
@@ -167,6 +169,16 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             assertThat(instance.applicationMode).isEqualTo(ApplicationMode.SELF);
             assertThat(instance.status).isEqualTo(Status.PROCESSING);
             assertThat(instance.nodeId).isEqualTo(singleNode1.nodeId);
+
+            assertThat(instance.operateLogList).hasSize(1);
+            assertThat(instance.operateLogList.get(0).nodeId).isEqualTo(firstNode.nodeId);
+            assertThat(instance.operateLogList.get(0).nodeName).isEqualTo(firstNode.nodeName);
+            assertThat(instance.operateLogList.get(0).statusBefore).isEqualTo(Status.NEW);
+            assertThat(instance.operateLogList.get(0).operatorId).isEqualTo("operator-1");
+            assertThat(instance.operateLogList.get(0).action).isEqualTo(Action.APPLY);
+            assertThat(instance.operateLogList.get(0).statusAfter).isEqualTo(Status.PROCESSING);
+            assertThat(instance.operateLogList.get(0).comment).isEqualTo("apply comment");
+            assertThat(instance.operateLogList.get(0).logContext).isNull();
 
             // simple next
             {
@@ -194,7 +206,6 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 var operateLogList = result1.operateLogList;
                 assertThat(operateLogList).hasSize(2);
 
-                var firstNode = NodeService.getFirstNode(definition);
                 var operateLog1 = operateLogList.get(0);
                 assertThat(operateLog1).isNotNull();
                 assertThat(operateLog1.nodeId).isEqualTo(firstNode.nodeId);
@@ -208,13 +219,13 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
                 var operateLog2 = operateLogList.get(1);
                 assertThat(operateLog2).isNotNull();
-                assertThat(operateLog2.nodeId).isEqualTo(definition.nodes.get(2).nodeId);
-                assertThat(operateLog2.nodeName).isEqualTo(definition.nodes.get(2).nodeName);
+                assertThat(operateLog2.nodeId).isEqualTo(firstNode.nodeId);
+                assertThat(operateLog2.nodeName).isEqualTo(firstNode.nodeName);
                 assertThat(operateLog2.statusBefore).isEqualTo(Status.PROCESSING);
                 assertThat(operateLog2.operatorId).isEqualTo("operator-node-1");
                 assertThat(operateLog2.action).isEqualTo(Action.NEXT);
                 assertThat(operateLog2.statusAfter).isEqualTo(Status.PROCESSING);
-                assertThat(operateLog2.comment).isEqualTo(extendParam.comment);
+                assertThat(operateLog2.comment).isEqualTo("operator-node-1-comment");
                 assertThat(operateLog2.logContext).isNotNull();
                 assertThat(((TestOperatorLogContext) operateLog2.logContext).operator).isNotEmpty();
                 assertThat(((TestOperatorLogContext) operateLog2.logContext).operator).containsEntry("operator-node-1-name", "operator-node-1-name-value");
@@ -236,8 +247,8 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result2.operateLogList).hasSize(3);
                 var operateLog3 = result2.operateLogList.get(2);
                 assertThat(operateLog3).isNotNull();
-                assertThat(operateLog3.nodeId).isEqualTo(definition.nodes.get(3).nodeId);
-                assertThat(operateLog3.nodeName).isEqualTo(definition.nodes.get(3).nodeName);
+                assertThat(operateLog3.nodeId).isEqualTo(definition.nodes.get(2).nodeId);
+                assertThat(operateLog3.nodeName).isEqualTo(definition.nodes.get(2).nodeName);
                 assertThat(operateLog3.statusBefore).isEqualTo(Status.PROCESSING);
                 assertThat(operateLog3.operatorId).isEqualTo("operator-node-2");
                 assertThat(operateLog3.action).isEqualTo(Action.NEXT);
@@ -274,8 +285,8 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.operateLogList).hasSize(4);
                 var operateLog4 = result1.operateLogList.get(3);
                 assertThat(operateLog4).isNotNull();
-                assertThat(operateLog4.nodeId).isEqualTo(definition.nodes.get(2).nodeId);
-                assertThat(operateLog4.nodeName).isEqualTo(definition.nodes.get(2).nodeName);
+                assertThat(operateLog4.nodeId).isEqualTo(singleNode3.nodeId);
+                assertThat(operateLog4.nodeName).isEqualTo(singleNode3.nodeName);
                 assertThat(operateLog4.statusBefore).isEqualTo(Status.PROCESSING);
                 assertThat(operateLog4.operatorId).isEqualTo("operator-node-3");
                 assertThat(operateLog4.action).isEqualTo(Action.BACK);
@@ -300,8 +311,8 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result2.operateLogList).hasSize(5);
                 var operateLog5 = result2.operateLogList.get(4);
                 assertThat(operateLog5).isNotNull();
-                assertThat(operateLog5.nodeId).isEqualTo(definition.nodes.get(3).nodeId);
-                assertThat(operateLog5.nodeName).isEqualTo(definition.nodes.get(3).nodeName);
+                assertThat(operateLog5.nodeId).isEqualTo(definition.nodes.get(2).nodeId);
+                assertThat(operateLog5.nodeName).isEqualTo(definition.nodes.get(2).nodeName);
                 assertThat(operateLog5.statusBefore).isEqualTo(Status.PROCESSING);
                 assertThat(operateLog5.operatorId).isEqualTo("operator-node-2");
                 assertThat(operateLog5.action).isEqualTo(Action.NEXT);
@@ -331,8 +342,8 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.operateLogList).hasSize(6);
                 var operateLog6 = result1.operateLogList.get(5);
                 assertThat(operateLog6).isNotNull();
-                assertThat(operateLog6.nodeId).isEqualTo(definition.nodes.get(1).nodeId);
-                assertThat(operateLog6.nodeName).isEqualTo(definition.nodes.get(1).nodeName);
+                assertThat(operateLog6.nodeId).isEqualTo(definition.nodes.get(3).nodeId);
+                assertThat(operateLog6.nodeName).isEqualTo(definition.nodes.get(3).nodeName);
                 assertThat(operateLog6.statusBefore).isEqualTo(Status.PROCESSING);
                 assertThat(operateLog6.operatorId).isEqualTo("operator-node-3");
                 assertThat(operateLog6.action).isEqualTo(Action.BACK);
@@ -714,6 +725,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var param = new ApplicationParam();
             param.workflowId = workflow.id;
             param.applicant = "operator-1";
+            param.comment = "apply";
             var instance = processEngine.startInstance(host, param);
 
             assertThat(instance.workflowId).isEqualTo(workflow.id);
@@ -726,6 +738,10 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             assertThat(instance.status).isEqualTo(Status.PROCESSING);
             assertThat(instance.nodeId).isEqualTo(singleNode1.nodeId);
 
+            assertThat(instance.operateLogList).hasSize(1);
+            assertThat(instance.operateLogList.get(0).comment).isEqualTo("apply");
+
+
             // next can use plugins
             {
                 var extendParam = new ActionExtendParam();
@@ -733,6 +749,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 testPluginParam.num = 10;
                 testPluginParam.str = "test";
                 extendParam.pluginParam = testPluginParam;
+                extendParam.comment = "use plugins";
 
                 var actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-1", extendParam);
                 var pluginResult = actionResult.pluginResult;
@@ -757,8 +774,22 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.status).isEqualTo(Status.PROCESSING);
                 assertThat(result1.nodeId).isEqualTo(singleNode3.nodeId);
 
-                assertThat(instance.operateLogList).hasSize(3);
-                var operateLog2 = instance.operateLogList.get(1);
+                assertThat(result1.operateLogList).hasSize(3);
+                assertThat(instance.operateLogList.get(0).comment).isEqualTo("apply");
+
+                var operateLog1 = result1.operateLogList.get(1);
+                assertThat(operateLog1).isNotNull();
+                assertThat(operateLog1.nodeId).isEqualTo(definition.nodes.get(1).nodeId);
+                assertThat(operateLog1.nodeName).isEqualTo(definition.nodes.get(1).nodeName);
+                assertThat(operateLog1.nodeType).isEqualTo(definition.nodes.get(1).getType());
+                assertThat(operateLog1.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.operatorId).isEqualTo("operator-node-1");
+                assertThat(operateLog1.action).isEqualTo(Action.NEXT);
+                assertThat(operateLog1.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.comment).isEqualTo("use plugins");
+                assertThat(operateLog1.logContext).isNull();
+
+                var operateLog2 = result1.operateLogList.get(2);
                 assertThat(operateLog2).isNotNull();
                 assertThat(operateLog2.nodeId).isEqualTo(definition.nodes.get(2).nodeId);
                 assertThat(operateLog2.nodeName).isEqualTo(definition.nodes.get(2).nodeName);
@@ -767,7 +798,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(operateLog2.operatorId).isEqualTo("operator-node-1");
                 assertThat(operateLog2.action).isEqualTo(Action.NEXT);
                 assertThat(operateLog2.statusAfter).isEqualTo(Status.PROCESSING);
-                assertThat(operateLog2.comment).isEqualTo(extendParam.comment);
+                assertThat(operateLog2.comment).isEqualTo("Plugin Execution Completed");
                 assertThat(operateLog2.logContext).isNull();
             }
 
@@ -1322,9 +1353,9 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.operateLogList.get(0).statusAfter).isEqualTo(Status.PROCESSING);
                 assertThat(result1.operateLogList.get(0).action).isEqualTo(Action.APPLY);
 
-                assertThat(result1.operateLogList.get(1).nodeId).isEqualTo(startNode.nodeId);
-                assertThat(result1.operateLogList.get(1).nodeName).isEqualTo(startNode.nodeName);
-                assertThat(result1.operateLogList.get(1).nodeType).isEqualTo(NodeType.StartNode.name());
+                assertThat(result1.operateLogList.get(1).nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result1.operateLogList.get(1).nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(result1.operateLogList.get(1).nodeType).isEqualTo(NodeType.SingleNode.name());
                 assertThat(result1.operateLogList.get(1).statusBefore).isEqualTo(Status.PROCESSING);
                 assertThat(result1.operateLogList.get(1).statusAfter).isEqualTo(Status.REJECTED);
                 assertThat(result1.operateLogList.get(1).action).isEqualTo(Action.REJECT);
@@ -1344,16 +1375,16 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result2.operateLogList.get(0).statusAfter).isEqualTo(Status.PROCESSING);
                 assertThat(result2.operateLogList.get(0).action).isEqualTo(Action.APPLY);
 
-                assertThat(result2.operateLogList.get(1).nodeId).isEqualTo(startNode.nodeId);
-                assertThat(result2.operateLogList.get(1).nodeName).isEqualTo(startNode.nodeName);
-                assertThat(result2.operateLogList.get(1).nodeType).isEqualTo(NodeType.StartNode.name());
+                assertThat(result2.operateLogList.get(1).nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result2.operateLogList.get(1).nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(result2.operateLogList.get(1).nodeType).isEqualTo(NodeType.SingleNode.name());
                 assertThat(result2.operateLogList.get(1).statusBefore).isEqualTo(Status.PROCESSING);
                 assertThat(result2.operateLogList.get(1).statusAfter).isEqualTo(Status.REJECTED);
                 assertThat(result2.operateLogList.get(1).action).isEqualTo(Action.REJECT);
 
-                assertThat(result2.operateLogList.get(2).nodeId).isEqualTo(singleNode1.nodeId);
-                assertThat(result2.operateLogList.get(2).nodeName).isEqualTo(singleNode1.nodeName);
-                assertThat(result2.operateLogList.get(2).nodeType).isEqualTo(NodeType.SingleNode.name());
+                assertThat(result2.operateLogList.get(2).nodeId).isEqualTo(startNode.nodeId);
+                assertThat(result2.operateLogList.get(2).nodeName).isEqualTo(startNode.nodeName);
+                assertThat(result2.operateLogList.get(2).nodeType).isEqualTo(NodeType.StartNode.name());
                 assertThat(result2.operateLogList.get(2).statusBefore).isEqualTo(Status.REJECTED);
                 assertThat(result2.operateLogList.get(2).statusAfter).isEqualTo(Status.PROCESSING);
                 assertThat(result2.operateLogList.get(2).action).isEqualTo(Action.APPLY);
@@ -1369,9 +1400,9 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.operateLogList).hasSize(4);
                 assertThat(result1.allowingActions).containsExactlyInAnyOrder(Action.WITHDRAW, Action.APPLY);
 
-                assertThat(result1.operateLogList.get(3).nodeId).isEqualTo(startNode.nodeId);
-                assertThat(result1.operateLogList.get(3).nodeName).isEqualTo(startNode.nodeName);
-                assertThat(result1.operateLogList.get(3).nodeType).isEqualTo(NodeType.StartNode.name());
+                assertThat(result1.operateLogList.get(3).nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result1.operateLogList.get(3).nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(result1.operateLogList.get(3).nodeType).isEqualTo(NodeType.SingleNode.name());
                 assertThat(result1.operateLogList.get(3).statusBefore).isEqualTo(Status.PROCESSING);
                 assertThat(result1.operateLogList.get(3).statusAfter).isEqualTo(Status.CANCELED);
                 assertThat(result1.operateLogList.get(3).action).isEqualTo(Action.CANCEL);
@@ -1384,16 +1415,16 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result2.operateLogList).hasSize(5);
                 assertThat(result2.allowingActions).containsExactlyInAnyOrder(Action.WITHDRAW, Action.NEXT, Action.CANCEL, Action.REJECT);
 
-                assertThat(result2.operateLogList.get(3).nodeId).isEqualTo(startNode.nodeId);
-                assertThat(result2.operateLogList.get(3).nodeName).isEqualTo(startNode.nodeName);
-                assertThat(result2.operateLogList.get(3).nodeType).isEqualTo(NodeType.StartNode.name());
+                assertThat(result2.operateLogList.get(3).nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result2.operateLogList.get(3).nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(result2.operateLogList.get(3).nodeType).isEqualTo(NodeType.SingleNode.name());
                 assertThat(result2.operateLogList.get(3).statusBefore).isEqualTo(Status.PROCESSING);
                 assertThat(result2.operateLogList.get(3).statusAfter).isEqualTo(Status.CANCELED);
                 assertThat(result2.operateLogList.get(3).action).isEqualTo(Action.CANCEL);
 
-                assertThat(result2.operateLogList.get(4).nodeId).isEqualTo(singleNode1.nodeId);
-                assertThat(result2.operateLogList.get(4).nodeName).isEqualTo(singleNode1.nodeName);
-                assertThat(result2.operateLogList.get(4).nodeType).isEqualTo(NodeType.SingleNode.name());
+                assertThat(result2.operateLogList.get(4).nodeId).isEqualTo(startNode.nodeId);
+                assertThat(result2.operateLogList.get(4).nodeName).isEqualTo(startNode.nodeName);
+                assertThat(result2.operateLogList.get(4).nodeType).isEqualTo(NodeType.StartNode.name());
                 assertThat(result2.operateLogList.get(4).statusBefore).isEqualTo(Status.CANCELED);
                 assertThat(result2.operateLogList.get(4).statusAfter).isEqualTo(Status.PROCESSING);
                 assertThat(result2.operateLogList.get(4).action).isEqualTo(Action.APPLY);
@@ -1407,23 +1438,23 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result3.allowingActions).containsExactlyInAnyOrder(Action.WITHDRAW, Action.SAVE, Action.BACK, Action.NEXT, Action.CANCEL, Action.REJECT);
                 assertThat(result3.operateLogList).hasSize(6);
 
-                assertThat(result3.operateLogList.get(3).nodeId).isEqualTo(startNode.nodeId);
-                assertThat(result3.operateLogList.get(3).nodeName).isEqualTo(startNode.nodeName);
-                assertThat(result3.operateLogList.get(3).nodeType).isEqualTo(NodeType.StartNode.name());
+                assertThat(result3.operateLogList.get(3).nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result3.operateLogList.get(3).nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(result3.operateLogList.get(3).nodeType).isEqualTo(NodeType.SingleNode.name());
                 assertThat(result3.operateLogList.get(3).statusBefore).isEqualTo(Status.PROCESSING);
                 assertThat(result3.operateLogList.get(3).statusAfter).isEqualTo(Status.CANCELED);
                 assertThat(result3.operateLogList.get(3).action).isEqualTo(Action.CANCEL);
 
-                assertThat(result3.operateLogList.get(4).nodeId).isEqualTo(singleNode1.nodeId);
-                assertThat(result3.operateLogList.get(4).nodeName).isEqualTo(singleNode1.nodeName);
-                assertThat(result3.operateLogList.get(4).nodeType).isEqualTo(NodeType.SingleNode.name());
+                assertThat(result3.operateLogList.get(4).nodeId).isEqualTo(startNode.nodeId);
+                assertThat(result3.operateLogList.get(4).nodeName).isEqualTo(startNode.nodeName);
+                assertThat(result3.operateLogList.get(4).nodeType).isEqualTo(NodeType.StartNode.name());
                 assertThat(result3.operateLogList.get(4).statusBefore).isEqualTo(Status.CANCELED);
                 assertThat(result3.operateLogList.get(4).statusAfter).isEqualTo(Status.PROCESSING);
                 assertThat(result3.operateLogList.get(4).action).isEqualTo(Action.APPLY);
 
-                assertThat(result3.operateLogList.get(5).nodeId).isEqualTo(multipleNode2.nodeId);
-                assertThat(result3.operateLogList.get(5).nodeName).isEqualTo(multipleNode2.nodeName);
-                assertThat(result3.operateLogList.get(5).nodeType).isEqualTo(NodeType.MultipleNode.name());
+                assertThat(result3.operateLogList.get(5).nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result3.operateLogList.get(5).nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(result3.operateLogList.get(5).nodeType).isEqualTo(NodeType.SingleNode.name());
                 assertThat(result3.operateLogList.get(5).statusBefore).isEqualTo(Status.PROCESSING);
                 assertThat(result3.operateLogList.get(5).statusAfter).isEqualTo(Status.PROCESSING);
                 assertThat(result3.operateLogList.get(5).action).isEqualTo(Action.NEXT);
