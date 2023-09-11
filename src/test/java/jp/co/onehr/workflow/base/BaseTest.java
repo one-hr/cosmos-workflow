@@ -7,6 +7,7 @@ import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.ProcessDesign;
 import jp.co.onehr.workflow.ProcessEngine;
 import jp.co.onehr.workflow.base.faker.SafeFaker;
+import jp.co.onehr.workflow.contract.context.TestContextParamService;
 import jp.co.onehr.workflow.contract.log.TestOperateLogService;
 import jp.co.onehr.workflow.contract.notification.TestNotificationSender;
 import jp.co.onehr.workflow.contract.operator.TestOperatorService;
@@ -54,6 +55,7 @@ public class BaseTest implements TestIdGeneratable {
         configuration.registerNotificationSender(TestNotificationSender.singleton);
         configuration.registerActionRestriction(TestActionRestriction.singleton);
         configuration.registerOperatorLogService(TestOperateLogService.singleton);
+        configuration.registerContextParamService(TestContextParamService.singleton);
         processDesign = configuration.buildProcessDesign();
         processEngine = configuration.buildProcessEngine();
     }

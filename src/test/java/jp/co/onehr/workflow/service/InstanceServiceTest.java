@@ -1,9 +1,12 @@
 package jp.co.onehr.workflow.service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import io.github.thunderz99.cosmos.condition.Condition;
 import jp.co.onehr.workflow.base.BaseCRUDServiceTest;
 import jp.co.onehr.workflow.constant.*;
 import jp.co.onehr.workflow.contract.context.TestOperatorLogContext;
@@ -14,10 +17,7 @@ import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.node.MultipleNode;
 import jp.co.onehr.workflow.dto.node.RobotNode;
 import jp.co.onehr.workflow.dto.node.SingleNode;
-import jp.co.onehr.workflow.dto.param.ActionExtendParam;
-import jp.co.onehr.workflow.dto.param.ApplicationParam;
-import jp.co.onehr.workflow.dto.param.DefinitionParam;
-import jp.co.onehr.workflow.dto.param.WorkflowCreationParam;
+import jp.co.onehr.workflow.dto.param.*;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import org.junit.jupiter.api.Test;
 
@@ -2017,6 +2017,432 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             assertThatThrownBy(() -> processEngine.resolve(host, finalInstance.getId(), Action.APPLY, "admin", extendParam))
                     .isInstanceOf(WorkflowException.class)
                     .hasMessageContaining("The current action is not allowed at the node for the instance");
+        } finally {
+            WorkflowService.singleton.purge(host, workflowId);
+        }
+    }
+
+    @Test
+    void rebinding_enable_version_should_work() throws Exception {
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "rebinding_should_work";
+        var workflowId = "";
+        try {
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
+
+            var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
+
+            var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+            singleNode1.operatorId = "operator-node-1";
+            definition.nodes.add(1, singleNode1);
+            var singleNode2 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-2");
+            singleNode2.operatorId = "operator-node-2";
+            definition.nodes.add(2, singleNode2);
+            var singleNode3 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-3");
+            singleNode3.operatorId = "operator-node-3";
+            definition.nodes.add(3, singleNode3);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
+
+            definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
+
+            var param = new ApplicationParam();
+            param.workflowId = workflow.id;
+            param.applicant = "operator-1";
+            param.comment = "apply comment";
+            var instance = processEngine.startInstance(host, param);
+
+            ActionExtendParam extendParam = new ActionExtendParam();
+            extendParam.comment = "operator-node-1-comment";
+            processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-1", extendParam);
+
+            {
+                var result1 = processEngine.getInstance(host, instance.getId());
+                assertThat(result1.definitionId).isEqualTo(definition.id);
+                assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-node-2");
+                assertThat(result1.operatorOrgIdSet).isEmpty();
+                assertThat(result1.expandOperatorIdSet).containsExactlyInAnyOrder("operator-node-2");
+                assertThat(result1.applicant).isEqualTo("operator-1");
+                assertThat(result1.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result1.status).isEqualTo(Status.PROCESSING);
+                assertThat(result1.nodeId).isEqualTo(singleNode2.nodeId);
+
+                var operateLogList = result1.operateLogList;
+                assertThat(operateLogList).hasSize(2);
+
+                var operateLog1 = operateLogList.get(0);
+                assertThat(operateLog1).isNotNull();
+                assertThat(operateLog1.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog1.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog1.statusBefore).isEqualTo(Status.NEW);
+                assertThat(operateLog1.operatorId).isEqualTo("operator-1");
+                assertThat(operateLog1.action).isEqualTo(Action.APPLY);
+                assertThat(operateLog1.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.comment).isEqualTo("apply comment");
+
+                var operateLog2 = operateLogList.get(1);
+                assertThat(operateLog2).isNotNull();
+                assertThat(operateLog2.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog2.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog2.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.operatorId).isEqualTo("operator-node-1");
+                assertThat(operateLog2.action).isEqualTo(Action.NEXT);
+                assertThat(operateLog2.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.comment).isEqualTo("operator-node-1-comment");
+            }
+
+            // new definition
+            var multipleNode1 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-1", ApprovalType.OR, Set.of("operator-1", "operator-2"), Set.of());
+            var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-3", "operator-4"), Set.of());
+            var multipleNode3 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-3", ApprovalType.OR, Set.of("operator-1", "operator-4"), Set.of());
+
+            var newDefinitionParam = new DefinitionParam();
+            newDefinitionParam.workflowId = workflowId;
+            newDefinitionParam.enableOperatorControl = false;
+            newDefinitionParam.nodes.addAll(List.of(definition.nodes.get(0), multipleNode1, multipleNode2, multipleNode3, definition.nodes.get(4)));
+            processDesign.upsertDefinition(host, newDefinitionParam);
+
+            var newDefinition = processDesign.getCurrentDefinition(host, workflow.id, 2);
+            assertThat(newDefinition.nodes).hasSize(5);
+            assertThat(newDefinition.nodes.get(1).nodeName).isEqualTo("DEFAULT_MULTIPLE_NODE_NAME-1");
+
+            // rebinding
+            {
+                var rebindingParam = new RebindingParam();
+                rebindingParam.comment = "rebinding test";
+                processEngine.rebinding(host, instance.getId(), "operator-admin", rebindingParam);
+
+                var newInstance = processEngine.getInstance(host, instance.getId());
+                assertThat(newInstance.definitionId).isEqualTo(newDefinition.id);
+                assertThat(newInstance.definitionId).isNotEqualTo(definition.id);
+                assertThat(newInstance.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-2");
+                assertThat(newInstance.operatorOrgIdSet).isEmpty();
+                assertThat(newInstance.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-2");
+                assertThat(newInstance.applicant).isEqualTo("operator-1");
+                assertThat(newInstance.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(newInstance.status).isEqualTo(Status.PROCESSING);
+                assertThat(newInstance.nodeId).isEqualTo(multipleNode1.nodeId);
+                assertThat(newInstance.preNodeId).isEqualTo("");
+                assertThat(newInstance.preExpandOperatorIdSet).isEmpty();
+
+                var operateLogList = newInstance.operateLogList;
+                assertThat(operateLogList).hasSize(3);
+
+                var operateLog1 = operateLogList.get(0);
+                assertThat(operateLog1).isNotNull();
+                assertThat(operateLog1.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog1.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog1.statusBefore).isEqualTo(Status.NEW);
+                assertThat(operateLog1.operatorId).isEqualTo("operator-1");
+                assertThat(operateLog1.action).isEqualTo(Action.APPLY);
+                assertThat(operateLog1.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.comment).isEqualTo("apply comment");
+
+                var operateLog2 = operateLogList.get(1);
+                assertThat(operateLog2).isNotNull();
+                assertThat(operateLog2.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog2.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog2.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.operatorId).isEqualTo("operator-node-1");
+                assertThat(operateLog2.action).isEqualTo(Action.NEXT);
+                assertThat(operateLog2.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.comment).isEqualTo("operator-node-1-comment");
+
+                var operateLog3 = operateLogList.get(2);
+                assertThat(operateLog3).isNotNull();
+                assertThat(operateLog3.nodeId).isEqualTo(singleNode2.nodeId);
+                assertThat(operateLog3.nodeName).isEqualTo(singleNode2.nodeName);
+                assertThat(operateLog3.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog3.operatorId).isEqualTo("operator-admin");
+                assertThat(operateLog3.action).isEqualTo(Action.REBINDING);
+                assertThat(operateLog3.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog3.comment).isEqualTo("rebinding test");
+            }
+
+        } finally {
+            WorkflowService.singleton.purge(host, workflowId);
+        }
+    }
+
+    @Test
+    void rebinding_versioning_not_enabled_should_work() throws Exception {
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "rebinding_versioning_not_enabled_should_work";
+        creationParam.enableVersion = false;
+        var workflowId = "";
+        try {
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
+
+            var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
+
+            var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+            singleNode1.operatorId = "operator-node-1";
+            definition.nodes.add(1, singleNode1);
+            var singleNode2 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-2");
+            singleNode2.operatorId = "operator-node-2";
+            definition.nodes.add(2, singleNode2);
+            var singleNode3 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-3");
+            singleNode3.operatorId = "operator-node-3";
+            definition.nodes.add(3, singleNode3);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
+
+            definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
+
+            var param = new ApplicationParam();
+            param.workflowId = workflow.id;
+            param.applicant = "operator-1";
+            param.comment = "apply comment";
+            var instance = processEngine.startInstance(host, param);
+
+            ActionExtendParam extendParam = new ActionExtendParam();
+            extendParam.comment = "operator-node-1-comment";
+            processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-1", extendParam);
+
+            {
+                var result1 = processEngine.getInstance(host, instance.getId());
+                assertThat(result1.definitionId).isEqualTo(definition.id);
+                assertThat(result1.operatorIdSet).containsExactlyInAnyOrder("operator-node-2");
+                assertThat(result1.operatorOrgIdSet).isEmpty();
+                assertThat(result1.expandOperatorIdSet).containsExactlyInAnyOrder("operator-node-2");
+                assertThat(result1.applicant).isEqualTo("operator-1");
+                assertThat(result1.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result1.status).isEqualTo(Status.PROCESSING);
+                assertThat(result1.nodeId).isEqualTo(singleNode2.nodeId);
+
+                var operateLogList = result1.operateLogList;
+                assertThat(operateLogList).hasSize(2);
+
+                var operateLog1 = operateLogList.get(0);
+                assertThat(operateLog1).isNotNull();
+                assertThat(operateLog1.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog1.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog1.statusBefore).isEqualTo(Status.NEW);
+                assertThat(operateLog1.operatorId).isEqualTo("operator-1");
+                assertThat(operateLog1.action).isEqualTo(Action.APPLY);
+                assertThat(operateLog1.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.comment).isEqualTo("apply comment");
+
+                var operateLog2 = operateLogList.get(1);
+                assertThat(operateLog2).isNotNull();
+                assertThat(operateLog2.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog2.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog2.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.operatorId).isEqualTo("operator-node-1");
+                assertThat(operateLog2.action).isEqualTo(Action.NEXT);
+                assertThat(operateLog2.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.comment).isEqualTo("operator-node-1-comment");
+            }
+
+            // new definition
+            var multipleNode1 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-1", ApprovalType.OR, Set.of("operator-1", "operator-2"), Set.of());
+            var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-3", "operator-4"), Set.of());
+            var multipleNode3 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-3", ApprovalType.OR, Set.of("operator-1", "operator-4"), Set.of());
+
+            var newDefinitionParam = new DefinitionParam();
+            newDefinitionParam.workflowId = workflowId;
+            newDefinitionParam.enableOperatorControl = false;
+            newDefinitionParam.nodes.addAll(List.of(definition.nodes.get(0), multipleNode1, multipleNode2, multipleNode3, definition.nodes.get(4)));
+            processDesign.upsertDefinition(host, newDefinitionParam);
+
+            var newDefinition = processDesign.getCurrentDefinition(host, workflow.id, 0);
+            assertThat(newDefinition.nodes).hasSize(5);
+            assertThat(newDefinition.nodes.get(1).nodeName).isEqualTo("DEFAULT_MULTIPLE_NODE_NAME-1");
+            assertThat(newDefinition.id).isEqualTo(definition.id);
+
+            // rebinding
+            {
+                var rebindingParam = new RebindingParam();
+                rebindingParam.comment = "rebinding test";
+                processEngine.rebinding(host, instance.getId(), "operator-admin", rebindingParam);
+
+                var newInstance = processEngine.getInstance(host, instance.getId());
+                assertThat(newInstance.definitionId).isEqualTo(definition.id);
+                assertThat(newInstance.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-2");
+                assertThat(newInstance.operatorOrgIdSet).isEmpty();
+                assertThat(newInstance.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-2");
+                assertThat(newInstance.applicant).isEqualTo("operator-1");
+                assertThat(newInstance.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(newInstance.status).isEqualTo(Status.PROCESSING);
+                assertThat(newInstance.nodeId).isEqualTo(multipleNode1.nodeId);
+                assertThat(newInstance.preNodeId).isEqualTo("");
+                assertThat(newInstance.preExpandOperatorIdSet).isEmpty();
+
+                var operateLogList = newInstance.operateLogList;
+                assertThat(operateLogList).hasSize(3);
+
+                var operateLog1 = operateLogList.get(0);
+                assertThat(operateLog1).isNotNull();
+                assertThat(operateLog1.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog1.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog1.statusBefore).isEqualTo(Status.NEW);
+                assertThat(operateLog1.operatorId).isEqualTo("operator-1");
+                assertThat(operateLog1.action).isEqualTo(Action.APPLY);
+                assertThat(operateLog1.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.comment).isEqualTo("apply comment");
+
+                var operateLog2 = operateLogList.get(1);
+                assertThat(operateLog2).isNotNull();
+                assertThat(operateLog2.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog2.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog2.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.operatorId).isEqualTo("operator-node-1");
+                assertThat(operateLog2.action).isEqualTo(Action.NEXT);
+                assertThat(operateLog2.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.comment).isEqualTo("operator-node-1-comment");
+
+                var operateLog3 = operateLogList.get(2);
+                assertThat(operateLog3).isNotNull();
+                assertThat(operateLog3.nodeId).isEqualTo("");
+                assertThat(operateLog3.nodeName).isEqualTo("");
+                assertThat(operateLog3.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog3.operatorId).isEqualTo("operator-admin");
+                assertThat(operateLog3.action).isEqualTo(Action.REBINDING);
+                assertThat(operateLog3.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog3.comment).isEqualTo("rebinding test");
+            }
+
+        } finally {
+            WorkflowService.singleton.purge(host, workflowId);
+        }
+    }
+
+    @Test
+    void bulk_rebinding_should_work() throws Exception {
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "bulk_rebinding_should_work";
+        var workflowId = "";
+        try {
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
+
+            var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
+
+            var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+            singleNode1.operatorId = "operator-node-1";
+            definition.nodes.add(1, singleNode1);
+            var singleNode2 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-2");
+            singleNode2.operatorId = "operator-node-2";
+            definition.nodes.add(2, singleNode2);
+            var singleNode3 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-3");
+            singleNode3.operatorId = "operator-node-3";
+            definition.nodes.add(3, singleNode3);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
+            definitionParam.nodes.addAll(definition.nodes);
+            definitionParam.returnToStartNode = false;
+            processDesign.upsertDefinition(host, definitionParam);
+
+            definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
+
+            // create instance 1
+            var param1 = new ApplicationParam();
+            param1.workflowId = workflow.id;
+            param1.applicant = "operator-1";
+            param1.comment = "apply comment 1";
+            var instance1 = processEngine.startInstance(host, param1);
+
+            {
+                ActionExtendParam extendParam = new ActionExtendParam();
+                extendParam.comment = "operator-1-comment";
+                processEngine.resolve(host, instance1.getId(), Action.NEXT, "operator-node-1", extendParam);
+            }
+
+            // create instance 2
+            var param2 = new ApplicationParam();
+            param2.workflowId = workflow.id;
+            param2.applicant = "operator-2";
+            param2.comment = "apply comment 2";
+            var instance2 = processEngine.startInstance(host, param2);
+            {
+                ActionExtendParam extendParam = new ActionExtendParam();
+                extendParam.comment = "operator-2-comment";
+                processEngine.resolve(host, instance2.getId(), Action.NEXT, "operator-node-1", extendParam);
+            }
+
+            // create instance 3
+            var param3 = new ApplicationParam();
+            param3.workflowId = workflow.id;
+            param3.applicant = "operator-3";
+            param3.comment = "apply comment 3";
+            var instance3 = processEngine.startInstance(host, param3);
+            {
+                ActionExtendParam extendParam = new ActionExtendParam();
+                extendParam.comment = "operator-3-comment";
+                processEngine.resolve(host, instance3.getId(), Action.REJECT, "operator-node-1", extendParam);
+            }
+
+            // new definition
+            var multipleNode1 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-1", ApprovalType.OR, Set.of("operator-1", "operator-2"), Set.of());
+            var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.OR, Set.of("operator-3", "operator-4"), Set.of());
+            var multipleNode3 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-3", ApprovalType.OR, Set.of("operator-1", "operator-4"), Set.of());
+
+            var newDefinitionParam = new DefinitionParam();
+            newDefinitionParam.workflowId = workflowId;
+            newDefinitionParam.enableOperatorControl = false;
+            newDefinitionParam.nodes.addAll(List.of(definition.nodes.get(0), multipleNode1, multipleNode2, multipleNode3, definition.nodes.get(4)));
+            processDesign.upsertDefinition(host, newDefinitionParam);
+
+            var newDefinition = processDesign.getCurrentDefinition(host, workflow.id, 2);
+            assertThat(newDefinition.nodes).hasSize(5);
+            assertThat(newDefinition.nodes.get(1).nodeName).isEqualTo("DEFAULT_MULTIPLE_NODE_NAME-1");
+
+            // bulk rebinding
+            {
+                var bulkRebindingParam = new BulkRebindingParam();
+                bulkRebindingParam.definitionVersion = 2;
+                bulkRebindingParam.comment = "rebinding test";
+                bulkRebindingParam.statuses.add(Status.PROCESSING);
+                processEngine.bulkRebinding(host, workflowId, "operator-admin", bulkRebindingParam);
+
+                var instances = processEngine.findInstances(host, Condition.filter("workflowId", workflowId));
+                var instanceMap = instances.stream().collect(Collectors.toMap(i -> i.getId(), i -> i));
+
+                var result1 = instanceMap.get(instance1.getId());
+                var result2 = instanceMap.get(instance2.getId());
+                var result3 = instanceMap.get(instance3.getId());
+
+                assertThat(definition.getId()).isNotEqualTo(newDefinition.getId());
+                assertThat(result1.definitionId).isEqualTo(newDefinition.getId());
+                assertThat(result2.definitionId).isEqualTo(newDefinition.getId());
+                assertThat(result3.definitionId).isNotEqualTo(newDefinition.getId());
+                assertThat(result3.definitionId).isEqualTo(definition.getId());
+
+                assertThat(result1.nodeId).isEqualTo(multipleNode1.nodeId);
+                assertThat(result2.nodeId).isEqualTo(multipleNode1.nodeId);
+                assertThat(result3.nodeId).isEqualTo(singleNode1.nodeId);
+
+                var operateLogList1 = result1.operateLogList;
+                var operateLogList2 = result2.operateLogList;
+                var operateLogList3 = result3.operateLogList;
+
+                assertThat(operateLogList1).hasSize(3);
+                assertThat(operateLogList2).hasSize(3);
+                assertThat(operateLogList3).hasSize(2);
+
+                assertThat(operateLogList1.get(0).comment).isEqualTo("apply comment 1");
+                assertThat(operateLogList1.get(1).comment).isEqualTo("operator-1-comment");
+                assertThat(operateLogList1.get(2).comment).isEqualTo("bulk:operator-admin");
+
+                assertThat(operateLogList2.get(0).comment).isEqualTo("apply comment 2");
+                assertThat(operateLogList2.get(1).comment).isEqualTo("operator-2-comment");
+                assertThat(operateLogList2.get(2).comment).isEqualTo("bulk:operator-admin");
+
+                assertThat(operateLogList3.get(0).comment).isEqualTo("apply comment 3");
+                assertThat(operateLogList3.get(1).comment).isEqualTo("operator-3-comment");
+            }
         } finally {
             WorkflowService.singleton.purge(host, workflowId);
         }

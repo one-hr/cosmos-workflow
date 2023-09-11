@@ -1,7 +1,9 @@
 package jp.co.onehr.workflow.service;
 
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
@@ -57,7 +59,7 @@ public class NodeService {
      * @param nodeId
      * @return
      */
-    public static int getNodeIndexByNodeId(Definition definition, String nodeId) {
+    public static Integer getNodeIndexByNodeId(Definition definition, String nodeId) {
         var nodes = getAllNodes(definition);
         return getNodeIndexByNodeId(nodes, nodeId);
     }
@@ -69,8 +71,14 @@ public class NodeService {
      * @param nodeId
      * @return
      */
-    public static int getNodeIndexByNodeId(List<Node> nodes, String nodeId) {
+    public static Integer getNodeIndexByNodeId(List<Node> nodes, String nodeId) {
         var nodeIds = nodes.stream().map(i -> i.nodeId).toList();
+        var nodeIdSet = new HashSet<>(nodeIds);
+
+        if (!nodeIdSet.contains(nodeId)) {
+            throw new WorkflowException(WorkflowErrors.NODE_ID_INVALID, "The current node's ID does not exist in the definition", nodeId);
+        }
+
         return nodeIds.indexOf(nodeId);
     }
 
@@ -84,12 +92,16 @@ public class NodeService {
     public static Node getNodeByNodeId(Definition definition, String nodeId) {
         var nodes = getAllNodes(definition);
         var currentNodeIndex = getNodeIndexByNodeId(nodes, nodeId);
-        var currentNode = nodes.get(currentNodeIndex);
-        return currentNode;
+        return nodes.get(currentNodeIndex);
     }
 
     public static Node getNodeByInstance(Definition definition, Instance instance) {
         return getNodeByNodeId(definition, instance.nodeId);
+    }
+
+    public static boolean checkNodeExists(Definition definition, String nodeId) {
+        var nodeIdSet = definition.nodes.stream().map(i -> i.nodeId).collect(Collectors.toSet());
+        return nodeIdSet.contains(nodeId);
     }
 
     /**

@@ -1,23 +1,27 @@
 package jp.co.onehr.workflow.service;
 
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.github.thunderz99.cosmos.condition.Condition;
+import io.github.thunderz99.cosmos.condition.SubConditionType;
 import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.constant.*;
+import jp.co.onehr.workflow.contract.context.OperatorLogContext;
 import jp.co.onehr.workflow.contract.notification.Notification;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.OperateLog;
+import jp.co.onehr.workflow.dto.base.BaseData;
 import jp.co.onehr.workflow.dto.base.DeletedObject;
 import jp.co.onehr.workflow.dto.node.Node;
-import jp.co.onehr.workflow.dto.param.ActionExtendParam;
-import jp.co.onehr.workflow.dto.param.ApplicationParam;
+import jp.co.onehr.workflow.dto.param.*;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import jp.co.onehr.workflow.service.base.BaseCRUDService;
 import jp.co.onehr.workflow.util.DateUtil;
@@ -29,6 +33,12 @@ import org.apache.commons.lang3.StringUtils;
 public class InstanceService extends BaseCRUDService<Instance> implements NotificationSendChangeable {
 
     public static final InstanceService singleton = new InstanceService();
+
+    public static final int DATA_LIMIT = 50_000;
+
+    public static final String WORKFLOW_ID = "workflowId";
+    public static final String DEFINITION_ID = "definitionId";
+    public static final String STATUS = "status";
 
     // Enable recursive action for nodes.
     public static final Set<Action> recursiveAction = Set.of(Action.NEXT, Action.BACK);
@@ -228,6 +238,118 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         }
 
         return actionResult;
+    }
+
+    /**
+     * binding different versions of the definition to an instance
+     * Warning: Reversion will reset the instance to the first node
+     *
+     * @param host
+     * @param instanceId
+     * @param rebindingParam
+     * @return
+     * @throws Exception
+     */
+    protected Instance rebinding(String host, String instanceId, String operatorId, RebindingParam rebindingParam) throws Exception {
+        var existInstance = getInstance(host, instanceId);
+        var existDefinition = DefinitionService.singleton.getDefinition(host, existInstance.definitionId);
+        var isNodeExists = NodeService.checkNodeExists(existDefinition, existInstance.nodeId);
+
+        Node existNode = null;
+        if (isNodeExists) {
+            existNode = NodeService.getNodeByNodeId(existDefinition, existInstance.nodeId);
+        }
+
+        var workflow = WorkflowService.singleton.getWorkflow(host, existInstance.workflowId);
+
+        var version = workflow.currentVersion;
+        if (ObjectUtils.isNotEmpty(rebindingParam) && rebindingParam.definitionVersion != null) {
+            if (rebindingParam.definitionVersion > workflow.currentVersion) {
+                throw new WorkflowException(WorkflowErrors.DEFINITION_NOT_EXIST, "The specified version definition does not exist", instanceId);
+            }
+            version = rebindingParam.definitionVersion;
+        }
+
+        var definition = DefinitionService.singleton.getCurrentDefinition(host, workflow.getId(), version);
+
+        var contextParam = new ContextParam();
+        contextParam.formRebindingParam(rebindingParam);
+
+        return rebindingDefinition(host, definition, existInstance, operatorId, existNode, contextParam);
+    }
+
+    /**
+     * Bulk Rebinding of Instances to Definitions
+     * Warning: Reversion will reset the instance to the first node
+     *
+     * @param host
+     * @param workflowId
+     * @param operatorId
+     * @param bulkRebindingParam
+     * @return
+     * @throws Exception
+     */
+    protected List<Instance> bulkRebinding(String host, String workflowId, String operatorId, BulkRebindingParam bulkRebindingParam) throws Exception {
+        var workflow = WorkflowService.singleton.getWorkflow(host, workflowId);
+
+        var version = workflow.currentVersion;
+        if (ObjectUtils.isNotEmpty(bulkRebindingParam) && bulkRebindingParam.definitionVersion != null) {
+            if (bulkRebindingParam.definitionVersion > workflow.currentVersion) {
+                throw new WorkflowException(WorkflowErrors.DEFINITION_NOT_EXIST, "The specified version definition does not exist", workflowId);
+            }
+            version = bulkRebindingParam.definitionVersion;
+        }
+
+        var configuration = ProcessConfiguration.getConfiguration();
+
+        var definitions = DefinitionService.singleton.find(host, Condition.filter(WORKFLOW_ID, workflowId).limit(DATA_LIMIT));
+
+        var definitionMap = definitions.stream().collect(Collectors.toMap(BaseData::getId, i -> i));
+
+        // target definition
+        var definition = DefinitionService.singleton.getCurrentDefinition(host, workflow.getId(), version);
+
+        var statuses = new HashSet<String>();
+        if (ObjectUtils.isNotEmpty(bulkRebindingParam)) {
+            statuses.addAll(bulkRebindingParam.statuses.stream().map(Enum::name).collect(Collectors.toSet()));
+        }
+
+        List<Condition> subConditions = Lists.newArrayList();
+        subConditions.add(Condition.filter(WORKFLOW_ID, workflowId));
+
+        var includeTargetDefinition = ObjectUtils.isNotEmpty(bulkRebindingParam) ? bulkRebindingParam.includeTargetDefinition : false;
+        if (!includeTargetDefinition) {
+            subConditions.add(Condition.filter(DEFINITION_ID + " != ", definition.id));
+        }
+
+        if (CollectionUtils.isNotEmpty(statuses)) {
+            subConditions.add(Condition.filter(STATUS, statuses));
+        }
+
+        var condition = Condition.filter(SubConditionType.AND + " bulkInstance", subConditions);
+
+        var instances = this.find(host, condition.limit(DATA_LIMIT));
+
+        var result = new LinkedList<Instance>();
+
+        for (var existInstance : instances) {
+            var existDefinition = definitionMap.get(existInstance.definitionId);
+            var isNodeExists = NodeService.checkNodeExists(existDefinition, existInstance.nodeId);
+
+            Node existNode = null;
+            if (isNodeExists) {
+                existNode = NodeService.getNodeByNodeId(existDefinition, existInstance.nodeId);
+            }
+
+            var contextParam = new ContextParam();
+
+            configuration.generateContextParam4Bulk(contextParam, existDefinition, existInstance, operatorId);
+
+            var instance = rebindingDefinition(host, definition, existInstance, operatorId, existNode, contextParam);
+            result.add(instance);
+        }
+
+        return result;
     }
 
     /**
@@ -456,4 +578,69 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         return instance.preExpandOperatorIdSet.contains(operatorId);
     }
 
+    /**
+     * Instance Rebinding of Definition
+     *
+     * @param definition
+     * @param existInstance
+     * @param operatorId
+     * @param existNode
+     * @param contextParam
+     * @return
+     * @throws Exception
+     */
+    private Instance rebindingDefinition(String host, Definition definition, Instance existInstance, String operatorId, Node existNode,
+                                         ContextParam contextParam) throws Exception {
+        Instance instance = existInstance.copy();
+
+        instance.definitionId = definition.id;
+
+        var firstNode = NodeService.getFirstNode(definition);
+        instance.nodeId = firstNode.nodeId;
+        instance.preNodeId = "";
+        instance.preExpandOperatorIdSet.clear();
+
+        var instanceContext = ObjectUtils.isNotEmpty(contextParam) ? contextParam.instanceContext : null;
+        var comment = ObjectUtils.isNotEmpty(contextParam) ? contextParam.comment : "";
+        var logContext = ObjectUtils.isNotEmpty(contextParam) ? contextParam.logContext : null;
+
+        firstNode.resetCurrentOperators(instance, instanceContext);
+        firstNode.resetParallelApproval(instance, firstNode.getApprovalType(), Action.REBINDING, operatorId, instanceContext);
+        firstNode.handleFirstNode(definition, instance);
+
+        var operateLog = generateRebindingLog(existInstance, operatorId, existNode, comment, logContext);
+        instance.operateLogList.add(operateLog);
+
+        return super.update(host, instance);
+    }
+
+    /**
+     * Generate operation log for instance rebind definition
+     *
+     * @param existInstance
+     * @param operatorId
+     * @param existNode
+     * @param comment
+     * @param logContext
+     * @return
+     */
+    private OperateLog generateRebindingLog(Instance existInstance, String operatorId, Node existNode, String comment, OperatorLogContext logContext) {
+        var operateLog = new OperateLog();
+
+        if (existNode != null) {
+            operateLog.nodeId = existNode.nodeId;
+            operateLog.nodeName = existNode.nodeName;
+            operateLog.nodeType = existNode.getClass().getSimpleName();
+        }
+
+        operateLog.statusBefore = existInstance.status;
+        operateLog.operatorId = operatorId;
+        operateLog.action = Action.REBINDING;
+        operateLog.statusAfter = Status.PROCESSING;
+        operateLog.comment = comment;
+        operateLog.logContext = logContext;
+        operateLog.operatorAt = DateUtil.nowDateTimeStringUTC();
+
+        return operateLog;
+    }
 }
