@@ -55,6 +55,11 @@ public enum Action {
     RETRIEVE(new RetrieveService()),
 
     /**
+     * Instance Rebinding of Definition
+     */
+    REBINDING(new RebindingService()),
+
+    /**
      * Handling of the apply action to transition the instance from "REJECTED" or "CANCELED" to a "PROCESSING" status
      */
     APPLY(new ApplyService());

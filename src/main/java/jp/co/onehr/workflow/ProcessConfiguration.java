@@ -9,6 +9,7 @@ import java.util.Set;
 import com.google.common.collect.Maps;
 import io.github.thunderz99.cosmos.CosmosDatabase;
 import jp.co.onehr.workflow.constant.Action;
+import jp.co.onehr.workflow.contract.context.ContextParamService;
 import jp.co.onehr.workflow.contract.context.InstanceContext;
 import jp.co.onehr.workflow.contract.log.OperateLogService;
 import jp.co.onehr.workflow.contract.notification.Notification;
@@ -17,6 +18,7 @@ import jp.co.onehr.workflow.contract.operator.OperatorService;
 import jp.co.onehr.workflow.contract.plugin.WorkflowPlugin;
 import jp.co.onehr.workflow.contract.restriction.ActionRestriction;
 import jp.co.onehr.workflow.dto.*;
+import jp.co.onehr.workflow.dto.param.ContextParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +80,11 @@ public class ProcessConfiguration {
      * Custom Processing of Operation Logs
      */
     private OperateLogService operateLogService;
+
+    /**
+     *
+     */
+    private ContextParamService contextParamService;
 
     private ProcessConfiguration() {
 
@@ -236,7 +243,7 @@ public class ProcessConfiguration {
         return actions;
     }
 
-    // === Configuration and registration for Operator Log  ==
+    // === Configuration and registration for Operator Log  ===
     public void registerOperatorLogService(OperateLogService operateLogService) {
         this.operateLogService = operateLogService;
     }
@@ -244,6 +251,17 @@ public class ProcessConfiguration {
     public void handlingActionResultLog(OperateLog log, ActionResult actionResult) {
         if (operateLogService != null) {
             operateLogService.handleActionResult(log, actionResult);
+        }
+    }
+
+    // === Configuration and registration for Context Param  ===
+    public void registerContextParamService(ContextParamService contextParamService) {
+        this.contextParamService = contextParamService;
+    }
+
+    public void generateContextParam4Bulk(ContextParam contextParam, Definition definition, Instance instance, String operatorId) {
+        if (contextParamService != null) {
+            contextParamService.generateContextParam4Bulk(contextParam, definition, instance, operatorId);
         }
     }
 }

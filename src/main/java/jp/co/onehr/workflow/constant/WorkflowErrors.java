@@ -71,6 +71,10 @@ public enum WorkflowErrors implements ErrorInterface {
      */
     NODE_TYPE_INVALID(400),
     /**
+     * unable to find the node ID in the definition
+     */
+    NODE_ID_INVALID(400),
+    /**
      * The node configuration is invalid.
      */
     NODE_SETTING_INVALID(400),
