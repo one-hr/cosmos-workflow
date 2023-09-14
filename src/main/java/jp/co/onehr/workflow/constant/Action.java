@@ -103,7 +103,10 @@ public enum Action {
             afterNode.resetParallelApproval(instance, afterNode.getApprovalType(), this, operatorId, instanceContext);
         }
 
-        generateOperateLog(operatorId, extendParam, currentStatus, beforeNode, instance, actionResult);
+        if (beforeNode.whetherAddOperationLog(this)) {
+            generateOperateLog(operatorId, extendParam, currentStatus, beforeNode, instance, actionResult);
+        }
+
         actionResult.instance = instance;
 
         return actionResult;
@@ -116,7 +119,7 @@ public enum Action {
         operateLog.nodeType = currentNode.getType();
         operateLog.statusBefore = currentStatus;
         operateLog.operatorId = operatorId;
-        operateLog.action = this;
+        operateLog.action = this.name();
         operateLog.statusAfter = updatedInstance.status;
         operateLog.comment = extendParam != null ? extendParam.comment : operateLog.comment;
         operateLog.logContext = extendParam != null ? extendParam.logContext : null;

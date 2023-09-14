@@ -1,5 +1,7 @@
 package jp.co.onehr.workflow.dto.node;
 
+import java.util.*;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -12,8 +14,6 @@ import jp.co.onehr.workflow.dto.ApprovalStatus;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.base.SimpleData;
-
-import java.util.*;
 
 /**
  * The basic definition of a workflow node
@@ -150,4 +150,18 @@ public abstract class Node extends SimpleData {
         }
     }
 
+    /**
+     * Determine whether the execution result of the current node should be added to the operation log.
+     * True: Add to the log.
+     * False: Do not add to the log.
+     * <p>
+     * todo:Node needs to add a field to control whether logging is recorded.
+     *
+     * @param action
+     * @return
+     */
+    @JsonIgnore
+    public boolean whetherAddOperationLog(Action action) {
+        return true;
+    }
 }
