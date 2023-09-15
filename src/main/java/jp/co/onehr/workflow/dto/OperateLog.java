@@ -4,7 +4,6 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonSetter;
 import io.github.thunderz99.cosmos.util.JsonUtil;
-import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.Status;
 import jp.co.onehr.workflow.contract.context.OperatorLogContext;
 import jp.co.onehr.workflow.dto.base.SimpleData;
@@ -43,7 +42,7 @@ public class OperateLog extends SimpleData {
     /**
      * action
      */
-    public Action action;
+    public String action;
 
     /**
      * status after action

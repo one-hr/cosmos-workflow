@@ -17,6 +17,7 @@ import jp.co.onehr.workflow.contract.notification.NotificationSender;
 import jp.co.onehr.workflow.contract.operator.OperatorService;
 import jp.co.onehr.workflow.contract.plugin.WorkflowPlugin;
 import jp.co.onehr.workflow.contract.restriction.ActionRestriction;
+import jp.co.onehr.workflow.contract.restriction.AdminActionRestriction;
 import jp.co.onehr.workflow.dto.*;
 import jp.co.onehr.workflow.dto.param.ContextParam;
 import org.slf4j.Logger;
@@ -75,6 +76,7 @@ public class ProcessConfiguration {
      * Customized instance action restrictions.
      */
     private ActionRestriction actionRestriction;
+    private AdminActionRestriction adminActionRestriction;
 
     /**
      * Custom Processing of Operation Logs
@@ -235,10 +237,22 @@ public class ProcessConfiguration {
         this.actionRestriction = restriction;
     }
 
+    public void registerAdminActionRestriction(AdminActionRestriction restriction) {
+        this.adminActionRestriction = restriction;
+    }
+
     public Set<Action> generateCustomRemovalActionsByOperator(Definition definition, Instance instance, String operatorId) {
         var actions = new HashSet<Action>();
         if (actionRestriction != null) {
             actions.addAll(actionRestriction.generateCustomRemovalActionsByOperator(definition, instance, operatorId));
+        }
+        return actions;
+    }
+
+    public Set<Action> generateCustomRemovalActionsByAdmin(Definition definition, Instance instance, String operatorId) {
+        var actions = new HashSet<Action>();
+        if (adminActionRestriction != null) {
+            actions.addAll(adminActionRestriction.generateCustomRemovalActionsByAdmin(definition, instance, operatorId));
         }
         return actions;
     }

@@ -13,6 +13,7 @@ import jp.co.onehr.workflow.contract.notification.TestNotificationSender;
 import jp.co.onehr.workflow.contract.operator.TestOperatorService;
 import jp.co.onehr.workflow.contract.plugin.TestPlugin;
 import jp.co.onehr.workflow.contract.restriction.TestActionRestriction;
+import jp.co.onehr.workflow.contract.restriction.TestAdminActionRestriction;
 import jp.co.onehr.workflow.dao.ContainerUtil;
 import jp.co.onehr.workflow.util.TestOrder;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -54,6 +55,7 @@ public class BaseTest implements TestIdGeneratable {
         configuration.registerOperatorService(TestOperatorService.singleton);
         configuration.registerNotificationSender(TestNotificationSender.singleton);
         configuration.registerActionRestriction(TestActionRestriction.singleton);
+        configuration.registerAdminActionRestriction(TestAdminActionRestriction.singleton);
         configuration.registerOperatorLogService(TestOperateLogService.singleton);
         configuration.registerContextParamService(TestContextParamService.singleton);
         processDesign = configuration.buildProcessDesign();

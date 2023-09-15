@@ -114,7 +114,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         operateLog.nodeType = firstNode.getClass().getSimpleName();
         operateLog.statusBefore = Status.NEW;
         operateLog.operatorId = operatorId;
-        operateLog.action = Action.APPLY;
+        operateLog.action = Action.APPLY.name();
         operateLog.statusAfter = Status.PROCESSING;
         operateLog.comment = param.comment;
         operateLog.logContext = param.logContext;
@@ -367,6 +367,9 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         var actions = generateActionsByStatus(instance);
 
         if (operationMode != null && operationMode.isAdminMode()) {
+            var customRemovalActions = configuration.generateCustomRemovalActionsByAdmin(definition, instance, operatorId);
+            actions.removeAll(customRemovalActions);
+
             var removalActions = generateRemovalActionsByAdmin(definition, instance, operatorId);
             actions.removeAll(removalActions);
         } else {
@@ -473,6 +476,12 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
                             actions.addAll(List.of(Action.values()));
                         }
                     }
+
+                    // When in progress, the applicant or their proxy can cancel or delete the instance at any time
+                    if (isInstanceApplicant(instance, operatorId)) {
+                        actions.remove(Action.CANCEL);
+                        actions.remove(Action.WITHDRAW);
+                    }
                 }
             }
             case REJECTED, CANCELED -> {
@@ -516,9 +525,6 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         var status = instance.status;
         switch (status) {
             case PROCESSING -> {
-                actions.add(Action.CANCEL);
-                actions.add(Action.REJECT);
-                actions.add(Action.WITHDRAW);
                 actions.add(Action.RETRIEVE);
                 actions.add(Action.APPLY);
 
@@ -533,7 +539,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
                 }
 
             }
-            case REJECTED, CANCELED, APPROVED, FINISHED -> actions.addAll(List.of(Action.values()));
+            case REJECTED, CANCELED, APPROVED, FINISHED -> actions.addAll(List.of(Action.RETRIEVE, Action.APPLY));
         }
 
         return Sets.newHashSet(actions);
@@ -635,7 +641,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
 
         operateLog.statusBefore = existInstance.status;
         operateLog.operatorId = operatorId;
-        operateLog.action = Action.REBINDING;
+        operateLog.action = Action.REBINDING.name();
         operateLog.statusAfter = Status.PROCESSING;
         operateLog.comment = comment;
         operateLog.logContext = logContext;

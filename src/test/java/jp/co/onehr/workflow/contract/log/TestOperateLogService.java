@@ -15,6 +15,7 @@ public class TestOperateLogService implements OperateLogService {
         if (MapUtils.isNotEmpty(actionResult.pluginResult) &&
                 actionResult.pluginResult.get("TestPlugin") instanceof TestPluginResult pluginResult) {
             log.comment = "Plugin Execution Completed";
+            log.action = "AUTOTEST";
         }
     }
 

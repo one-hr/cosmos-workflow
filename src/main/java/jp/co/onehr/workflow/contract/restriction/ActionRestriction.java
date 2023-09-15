@@ -10,6 +10,7 @@ import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
 
 /**
+ * Operator
  * Action restrictions for the instance.
  */
 public interface ActionRestriction {
