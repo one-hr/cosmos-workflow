@@ -1,5 +1,8 @@
 package jp.co.onehr.workflow.contract.log;
 
+import java.util.Set;
+
+import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.contract.plugin.TestPluginResult;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.OperateLog;
@@ -17,6 +20,11 @@ public class TestOperateLogService implements OperateLogService {
             log.comment = "Plugin Execution Completed";
             log.action = "AUTOTEST";
         }
+    }
+
+    @Override
+    public Set<Action> generateActionsWithNotLogged() {
+        return Set.of(Action.SAVE);
     }
 
 }

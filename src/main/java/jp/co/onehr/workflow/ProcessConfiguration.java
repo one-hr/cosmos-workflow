@@ -260,6 +260,7 @@ public class ProcessConfiguration {
     // === Configuration and registration for Operator Log  ===
     public void registerOperatorLogService(OperateLogService operateLogService) {
         this.operateLogService = operateLogService;
+        operateLogService.removeActionsWithNotLogged();
     }
 
     public void handlingActionResultLog(OperateLog log, ActionResult actionResult) {
