@@ -3,6 +3,7 @@ package jp.co.onehr.workflow.constant;
 
 import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.contract.context.InstanceContext;
+import jp.co.onehr.workflow.contract.log.OperateLogService;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Instance;
@@ -103,7 +104,7 @@ public enum Action {
             afterNode.resetParallelApproval(instance, afterNode.getApprovalType(), this, operatorId, instanceContext);
         }
 
-        if (beforeNode.whetherAddOperationLog(this)) {
+        if (OperateLogService.ACTIONS_LOG_RECORD.contains(this) && beforeNode.whetherAddOperationLog(this)) {
             generateOperateLog(operatorId, extendParam, currentStatus, beforeNode, instance, actionResult);
         }
 

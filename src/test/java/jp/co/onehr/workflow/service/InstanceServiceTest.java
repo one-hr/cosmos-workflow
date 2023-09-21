@@ -384,6 +384,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             var param = new ApplicationParam();
             param.workflowId = workflow.id;
             param.applicant = "operator-0";
+            param.comment = "apply comment";
             var instance = processEngine.startInstance(host, param);
 
             assertThat(instance.workflowId).isEqualTo(workflow.id);
@@ -424,6 +425,82 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result2.applicationMode).isEqualTo(ApplicationMode.SELF);
                 assertThat(result2.status).isEqualTo(Status.PROCESSING);
                 assertThat(result2.nodeId).isEqualTo(multipleNode3.nodeId);
+
+                // operate operateLog
+                assertThat(result2.operateLogList).hasSize(3);
+                var operateLog1 = result2.operateLogList.get(0);
+                assertThat(operateLog1.nodeId).isEqualTo(definition.nodes.get(1).nodeId);
+                assertThat(operateLog1.nodeName).isEqualTo(definition.nodes.get(1).nodeName);
+                assertThat(operateLog1.statusBefore).isEqualTo(Status.NEW);
+                assertThat(operateLog1.operatorId).isEqualTo("operator-0");
+                assertThat(operateLog1.action).isEqualTo(Action.APPLY.name());
+                assertThat(operateLog1.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.comment).isEqualTo("apply comment");
+
+                var operateLog2 = result2.operateLogList.get(1);
+                assertThat(operateLog2.nodeId).isEqualTo(definition.nodes.get(1).nodeId);
+                assertThat(operateLog2.nodeName).isEqualTo(definition.nodes.get(1).nodeName);
+                assertThat(operateLog2.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.operatorId).isEqualTo("operator-1");
+                assertThat(operateLog2.action).isEqualTo(Action.NEXT.name());
+                assertThat(operateLog2.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.comment).isEmpty();
+
+                var operateLog3 = result2.operateLogList.get(2);
+                assertThat(operateLog3.nodeId).isEqualTo(definition.nodes.get(2).nodeId);
+                assertThat(operateLog3.nodeName).isEqualTo(definition.nodes.get(2).nodeName);
+                assertThat(operateLog3.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog3.operatorId).isEqualTo("operator-3");
+                assertThat(operateLog3.action).isEqualTo(Action.NEXT.name());
+                assertThat(operateLog3.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog3.comment).isEmpty();
+            }
+
+            // test duplicate save
+            {
+                processEngine.resolve(host, instance.getId(), Action.SAVE, "operator-1");
+                processEngine.resolve(host, instance.getId(), Action.SAVE, "operator-1");
+                processEngine.resolve(host, instance.getId(), Action.SAVE, "operator-1");
+
+                var result = processEngine.getInstance(host, instance.getId());
+                assertThat(result.definitionId).isEqualTo(definition.id);
+                assertThat(result.operatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-4");
+                assertThat(result.operatorOrgIdSet).isEmpty();
+                assertThat(result.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-4");
+                assertThat(result.applicant).isEqualTo("operator-0");
+                assertThat(result.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result.status).isEqualTo(Status.PROCESSING);
+                assertThat(result.nodeId).isEqualTo(multipleNode3.nodeId);
+
+                // operate operateLog
+                assertThat(result.operateLogList).hasSize(3);
+                
+                var operateLog1 = result.operateLogList.get(0);
+                assertThat(operateLog1.nodeId).isEqualTo(definition.nodes.get(1).nodeId);
+                assertThat(operateLog1.nodeName).isEqualTo(definition.nodes.get(1).nodeName);
+                assertThat(operateLog1.statusBefore).isEqualTo(Status.NEW);
+                assertThat(operateLog1.operatorId).isEqualTo("operator-0");
+                assertThat(operateLog1.action).isEqualTo(Action.APPLY.name());
+                assertThat(operateLog1.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.comment).isEqualTo("apply comment");
+
+                var operateLog2 = result.operateLogList.get(1);
+                assertThat(operateLog2.nodeId).isEqualTo(definition.nodes.get(1).nodeId);
+                assertThat(operateLog2.nodeName).isEqualTo(definition.nodes.get(1).nodeName);
+                assertThat(operateLog2.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.operatorId).isEqualTo("operator-1");
+                assertThat(operateLog2.action).isEqualTo(Action.NEXT.name());
+                assertThat(operateLog2.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.comment).isEmpty();
+
+                var operateLog3 = result.operateLogList.get(2);
+                assertThat(operateLog3.nodeId).isEqualTo(definition.nodes.get(2).nodeId);
+                assertThat(operateLog3.nodeName).isEqualTo(definition.nodes.get(2).nodeName);
+                assertThat(operateLog3.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog3.operatorId).isEqualTo("operator-3");
+                assertThat(operateLog3.action).isEqualTo(Action.NEXT.name());
+                assertThat(operateLog3.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog3.comment).isEmpty();
             }
 
             // test or back PREVIOUS
