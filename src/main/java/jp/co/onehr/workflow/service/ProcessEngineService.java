@@ -73,4 +73,16 @@ public class ProcessEngineService {
         List<Instance> instances = InstanceService.singleton.find(host, cond);
         return instances;
     }
+
+    /**
+     * For systems already using a workflow, you can migrate historical data to instances in cosmos-workflow.
+     *
+     * @param host
+     * @param instance
+     * @return
+     * @throws Exception
+     */
+    public Instance migrationInstance(String host, Instance instance) throws Exception {
+        return InstanceService.singleton.upsert(host, instance);
+    }
 }
