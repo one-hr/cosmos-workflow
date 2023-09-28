@@ -70,4 +70,7 @@ public class ProcessEngine extends SimpleData {
         return service.findInstances(host, cond);
     }
 
+    public Instance migrationInstance(String host, Instance instance) throws Exception {
+        return service.migrationInstance(host, instance);
+    }
 }

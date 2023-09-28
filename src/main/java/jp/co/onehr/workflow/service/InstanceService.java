@@ -53,6 +53,11 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
     }
 
     @Override
+    protected Instance upsert(String host, Instance data) throws Exception {
+        return super.upsert(host, data);
+    }
+
+    @Override
     protected DeletedObject delete(String host, String id) throws Exception {
         return super.delete(host, id);
     }
