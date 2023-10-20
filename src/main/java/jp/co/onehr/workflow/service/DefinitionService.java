@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import io.github.thunderz99.cosmos.condition.Condition;
+import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.constant.ApplicationMode;
 import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
@@ -41,19 +42,25 @@ public class DefinitionService extends BaseCRUDService<Definition> {
      * @return
      */
     protected Definition createInitialDefinition(String host, Workflow workflow, WorkflowCreationParam creationParam) throws Exception {
+        var configuration = ProcessConfiguration.getConfiguration();
         var definition = generateInitialDefinition(workflow, creationParam);
         checkNodes(definition);
+        configuration.definitionValidation(definition);
         return super.create(host, definition);
     }
 
     @Override
     protected Definition create(String host, Definition definition) throws Exception {
+        var configuration = ProcessConfiguration.getConfiguration();
+
         var workflow = WorkflowService.singleton.getWorkflow(host, definition.workflowId);
 
         definition.id = generateId(definition);
         definition.workflowId = workflow.getId();
 
         checkNodes(definition);
+        configuration.definitionValidation(definition);
+
         return super.create(host, definition);
     }
 
@@ -63,6 +70,8 @@ public class DefinitionService extends BaseCRUDService<Definition> {
     }
 
     protected Definition upsert(String host, DefinitionParam param) throws Exception {
+        var configuration = ProcessConfiguration.getConfiguration();
+
         var workflow = WorkflowService.singleton.getWorkflow(host, param.workflowId);
 
         var definition = this.getCurrentDefinition(host, workflow.getId(), workflow.currentVersion);
@@ -79,6 +88,7 @@ public class DefinitionService extends BaseCRUDService<Definition> {
         definition.returnToStartNode = param.returnToStartNode;
 
         checkNodes(definition);
+        configuration.definitionValidation(definition);
 
         definition.applicationModes = param.applicationModes;
 

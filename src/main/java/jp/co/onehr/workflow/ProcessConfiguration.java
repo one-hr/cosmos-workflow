@@ -18,6 +18,7 @@ import jp.co.onehr.workflow.contract.operator.OperatorService;
 import jp.co.onehr.workflow.contract.plugin.WorkflowPlugin;
 import jp.co.onehr.workflow.contract.restriction.ActionRestriction;
 import jp.co.onehr.workflow.contract.restriction.AdminActionRestriction;
+import jp.co.onehr.workflow.contract.validation.Validations;
 import jp.co.onehr.workflow.dto.*;
 import jp.co.onehr.workflow.dto.param.ContextParam;
 import org.slf4j.Logger;
@@ -87,6 +88,11 @@ public class ProcessConfiguration {
      *
      */
     private ContextParamService contextParamService;
+
+    /**
+     * Custom validations for the workflow
+     */
+    private Validations validations;
 
     private ProcessConfiguration() {
 
@@ -277,6 +283,17 @@ public class ProcessConfiguration {
     public void generateContextParam4Bulk(ContextParam contextParam, Definition definition, Instance instance, String operatorId) {
         if (contextParamService != null) {
             contextParamService.generateContextParam4Bulk(contextParam, definition, instance, operatorId);
+        }
+    }
+
+    // === Configuration and registration for Validations  ===
+    public void registerValidationsService(Validations validations) {
+        this.validations = validations;
+    }
+
+    public void definitionValidation(Definition definition) throws Exception {
+        if (validations != null) {
+            validations.definitionValidation(definition);
         }
     }
 }
