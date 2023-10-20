@@ -1,5 +1,6 @@
 package jp.co.onehr.workflow.service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -11,10 +12,7 @@ import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dto.Definition;
 import jp.co.onehr.workflow.dto.Workflow;
-import jp.co.onehr.workflow.dto.node.EndNode;
-import jp.co.onehr.workflow.dto.node.MultipleNode;
-import jp.co.onehr.workflow.dto.node.SingleNode;
-import jp.co.onehr.workflow.dto.node.StartNode;
+import jp.co.onehr.workflow.dto.node.*;
 import jp.co.onehr.workflow.dto.param.DefinitionParam;
 import jp.co.onehr.workflow.dto.param.WorkflowCreationParam;
 import jp.co.onehr.workflow.dto.param.WorkflowUpdatingParam;
@@ -376,6 +374,88 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
             getService().checkNodes(definition);
         }
 
+    }
+
+    @Test
+    void definition_validations_should_work() throws Exception {
+        var workflowId = "";
+        try {
+            var creationParam = new WorkflowCreationParam();
+            creationParam.name = "definition_validations_should_work";
+
+            var robotNode = new RobotNode("DEFAULT_ROBOT_NODE_NAME-2");
+            robotNode.plugins.add("TestPlugin");
+            var configMap = new HashMap<String, String>();
+            configMap.put("a", "1");
+            configMap.put("b", "2");
+            robotNode.configuration = configMap;
+            creationParam.nodes.add(robotNode);
+
+            // create error
+            assertThatThrownBy(() -> processDesign.createWorkflow(host, creationParam))
+                    .isInstanceOf(WorkflowException.class)
+                    .hasMessageContaining("The first node in the definition cannot be a robot node");
+
+            creationParam.nodes.clear();
+
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
+
+            var result = processDesign.getCurrentDefinition(host, workflow.getId(), 0);
+
+            assertThat(result.workflowId).isEqualTo(workflow.id);
+            assertThat(result.version).isEqualTo(0);
+            assertThat(result.applicationModes).hasSize(1);
+            assertThat(result.applicationModes).containsExactlyInAnyOrder(ApplicationMode.SELF);
+
+            assertThat(result.nodes).hasSize(2);
+            assertThat(result.nodes.get(0).nodeName).isEqualTo("Start_Node");
+            assertThat(result.nodes.get(0).getType()).isEqualTo(NodeType.StartNode.name());
+            assertThat(result.nodes.get(1).nodeName).isEqualTo("End_Node");
+            assertThat(result.nodes.get(1).getType()).isEqualTo(NodeType.EndNode.name());
+
+            // update error
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
+            definitionParam.applicationModes = result.applicationModes;
+            definitionParam.nodes.addAll(result.nodes);
+            definitionParam.nodes.add(1, robotNode);
+
+            assertThatThrownBy(() -> processDesign.upsertDefinition(host, definitionParam))
+                    .isInstanceOf(WorkflowException.class)
+                    .hasMessageContaining("The first node in the definition cannot be a robot node");
+
+            definitionParam.nodes.remove(1);
+            definitionParam.nodes.add(2, robotNode);
+
+            assertThatThrownBy(() -> processDesign.upsertDefinition(host, definitionParam))
+                    .isInstanceOf(WorkflowException.class)
+                    .hasMessageContaining("The last node of a workflow must be an end node");
+
+            definitionParam.nodes.remove(2);
+
+            var singleNode = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+            singleNode.operatorId = "operator-1";
+            definitionParam.nodes.add(1, singleNode);
+            definitionParam.nodes.add(2, robotNode);
+
+            processDesign.upsertDefinition(host, definitionParam);
+            result = processDesign.getCurrentDefinition(host, workflow.getId(), 1);
+
+            assertThat(result.workflowId).isEqualTo(workflow.id);
+            assertThat(result.version).isEqualTo(1);
+            assertThat(result.applicationModes).hasSize(1);
+            assertThat(result.applicationModes).containsExactlyInAnyOrder(ApplicationMode.SELF);
+
+            assertThat(result.nodes).hasSize(4);
+            assertThat(result.nodes.get(0).nodeName).isEqualTo("Start_Node");
+            assertThat(result.nodes.get(0).getType()).isEqualTo(NodeType.StartNode.name());
+            assertThat(result.nodes.get(3).nodeName).isEqualTo("End_Node");
+            assertThat(result.nodes.get(3).getType()).isEqualTo(NodeType.EndNode.name());
+        } finally {
+            WorkflowService.singleton.purge(host, workflowId);
+        }
     }
 
 }
