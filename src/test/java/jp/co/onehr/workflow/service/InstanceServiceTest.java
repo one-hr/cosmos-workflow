@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import io.github.thunderz99.cosmos.condition.Condition;
 import jp.co.onehr.workflow.base.BaseCRUDServiceTest;
 import jp.co.onehr.workflow.constant.*;
+import jp.co.onehr.workflow.contract.context.TestInstanceContext;
 import jp.co.onehr.workflow.contract.context.TestOperatorLogContext;
 import jp.co.onehr.workflow.contract.notification.TestNotification;
 import jp.co.onehr.workflow.contract.plugin.TestPluginParam;
@@ -474,7 +475,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
 
                 // operate operateLog
                 assertThat(result.operateLogList).hasSize(3);
-                
+
                 var operateLog1 = result.operateLogList.get(0);
                 assertThat(operateLog1.nodeId).isEqualTo(definition.nodes.get(1).nodeId);
                 assertThat(operateLog1.nodeName).isEqualTo(definition.nodes.get(1).nodeName);
@@ -1563,6 +1564,117 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result3.operateLogList.get(5).statusBefore).isEqualTo(Status.PROCESSING);
                 assertThat(result3.operateLogList.get(5).statusAfter).isEqualTo(Status.PROCESSING);
                 assertThat(result3.operateLogList.get(5).action).isEqualTo(Action.NEXT.name());
+            }
+        } finally {
+            WorkflowService.singleton.purge(host, workflowId);
+        }
+    }
+
+    @Test
+    void resolve_recursive_should_work() throws Exception {
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_recursive_should_work";
+        var workflowId = "";
+        try {
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
+            var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
+
+            var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+            singleNode1.nodeId = "singleNode1";
+            singleNode1.operatorId = "context_skip_operator";
+            definition.nodes.add(1, singleNode1);
+
+            var singleNode2 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-2");
+            singleNode2.nodeId = "singleNode2";
+            singleNode2.operatorId = "skip_operator";
+            definition.nodes.add(2, singleNode2);
+
+            var singleNode3 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-3");
+            singleNode3.nodeId = "singleNode3";
+            singleNode3.operatorId = "skip_operator";
+            definition.nodes.add(3, singleNode3);
+
+            var singleNode4 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-3");
+            singleNode4.nodeId = "singleNode4";
+            singleNode4.operatorId = "context_skip_operator";
+            definition.nodes.add(4, singleNode4);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
+
+            definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
+
+            var endNode = definition.nodes.get(5);
+            assertThat(endNode.getType()).isEqualTo(NodeType.EndNode.name());
+            // move to the last node terminates the process
+            {
+                var param = new ApplicationParam();
+                param.workflowId = workflow.id;
+                param.applicant = "operator-test-1";
+                var applyContext = new TestInstanceContext();
+                applyContext.generatorOperator = true;
+                param.instanceContext = applyContext;
+                var instance = processEngine.startInstance(host, param);
+
+                var result1 = processEngine.getInstance(host, instance.getId());
+                assertThat(result1.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result1.expandOperatorIdSet).hasSize(1);
+                assertThat(result1.expandOperatorIdSet).containsExactlyInAnyOrder("context_skip_operator");
+
+                ActionExtendParam extendParam1 = new ActionExtendParam();
+                extendParam1.comment = "operator-node-1-comment";
+                var nextContext = new TestInstanceContext();
+                nextContext.generatorOperator = false;
+                extendParam1.instanceContext = nextContext;
+                processEngine.resolve(host, instance.getId(), Action.NEXT, "context_skip_operator", extendParam1);
+
+                var result2 = processEngine.getInstance(host, instance.getId());
+                assertThat(result2.nodeId).isEqualTo(endNode.nodeId);
+                assertThat(result2.expandOperatorIdSet).isEmpty();
+            }
+
+            // move to the first node terminates the process
+            {
+                var param = new ApplicationParam();
+                param.workflowId = workflow.id;
+                param.applicant = "operator-test-2";
+                var applyContext = new TestInstanceContext();
+                applyContext.generatorOperator = true;
+                param.instanceContext = applyContext;
+                var instance = processEngine.startInstance(host, param);
+
+                var result1 = processEngine.getInstance(host, instance.getId());
+                assertThat(result1.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result1.expandOperatorIdSet).hasSize(1);
+                assertThat(result1.expandOperatorIdSet).containsExactlyInAnyOrder("context_skip_operator");
+
+                ActionExtendParam extendParam1 = new ActionExtendParam();
+                extendParam1.comment = "operator-node-1-comment";
+                var nextContext = new TestInstanceContext();
+                nextContext.generatorOperator = true;
+                extendParam1.instanceContext = nextContext;
+                processEngine.resolve(host, instance.getId(), Action.NEXT, "context_skip_operator", extendParam1);
+
+                var result2 = processEngine.getInstance(host, instance.getId());
+                assertThat(result2.nodeId).isEqualTo(singleNode4.nodeId);
+                assertThat(result2.expandOperatorIdSet).hasSize(1);
+                assertThat(result2.expandOperatorIdSet).containsExactlyInAnyOrder("context_skip_operator");
+
+                ActionExtendParam extendParam2 = new ActionExtendParam();
+                extendParam2.comment = "operator-node-4-back-comment";
+                var backContext = new TestInstanceContext();
+                backContext.generatorOperator = false;
+                extendParam2.instanceContext = backContext;
+
+                processEngine.resolve(host, instance.getId(), Action.BACK, "context_skip_operator", extendParam2);
+
+                var result = processEngine.getInstance(host, instance.getId());
+                assertThat(result.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(result.expandOperatorIdSet).isEmpty();
             }
         } finally {
             WorkflowService.singleton.purge(host, workflowId);

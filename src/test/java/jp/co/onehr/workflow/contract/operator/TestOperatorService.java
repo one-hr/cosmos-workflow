@@ -1,10 +1,12 @@
 package jp.co.onehr.workflow.contract.operator;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import jp.co.onehr.workflow.contract.context.InstanceContext;
+import jp.co.onehr.workflow.contract.context.TestInstanceContext;
 import jp.co.onehr.workflow.dto.ApprovalStatus;
 
 
@@ -13,13 +15,27 @@ public class TestOperatorService implements OperatorService {
     public static final TestOperatorService singleton = new TestOperatorService();
 
     public static final String SKIP_OPERATOR = "skip_operator";
+    public static final String CONTEXT_SKIP_OPERATOR = "context_skip_operator";
 
     @Override
     public Set<String> handleOperators(Set<String> operatorIds, InstanceContext instanceContext) {
+        var result = new HashSet<String>();
+
+        if (operatorIds.contains(CONTEXT_SKIP_OPERATOR)) {
+            if (instanceContext instanceof TestInstanceContext testContext) {
+                if (!testContext.generatorOperator) {
+                    return Set.of();
+                }
+            }
+        }
+
         if (operatorIds.contains(SKIP_OPERATOR)) {
             operatorIds.remove(SKIP_OPERATOR);
         }
-        return operatorIds;
+
+        result.addAll(operatorIds);
+        
+        return result;
     }
 
     @Override
