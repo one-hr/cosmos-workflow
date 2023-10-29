@@ -229,7 +229,13 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
                                              String operatorId, ActionExtendParam extendParam, int count) {
         var instance = actionResult.instance;
 
+        // When the instance reaches the last node, the workflow ends, and the result is returned.
         if (NodeService.isLastNode(definition, instance.nodeId)) {
+            return actionResult;
+        }
+
+        // When the instance reaches the first node, the workflow ends, and the result is returned.
+        if (NodeService.isFirstNode(definition, instance.nodeId)) {
             return actionResult;
         }
 
