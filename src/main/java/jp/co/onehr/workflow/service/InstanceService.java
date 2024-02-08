@@ -41,7 +41,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
     public static final String STATUS = "status";
 
     // Enable recursive action for nodes.
-    public static final Set<Action> recursiveAction = Set.of(Action.NEXT, Action.BACK);
+    public static final Set<Action> recursiveAction = Set.of(Action.NEXT, Action.BACK, Action.REAPPLY);
 
     private InstanceService() {
         super(Instance.class);
@@ -414,6 +414,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
                 actions.add(Action.REJECT);
                 actions.add(Action.WITHDRAW);
                 actions.add(Action.RETRIEVE);
+                actions.add(Action.REAPPLY);
             }
             case REJECTED -> {
                 actions.add(Action.CANCEL);
@@ -445,6 +446,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
      */
     private Set<Action> generateRemovalActionsByOperator(Definition definition, Instance instance, String operatorId) {
         var actions = new HashSet<Action>();
+        actions.add(Action.REAPPLY);
 
         var status = instance.status;
         switch (status) {
@@ -452,8 +454,10 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
                 actions.add(Action.RETRIEVE);
 
                 //If it is the first node, back and retrieve action is not allowed.
+                // the reapply action can be used.
                 if (NodeService.isFirstNode(definition, instance.nodeId)) {
                     actions.add(Action.BACK);
+                    actions.remove(Action.REAPPLY);
                 }
 
                 // If it is the last node, next action is not allowed.
@@ -532,6 +536,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
      */
     private Set<Action> generateRemovalActionsByAdmin(Definition definition, Instance instance, String operatorId) {
         var actions = new HashSet<Action>();
+        actions.add(Action.REAPPLY);
 
         var status = instance.status;
         switch (status) {
