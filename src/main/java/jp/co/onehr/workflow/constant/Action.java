@@ -63,7 +63,15 @@ public enum Action {
     /**
      * Handling of the apply action to transition the instance from "REJECTED" or "CANCELED" to a "PROCESSING" status
      */
-    APPLY(new ApplyService());
+    APPLY(new ApplyService()),
+
+    /**
+     * The action of 'reapply' is consistent with the action of 'next'.
+     * <p>
+     * When the process instance is returned to the initiator of the first node
+     * you can change 'next' to 'reapply' to distinguish the operation prompt and the record in the history.
+     */
+    REAPPLY(new NextService());
 
 
     private final ActionStrategy strategy;
