@@ -2360,7 +2360,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.applicationMode).isEqualTo(ApplicationMode.SELF);
                 assertThat(result1.status).isEqualTo(Status.PROCESSING);
                 assertThat(result1.nodeId).isEqualTo(multipleNode2.nodeId);
-                assertThat(result1.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK, Action.REJECT, Action.WITHDRAW);
+                assertThat(result1.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK, Action.REAPPLY, Action.REJECT, Action.WITHDRAW);
 
                 assertThat(result1.parallelApproval).hasSize(2);
                 assertThat(result1.parallelApproval.get("operator-3").operatorId).isEqualTo("operator-3");
@@ -2381,7 +2381,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result2.applicationMode).isEqualTo(ApplicationMode.SELF);
                 assertThat(result2.status).isEqualTo(Status.PROCESSING);
                 assertThat(result2.nodeId).isEqualTo(multipleNode3.nodeId);
-                assertThat(result2.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK, Action.WITHDRAW, Action.REJECT, Action.CANCEL);
+                assertThat(result2.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK, Action.REAPPLY, Action.WITHDRAW, Action.REJECT, Action.CANCEL);
 
                 assertThat(result2.parallelApproval).hasSize(2);
                 assertThat(result2.parallelApproval.get("operator-1").operatorId).isEqualTo("operator-1");
@@ -2402,7 +2402,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result3.applicationMode).isEqualTo(ApplicationMode.SELF);
                 assertThat(result3.status).isEqualTo(Status.PROCESSING);
                 assertThat(result3.nodeId).isEqualTo(multipleNode3.nodeId);
-                assertThat(result3.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK, Action.WITHDRAW, Action.REJECT, Action.CANCEL);
+                assertThat(result3.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK, Action.WITHDRAW, Action.REAPPLY, Action.REJECT, Action.CANCEL);
 
                 assertThat(result3.parallelApproval).hasSize(2);
                 assertThat(result3.parallelApproval.get("operator-1").operatorId).isEqualTo("operator-1");
@@ -2425,7 +2425,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result.applicationMode).isEqualTo(ApplicationMode.SELF);
                 assertThat(result.status).isEqualTo(Status.PROCESSING);
                 assertThat(result.nodeId).isEqualTo(multipleNode3.nodeId);
-                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK, Action.WITHDRAW, Action.REJECT, Action.CANCEL);
+                assertThat(result.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK, Action.WITHDRAW, Action.REAPPLY, Action.REJECT, Action.CANCEL);
 
                 assertThat(result.parallelApproval).hasSize(2);
                 assertThat(result.parallelApproval.get("operator-1").operatorId).isEqualTo("operator-1");
@@ -2465,7 +2465,7 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.applicationMode).isEqualTo(ApplicationMode.SELF);
                 assertThat(result1.status).isEqualTo(Status.PROCESSING);
                 assertThat(result1.nodeId).isEqualTo(multipleNode1.nodeId);
-                assertThat(result1.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK, Action.WITHDRAW, Action.REJECT);
+                assertThat(result1.allowingActions).containsExactlyInAnyOrder(Action.SAVE, Action.NEXT, Action.BACK, Action.REAPPLY, Action.WITHDRAW, Action.REJECT);
             }
 
             Instance finalInstance = instance;

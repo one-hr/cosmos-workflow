@@ -536,7 +536,6 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
      */
     private Set<Action> generateRemovalActionsByAdmin(Definition definition, Instance instance, String operatorId) {
         var actions = new HashSet<Action>();
-        actions.add(Action.REAPPLY);
 
         var status = instance.status;
         switch (status) {
