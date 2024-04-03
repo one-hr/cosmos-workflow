@@ -1,6 +1,7 @@
 package jp.co.onehr.workflow.dto.node;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -23,12 +24,12 @@ public class MultipleNode extends ManualNode {
     /**
      * The ids of all operators who can perform operations on the node.
      */
-    public Set<String> operatorIdSet = Sets.newHashSet();
+    public LinkedHashSet<String> operatorIdSet = Sets.newLinkedHashSet();
 
     /**
      * The ids of all organizations that can perform operations on the node.
      */
-    public Set<String> operatorOrgIdSet = Sets.newHashSet();
+    public LinkedHashSet<String> operatorOrgIdSet = Sets.newLinkedHashSet();
 
     /**
      * Node approval type
@@ -54,15 +55,15 @@ public class MultipleNode extends ManualNode {
 
     public MultipleNode(String nodeName, Set<String> operatorIdSet, Set<String> operatorOrgIdSet) {
         this.nodeName = nodeName;
-        this.operatorIdSet = operatorIdSet;
-        this.operatorOrgIdSet = operatorOrgIdSet;
+        this.operatorIdSet.addAll(operatorIdSet);
+        this.operatorOrgIdSet.addAll(operatorOrgIdSet);
     }
 
     public MultipleNode(String nodeName, ApprovalType approvalType, Set<String> operatorIdSet, Set<String> operatorOrgIdSet) {
         this.nodeName = nodeName;
         this.approvalType = approvalType;
-        this.operatorIdSet = operatorIdSet;
-        this.operatorOrgIdSet = operatorOrgIdSet;
+        this.operatorIdSet.addAll(operatorIdSet);
+        this.operatorOrgIdSet.addAll(operatorOrgIdSet);
     }
 
     /**

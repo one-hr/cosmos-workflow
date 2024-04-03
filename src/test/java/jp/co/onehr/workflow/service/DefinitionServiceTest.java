@@ -299,6 +299,58 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
     }
 
     @Test
+    void multipleNode_preserve_the_order_of_IdSet_should_work() throws Exception {
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "multipleNode_preserve_the_order_of_IdSet_should_work";
+        var workflowId = "";
+
+        try {
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflow = processDesign.getWorkflow(host, workflow.getId());
+            workflowId = workflow.id;
+
+            var definition = processDesign.getCurrentDefinition(host, workflowId, 0);
+
+            var multipleNode1 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-1");
+            multipleNode1.operatorIdSet.add("operator-1");
+            multipleNode1.operatorIdSet.add("operator-2");
+            multipleNode1.operatorIdSet.add("operator-3");
+            definition.nodes.add(1, multipleNode1);
+
+            var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2");
+            multipleNode2.operatorIdSet.add("operator-3");
+            multipleNode2.operatorIdSet.add("operator-1");
+            multipleNode2.operatorIdSet.add("operator-2");
+            definition.nodes.add(2, multipleNode2);
+
+            var multipleNode3 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-3");
+            multipleNode3.operatorIdSet.add("operator-1");
+            multipleNode3.operatorIdSet.add("operator-3");
+            multipleNode3.operatorIdSet.add("operator-2");
+            definition.nodes.add(3, multipleNode3);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
+
+            definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
+
+            var result1 = (MultipleNode) definition.nodes.get(1);
+            var result2 = (MultipleNode) definition.nodes.get(2);
+            var result3 = (MultipleNode) definition.nodes.get(3);
+
+            assertThat(result1.operatorIdSet).containsSequence("operator-1", "operator-2", "operator-3");
+            assertThat(result2.operatorIdSet).containsSequence("operator-3", "operator-1", "operator-2");
+            assertThat(result3.operatorIdSet).containsSequence("operator-1", "operator-3", "operator-2");
+        } finally {
+            WorkflowService.singleton.purge(host, workflowId);
+        }
+    }
+
+
+    @Test
     void checkNodes_should_work() throws Exception {
         var workflow = new Workflow(getUuid(), "checkNodes_should_work");
         var definition = new Definition(getUuid(), workflow.getId());
