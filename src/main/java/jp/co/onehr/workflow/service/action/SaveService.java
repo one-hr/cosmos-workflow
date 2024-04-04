@@ -32,11 +32,14 @@ public class SaveService implements ActionStrategy {
             instance.expandOperatorIdSet.clear();
             instance.expandOperatorIdSet.addAll(expandOperatorIds);
             if (currentNode.getApprovalType().equals(ApprovalType.AND)) {
+
+                var parallelApproval = ProcessConfiguration.getConfiguration()
+                        .handleModificationParallelApproval(instance.operatorIdSet, instance.operatorOrgIdSet,
+                                instance.expandOperatorIdSet, instance.parallelApproval, instanceContext);
+
                 instance.parallelApproval.clear();
-                instance.parallelApproval.putAll(
-                        ProcessConfiguration.getConfiguration()
-                                .handleModificationParallelApproval(instance.operatorIdSet, instance.operatorOrgIdSet,
-                                        instance.expandOperatorIdSet, instance.parallelApproval, instanceContext));
+                instance.parallelApproval.putAll(parallelApproval);
+
             }
         }
 

@@ -7,6 +7,8 @@ public class TestInstanceContext implements InstanceContext {
 
     public boolean generatorOperator = true;
 
+    public boolean resetParallelOperator = false;
+
     @JsonIgnore
     public Class clazz = this.getClass();
 
