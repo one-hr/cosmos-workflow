@@ -22,7 +22,7 @@ import jp.co.onehr.workflow.dto.param.*;
 import jp.co.onehr.workflow.exception.WorkflowException;
 import org.junit.jupiter.api.Test;
 
-import static jp.co.onehr.workflow.contract.operator.TestOperatorService.SKIP_OPERATOR;
+import static jp.co.onehr.workflow.contract.operator.TestOperatorService.*;
 import static jp.co.onehr.workflow.service.DefinitionService.DEFAULT_END_NODE_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -1386,6 +1386,101 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                 assertThat(result1.preExpandOperatorIdSet).containsExactlyInAnyOrder("operator-1", "operator-2");
                 assertThat(result1.parallelApproval).isEmpty();
                 assertThat(result1.allowingActions).containsExactlyInAnyOrder(Action.REJECT, Action.WITHDRAW, Action.NEXT, Action.BACK, Action.CANCEL);
+            }
+        } finally {
+            WorkflowService.singleton.purge(host, workflowId);
+        }
+    }
+
+    @Test
+    void resolve_save_modification_operator_parallel_approval_should_work() throws Exception {
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_save_modification_operator_parallel_approval_should_work";
+        var workflowId = "";
+        try {
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
+            var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
+
+            var multipleNode1 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-1", ApprovalType.AND, Set.of("operator-1", PARALLEL_MODIFICATION_OPERATOR), Set.of());
+            definition.nodes.add(1, multipleNode1);
+            var multipleNode2 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-2", ApprovalType.AND, Set.of("operator-3", "operator-4"), Set.of());
+            definition.nodes.add(2, multipleNode2);
+            var multipleNode3 = new MultipleNode("DEFAULT_MULTIPLE_NODE_NAME-3", ApprovalType.AND, Set.of("operator-1", "operator-4"), Set.of());
+            definition.nodes.add(3, multipleNode3);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
+
+            definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
+
+            var param = new ApplicationParam();
+            param.workflowId = workflow.id;
+            param.applicant = "operator-0";
+            var instance = processEngine.startInstance(host, param);
+
+            assertThat(instance.workflowId).isEqualTo(workflow.id);
+            assertThat(instance.definitionId).isEqualTo(definition.id);
+            assertThat(instance.operatorIdSet).containsExactlyInAnyOrder("operator-1", PARALLEL_MODIFICATION_OPERATOR);
+            assertThat(instance.operatorOrgIdSet).isEmpty();
+            assertThat(instance.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1", PARALLEL_MODIFICATION_OPERATOR);
+            assertThat(instance.applicant).isEqualTo("operator-0");
+            assertThat(instance.applicationMode).isEqualTo(ApplicationMode.SELF);
+            assertThat(instance.status).isEqualTo(Status.PROCESSING);
+            assertThat(instance.nodeId).isEqualTo(multipleNode1.nodeId);
+
+            // AND next
+            {
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-1");
+                instance = actionResult.instance;
+
+                var result = processEngine.getInstance(host, instance.getId());
+                assertThat(result.definitionId).isEqualTo(definition.id);
+                assertThat(result.operatorIdSet).containsExactlyInAnyOrder("operator-1", PARALLEL_MODIFICATION_OPERATOR);
+                assertThat(result.operatorOrgIdSet).isEmpty();
+                assertThat(result.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1", PARALLEL_MODIFICATION_OPERATOR);
+                assertThat(result.applicant).isEqualTo("operator-0");
+                assertThat(result.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result.status).isEqualTo(Status.PROCESSING);
+
+                assertThat(result.nodeId).isEqualTo(multipleNode1.nodeId);
+
+                assertThat(result.parallelApproval).hasSize(2);
+                assertThat(result.parallelApproval.get("operator-1").operatorId).isEqualTo("operator-1");
+                assertThat(result.parallelApproval.get("operator-1").approved).isTrue();
+                assertThat(result.parallelApproval.get(PARALLEL_MODIFICATION_OPERATOR).operatorId).isEqualTo(PARALLEL_MODIFICATION_OPERATOR);
+                assertThat(result.parallelApproval.get(PARALLEL_MODIFICATION_OPERATOR).approved).isFalse();
+            }
+
+            // save modification operator
+            {
+                ActionExtendParam extendParam1 = new ActionExtendParam();
+                var saveContext = new TestInstanceContext();
+                saveContext.resetParallelOperator = true;
+                extendParam1.instanceContext = saveContext;
+
+                var actionResult = processEngine.resolve(host, instance.getId(), Action.SAVE, PARALLEL_MODIFICATION_OPERATOR, extendParam1);
+                instance = actionResult.instance;
+
+                var result = processEngine.getInstance(host, instance.getId());
+                assertThat(result.definitionId).isEqualTo(definition.id);
+                assertThat(result.operatorIdSet).containsExactlyInAnyOrder("operator-1", PARALLEL_MODIFICATION_OPERATOR);
+                assertThat(result.operatorOrgIdSet).isEmpty();
+                assertThat(result.expandOperatorIdSet).containsExactlyInAnyOrder("operator-1", PARALLEL_OPERATOR);
+                assertThat(result.applicant).isEqualTo("operator-0");
+                assertThat(result.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result.status).isEqualTo(Status.PROCESSING);
+
+                assertThat(result.nodeId).isEqualTo(multipleNode1.nodeId);
+
+                assertThat(result.parallelApproval).hasSize(2);
+                assertThat(result.parallelApproval.get("operator-1").operatorId).isEqualTo("operator-1");
+                assertThat(result.parallelApproval.get("operator-1").approved).isTrue();
+                assertThat(result.parallelApproval.get(PARALLEL_OPERATOR).operatorId).isEqualTo(PARALLEL_OPERATOR);
+                assertThat(result.parallelApproval.get(PARALLEL_OPERATOR).approved).isFalse();
             }
         } finally {
             WorkflowService.singleton.purge(host, workflowId);

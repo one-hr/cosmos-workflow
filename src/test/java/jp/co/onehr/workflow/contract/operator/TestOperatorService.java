@@ -16,6 +16,8 @@ public class TestOperatorService implements OperatorService {
 
     public static final String SKIP_OPERATOR = "skip_operator";
     public static final String CONTEXT_SKIP_OPERATOR = "context_skip_operator";
+    public static final String PARALLEL_MODIFICATION_OPERATOR = "parallel_modification_operator";
+    public static final String PARALLEL_OPERATOR = "parallel_operator";
 
     @Override
     public Set<String> handleOperators(Set<String> operatorIds, InstanceContext instanceContext) {
@@ -33,8 +35,15 @@ public class TestOperatorService implements OperatorService {
             operatorIds.remove(SKIP_OPERATOR);
         }
 
+        if (operatorIds.contains(PARALLEL_MODIFICATION_OPERATOR)) {
+            if (instanceContext instanceof TestInstanceContext testContext && testContext.resetParallelOperator) {
+                operatorIds.remove(PARALLEL_MODIFICATION_OPERATOR);
+                operatorIds.add(PARALLEL_OPERATOR);
+            }
+        }
+
         result.addAll(operatorIds);
-        
+
         return result;
     }
 
@@ -80,11 +89,11 @@ public class TestOperatorService implements OperatorService {
     public Map<String, ApprovalStatus> handleModificationParallelApproval(Set<String> operatorIds, Set<String> orgIds, Set<String> expandOperatorIds, Map<String, ApprovalStatus> existParallelApproval, InstanceContext instanceContext) {
         var parallelApprovalMap = new HashMap<String, ApprovalStatus>();
 
-        for (var expandOperatorId : expandOperatorIds) {
-            if (existParallelApproval.containsKey(expandOperatorId)) {
-                parallelApprovalMap.put(expandOperatorId, existParallelApproval.get(expandOperatorId));
+        for (var operatorId : operatorIds) {
+            if (PARALLEL_MODIFICATION_OPERATOR.equals(operatorId)) {
+                parallelApprovalMap.put(PARALLEL_OPERATOR, new ApprovalStatus(PARALLEL_OPERATOR, false));
             } else {
-                parallelApprovalMap.put(expandOperatorId, new ApprovalStatus(expandOperatorId, false));
+                parallelApprovalMap.put(operatorId, existParallelApproval.get(operatorId));
             }
         }
 
