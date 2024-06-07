@@ -1,13 +1,13 @@
 package jp.co.onehr.workflow.dao;
 
+import java.util.Set;
+
 import io.github.thunderz99.cosmos.Cosmos;
 import jp.co.onehr.workflow.dto.base.UniqueKeyCapable;
 import jp.co.onehr.workflow.service.base.BaseCRUDService;
 import jp.co.onehr.workflow.util.EnvUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Set;
 
 import static jp.co.onehr.workflow.dao.CosmosDB.*;
 import static jp.co.onehr.workflow.service.base.BaseNoSqlService.DEFAULT_COLLECTION;
@@ -74,7 +74,7 @@ public class ContainerUtil {
         cosmosAccount.createIfNotExist(dbName, collectionName, uniqueKeyPolicy);
 
         var collection = cosmosAccount.readCollection(dbName, collectionName);
-        assertThat(collection.getUniqueKeyPolicy().getUniqueKeys()).hasSize(3);
+        assertThat(collection.getProperties().getUniqueKeyPolicy().getUniqueKeys()).hasSize(3);
 
         staticLogger.info("end recreate data collection");
 
