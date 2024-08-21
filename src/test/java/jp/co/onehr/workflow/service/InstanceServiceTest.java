@@ -3005,4 +3005,383 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
             WorkflowService.singleton.purge(host, workflowId);
         }
     }
+
+    @Test
+    void relocate_should_work() throws Exception {
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "relocate_should_work";
+        var workflowId = "";
+        try {
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
+
+            var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
+            var existDefinitionId = definition.id;
+
+            var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+            singleNode1.operatorId = "operator-node-1";
+            definition.nodes.add(1, singleNode1);
+            var singleNode2 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-2");
+            singleNode2.operatorId = "operator-node-2";
+            definition.nodes.add(2, singleNode2);
+            var singleNode3 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-3");
+            singleNode3.operatorId = "operator-node-3";
+            definition.nodes.add(3, singleNode3);
+            var singleNode4 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-4");
+            singleNode4.operatorId = "operator-node-4";
+            definition.nodes.add(4, singleNode4);
+            var singleNode5 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-5");
+            singleNode5.operatorId = "operator-node-5";
+            definition.nodes.add(5, singleNode5);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
+
+            definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
+
+            var definitionId = definition.getId();
+
+            var endNode = definition.nodes.get(6);
+
+            var param = new ApplicationParam();
+            param.workflowId = workflow.id;
+            param.applicant = "operator-1";
+            param.comment = "apply comment";
+            var instance = processEngine.startInstance(host, param);
+
+            {
+                var result = processEngine.getInstance(host, instance.getId());
+                assertThat(result.definitionId).isEqualTo(definition.id);
+                assertThat(result.operatorIdSet).containsExactlyInAnyOrder("operator-node-1");
+                assertThat(result.operatorOrgIdSet).isEmpty();
+                assertThat(result.expandOperatorIdSet).containsExactlyInAnyOrder("operator-node-1");
+                assertThat(result.applicant).isEqualTo("operator-1");
+                assertThat(result.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result.status).isEqualTo(Status.PROCESSING);
+                assertThat(result.nodeId).isEqualTo(singleNode1.nodeId);
+
+                var operateLogList = result.operateLogList;
+                assertThat(operateLogList).hasSize(1);
+
+                var operateLog1 = operateLogList.get(0);
+                assertThat(operateLog1).isNotNull();
+                assertThat(operateLog1.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog1.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog1.statusBefore).isEqualTo(Status.NEW);
+                assertThat(operateLog1.operatorId).isEqualTo("operator-1");
+                assertThat(operateLog1.action).isEqualTo(Action.APPLY.name());
+                assertThat(operateLog1.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.comment).isEqualTo("apply comment");
+            }
+
+            // test relocate singleNode1 -> singleNode4
+            {
+                var relocateParam = new RelocateParam();
+                relocateParam.instanceId = instance.getId();
+                relocateParam.relocateNodeId = singleNode4.nodeId;
+                relocateParam.comment = "relocate test";
+                processEngine.relocate(host, definition.getId(), "operator-admin", relocateParam);
+
+                var result = processEngine.getInstance(host, instance.getId());
+                assertThat(result.definitionId).isEqualTo(definition.id);
+                assertThat(result.operatorIdSet).containsExactlyInAnyOrder("operator-node-4");
+                assertThat(result.operatorOrgIdSet).isEmpty();
+                assertThat(result.expandOperatorIdSet).containsExactlyInAnyOrder("operator-node-4");
+                assertThat(result.applicant).isEqualTo("operator-1");
+                assertThat(result.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result.status).isEqualTo(Status.PROCESSING);
+                assertThat(result.nodeId).isEqualTo(singleNode4.nodeId);
+
+                var operateLogList = result.operateLogList;
+                assertThat(operateLogList).hasSize(2);
+
+                var operateLog0 = operateLogList.get(0);
+                assertThat(operateLog0).isNotNull();
+                assertThat(operateLog0.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog0.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog0.statusBefore).isEqualTo(Status.NEW);
+                assertThat(operateLog0.operatorId).isEqualTo("operator-1");
+                assertThat(operateLog0.action).isEqualTo(Action.APPLY.name());
+                assertThat(operateLog0.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog0.comment).isEqualTo("apply comment");
+
+                var operateLog1 = operateLogList.get(1);
+                assertThat(operateLog1).isNotNull();
+                assertThat(operateLog1.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog1.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog1.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.operatorId).isEqualTo("operator-admin");
+                assertThat(operateLog1.action).isEqualTo(Action.RELOCATE.name());
+                assertThat(operateLog1.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.comment).isEqualTo("relocate test");
+            }
+
+            // test relocate param null
+            {
+                assertThatThrownBy(() -> processEngine.relocate(host, definitionId, "operator-admin", null))
+                        .isInstanceOf(WorkflowException.class)
+                        .hasMessageContaining(WorkflowErrors.RELOCATE_PARAM_NOT_EXIST.name());
+            }
+
+            // test relocate instanceId null
+            {
+                var relocateParam = new RelocateParam();
+                relocateParam.relocateNodeId = singleNode4.nodeId;
+
+                assertThatThrownBy(() -> processEngine.relocate(host, definitionId, "operator-admin", relocateParam))
+                        .isInstanceOf(WorkflowException.class)
+                        .hasMessageContaining(WorkflowErrors.RELOCATE_INSTANCE_ID_NOT_EXIST.name());
+            }
+
+            // test relocate relocateNodeId null
+            {
+                var relocateParam = new RelocateParam();
+                relocateParam.instanceId = instance.getId();
+
+                assertThatThrownBy(() -> processEngine.relocate(host, definitionId, "operator-admin", relocateParam))
+                        .isInstanceOf(WorkflowException.class)
+                        .hasMessageContaining(WorkflowErrors.RELOCATE_NODE_ID_NOT_EXIST.name());
+            }
+
+            // test
+            {
+                var relocateParam = new RelocateParam();
+                relocateParam.instanceId = instance.getId();
+                relocateParam.relocateNodeId = singleNode4.nodeId;
+
+                assertThatThrownBy(() -> processEngine.relocate(host, existDefinitionId, "operator-admin", relocateParam))
+                        .isInstanceOf(WorkflowException.class)
+                        .hasMessageContaining(WorkflowErrors.RELOCATE_DEFINITION_MISMATCH.name());
+            }
+
+            // test relocate singleNode4 -> singleNode2
+            {
+                var relocateParam = new RelocateParam();
+                relocateParam.instanceId = instance.getId();
+                relocateParam.relocateNodeId = singleNode2.nodeId;
+                relocateParam.comment = "relocate test-2";
+                processEngine.relocate(host, definition.getId(), "operator-admin", relocateParam);
+
+                var result = processEngine.getInstance(host, instance.getId());
+                assertThat(result.definitionId).isEqualTo(definition.id);
+                assertThat(result.operatorIdSet).containsExactlyInAnyOrder("operator-node-2");
+                assertThat(result.operatorOrgIdSet).isEmpty();
+                assertThat(result.expandOperatorIdSet).containsExactlyInAnyOrder("operator-node-2");
+                assertThat(result.applicant).isEqualTo("operator-1");
+                assertThat(result.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result.status).isEqualTo(Status.PROCESSING);
+                assertThat(result.nodeId).isEqualTo(singleNode2.nodeId);
+
+                var operateLogList = result.operateLogList;
+                assertThat(operateLogList).hasSize(3);
+
+                var operateLog0 = operateLogList.get(0);
+                assertThat(operateLog0).isNotNull();
+                assertThat(operateLog0.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog0.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog0.statusBefore).isEqualTo(Status.NEW);
+                assertThat(operateLog0.operatorId).isEqualTo("operator-1");
+                assertThat(operateLog0.action).isEqualTo(Action.APPLY.name());
+                assertThat(operateLog0.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog0.comment).isEqualTo("apply comment");
+
+                var operateLog1 = operateLogList.get(1);
+                assertThat(operateLog1).isNotNull();
+                assertThat(operateLog1.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog1.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog1.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.operatorId).isEqualTo("operator-admin");
+                assertThat(operateLog1.action).isEqualTo(Action.RELOCATE.name());
+                assertThat(operateLog1.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.comment).isEqualTo("relocate test");
+
+                var operateLog2 = operateLogList.get(2);
+                assertThat(operateLog2).isNotNull();
+                assertThat(operateLog2.nodeId).isEqualTo(singleNode4.nodeId);
+                assertThat(operateLog2.nodeName).isEqualTo(singleNode4.nodeName);
+                assertThat(operateLog2.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.operatorId).isEqualTo("operator-admin");
+                assertThat(operateLog2.action).isEqualTo(Action.RELOCATE.name());
+                assertThat(operateLog2.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.comment).isEqualTo("relocate test-2");
+            }
+
+            // test relocate singleNode2 -> singleNode2
+            {
+                var relocateParam = new RelocateParam();
+                relocateParam.instanceId = instance.getId();
+                relocateParam.relocateNodeId = singleNode2.nodeId;
+                relocateParam.comment = "relocate test-2";
+                processEngine.relocate(host, definition.getId(), "operator-admin", relocateParam);
+
+                var result = processEngine.getInstance(host, instance.getId());
+                assertThat(result.definitionId).isEqualTo(definition.id);
+                assertThat(result.operatorIdSet).containsExactlyInAnyOrder("operator-node-2");
+                assertThat(result.operatorOrgIdSet).isEmpty();
+                assertThat(result.expandOperatorIdSet).containsExactlyInAnyOrder("operator-node-2");
+                assertThat(result.applicant).isEqualTo("operator-1");
+                assertThat(result.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result.status).isEqualTo(Status.PROCESSING);
+                assertThat(result.nodeId).isEqualTo(singleNode2.nodeId);
+
+                var operateLogList = result.operateLogList;
+                assertThat(operateLogList).hasSize(3);
+            }
+
+            // resolve next singleNode3
+            {
+                var logContext = new TestOperatorLogContext();
+                logContext.operator = Map.of("operator-node-2-name", "operator-node-2-name-value");
+
+                ActionExtendParam extendParam = new ActionExtendParam();
+                extendParam.comment = "operator-node-2-comment";
+                extendParam.logContext = logContext;
+
+                processEngine.resolve(host, instance.getId(), Action.NEXT, "operator-node-2", extendParam);
+
+                var result = processEngine.getInstance(host, instance.getId());
+                assertThat(result.definitionId).isEqualTo(definition.id);
+                assertThat(result.operatorIdSet).containsExactlyInAnyOrder("operator-node-3");
+                assertThat(result.operatorOrgIdSet).isEmpty();
+                assertThat(result.expandOperatorIdSet).containsExactlyInAnyOrder("operator-node-3");
+                assertThat(result.applicant).isEqualTo("operator-1");
+                assertThat(result.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result.status).isEqualTo(Status.PROCESSING);
+                assertThat(result.nodeId).isEqualTo(singleNode3.nodeId);
+
+                var operateLogList = result.operateLogList;
+                assertThat(operateLogList).hasSize(4);
+
+                var operateLog0 = operateLogList.get(0);
+                assertThat(operateLog0).isNotNull();
+                assertThat(operateLog0.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog0.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog0.statusBefore).isEqualTo(Status.NEW);
+                assertThat(operateLog0.operatorId).isEqualTo("operator-1");
+                assertThat(operateLog0.action).isEqualTo(Action.APPLY.name());
+                assertThat(operateLog0.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog0.comment).isEqualTo("apply comment");
+
+                var operateLog1 = operateLogList.get(1);
+                assertThat(operateLog1).isNotNull();
+                assertThat(operateLog1.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog1.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog1.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.operatorId).isEqualTo("operator-admin");
+                assertThat(operateLog1.action).isEqualTo(Action.RELOCATE.name());
+                assertThat(operateLog1.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.comment).isEqualTo("relocate test");
+
+                var operateLog2 = operateLogList.get(2);
+                assertThat(operateLog2).isNotNull();
+                assertThat(operateLog2.nodeId).isEqualTo(singleNode4.nodeId);
+                assertThat(operateLog2.nodeName).isEqualTo(singleNode4.nodeName);
+                assertThat(operateLog2.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.operatorId).isEqualTo("operator-admin");
+                assertThat(operateLog2.action).isEqualTo(Action.RELOCATE.name());
+                assertThat(operateLog2.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.comment).isEqualTo("relocate test-2");
+
+                var operateLog3 = operateLogList.get(3);
+                assertThat(operateLog3).isNotNull();
+                assertThat(operateLog3.nodeId).isEqualTo(singleNode2.nodeId);
+                assertThat(operateLog3.nodeName).isEqualTo(singleNode2.nodeName);
+                assertThat(operateLog3.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog3.operatorId).isEqualTo("operator-node-2");
+                assertThat(operateLog3.action).isEqualTo(Action.NEXT.name());
+                assertThat(operateLog3.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog3.comment).isEqualTo("operator-node-2-comment");
+            }
+
+            // test relocate singleNode3 -> End
+            {
+                var relocateParam = new RelocateParam();
+                relocateParam.instanceId = instance.getId();
+                relocateParam.relocateNodeId = endNode.nodeId;
+                relocateParam.comment = "relocate test-3";
+                processEngine.relocate(host, definition.getId(), "operator-admin", relocateParam);
+
+                var result = processEngine.getInstance(host, instance.getId());
+                assertThat(result.definitionId).isEqualTo(definition.id);
+                assertThat(result.operatorIdSet).containsExactlyInAnyOrder();
+                assertThat(result.operatorOrgIdSet).isEmpty();
+                assertThat(result.expandOperatorIdSet).containsExactlyInAnyOrder();
+                assertThat(result.applicant).isEqualTo("operator-1");
+                assertThat(result.applicationMode).isEqualTo(ApplicationMode.SELF);
+                assertThat(result.status).isEqualTo(Status.APPROVED);
+                assertThat(result.nodeId).isEqualTo(endNode.nodeId);
+
+                var operateLogList = result.operateLogList;
+                assertThat(operateLogList).hasSize(5);
+
+                var operateLog0 = operateLogList.get(0);
+                assertThat(operateLog0).isNotNull();
+                assertThat(operateLog0.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog0.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog0.statusBefore).isEqualTo(Status.NEW);
+                assertThat(operateLog0.operatorId).isEqualTo("operator-1");
+                assertThat(operateLog0.action).isEqualTo(Action.APPLY.name());
+                assertThat(operateLog0.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog0.comment).isEqualTo("apply comment");
+
+                var operateLog1 = operateLogList.get(1);
+                assertThat(operateLog1).isNotNull();
+                assertThat(operateLog1.nodeId).isEqualTo(singleNode1.nodeId);
+                assertThat(operateLog1.nodeName).isEqualTo(singleNode1.nodeName);
+                assertThat(operateLog1.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.operatorId).isEqualTo("operator-admin");
+                assertThat(operateLog1.action).isEqualTo(Action.RELOCATE.name());
+                assertThat(operateLog1.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog1.comment).isEqualTo("relocate test");
+
+                var operateLog2 = operateLogList.get(2);
+                assertThat(operateLog2).isNotNull();
+                assertThat(operateLog2.nodeId).isEqualTo(singleNode4.nodeId);
+                assertThat(operateLog2.nodeName).isEqualTo(singleNode4.nodeName);
+                assertThat(operateLog2.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.operatorId).isEqualTo("operator-admin");
+                assertThat(operateLog2.action).isEqualTo(Action.RELOCATE.name());
+                assertThat(operateLog2.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog2.comment).isEqualTo("relocate test-2");
+
+                var operateLog3 = operateLogList.get(3);
+                assertThat(operateLog3).isNotNull();
+                assertThat(operateLog3.nodeId).isEqualTo(singleNode2.nodeId);
+                assertThat(operateLog3.nodeName).isEqualTo(singleNode2.nodeName);
+                assertThat(operateLog3.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog3.operatorId).isEqualTo("operator-node-2");
+                assertThat(operateLog3.action).isEqualTo(Action.NEXT.name());
+                assertThat(operateLog3.statusAfter).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog3.comment).isEqualTo("operator-node-2-comment");
+
+                var operateLog4 = operateLogList.get(4);
+                assertThat(operateLog4).isNotNull();
+                assertThat(operateLog4.nodeId).isEqualTo(singleNode3.nodeId);
+                assertThat(operateLog4.nodeName).isEqualTo(singleNode3.nodeName);
+                assertThat(operateLog4.statusBefore).isEqualTo(Status.PROCESSING);
+                assertThat(operateLog4.operatorId).isEqualTo("operator-admin");
+                assertThat(operateLog4.action).isEqualTo(Action.RELOCATE.name());
+                assertThat(operateLog4.statusAfter).isEqualTo(Status.APPROVED);
+                assertThat(operateLog4.comment).isEqualTo("relocate test-3");
+            }
+
+            // test approved status cannot be relocated
+            {
+                var relocateParam = new RelocateParam();
+                relocateParam.instanceId = instance.getId();
+                relocateParam.relocateNodeId = singleNode2.nodeId;
+                relocateParam.comment = "relocate test-end";
+
+                assertThatThrownBy(() -> processEngine.relocate(host, definitionId, "operator-admin", relocateParam))
+                        .isInstanceOf(WorkflowException.class)
+                        .hasMessageContaining(WorkflowErrors.RELOCATE_INSTANCE_STATUS_INVALID.name());
+            }
+        } finally {
+            WorkflowService.singleton.purge(host, workflowId);
+        }
+    }
+
 }

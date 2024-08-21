@@ -85,7 +85,27 @@ public enum WorkflowErrors implements ErrorInterface {
     /**
      * The node type does not match the type in the system
      */
-    NODE_TYPE_MISMATCH(400);//
+    NODE_TYPE_MISMATCH(400),
+    /**
+     * Relocate param cannot be null
+     */
+    RELOCATE_PARAM_NOT_EXIST(400),
+    /**
+     * The ID of the instance to be relocated does not exist
+     */
+    RELOCATE_INSTANCE_ID_NOT_EXIST(400),
+    /**
+     * The ID of the node to be relocated does not exist
+     */
+    RELOCATE_NODE_ID_NOT_EXIST(400),
+    /**
+     * Instance that has been approved cannot be relocated
+     */
+    RELOCATE_INSTANCE_STATUS_INVALID(400),
+    /**
+     * The instance and definition ID for relocation do not match
+     */
+    RELOCATE_DEFINITION_MISMATCH(400);
 
     private final int httpStatus;
 

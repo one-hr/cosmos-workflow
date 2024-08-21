@@ -8,10 +8,7 @@ import jp.co.onehr.workflow.constant.OperationMode;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.base.SimpleData;
-import jp.co.onehr.workflow.dto.param.ActionExtendParam;
-import jp.co.onehr.workflow.dto.param.ApplicationParam;
-import jp.co.onehr.workflow.dto.param.BulkRebindingParam;
-import jp.co.onehr.workflow.dto.param.RebindingParam;
+import jp.co.onehr.workflow.dto.param.*;
 import jp.co.onehr.workflow.service.ProcessEngineService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +61,10 @@ public class ProcessEngine extends SimpleData {
 
     public List<Instance> bulkRebinding(String host, String workflowId, String operatorId, BulkRebindingParam bulkRebindingParam) throws Exception {
         return service.bulkRebinding(host, workflowId, operatorId, bulkRebindingParam);
+    }
+
+    public Instance relocate(String host, String definitionId, String operatorId, RelocateParam relocateParam) throws Exception {
+        return service.relocate(host, definitionId, operatorId, relocateParam);
     }
 
     public List<Instance> findInstances(String host, Condition cond) throws Exception {

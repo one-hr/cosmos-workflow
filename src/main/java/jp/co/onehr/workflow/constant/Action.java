@@ -61,6 +61,11 @@ public enum Action {
     REBINDING(new RebindingService()),
 
     /**
+     * Move the instance to any specified node
+     */
+    RELOCATE(new RelocateService()),
+
+    /**
      * Handling of the apply action to transition the instance from "REJECTED" or "CANCELED" to a "PROCESSING" status
      */
     APPLY(new ApplyService()),
