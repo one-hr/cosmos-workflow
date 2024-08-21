@@ -7,10 +7,7 @@ import jp.co.onehr.workflow.constant.Action;
 import jp.co.onehr.workflow.constant.OperationMode;
 import jp.co.onehr.workflow.dto.ActionResult;
 import jp.co.onehr.workflow.dto.Instance;
-import jp.co.onehr.workflow.dto.param.ActionExtendParam;
-import jp.co.onehr.workflow.dto.param.ApplicationParam;
-import jp.co.onehr.workflow.dto.param.BulkRebindingParam;
-import jp.co.onehr.workflow.dto.param.RebindingParam;
+import jp.co.onehr.workflow.dto.param.*;
 
 /**
  * The service corresponding to the workflow engine is called the Workflow Engine Service
@@ -29,8 +26,6 @@ public class ProcessEngineService {
         return singleton;
     }
 
-
-    // === Instance ===
     public Instance startInstance(String host, ApplicationParam param) throws Exception {
         return InstanceService.singleton.start(host, param);
     }
@@ -67,6 +62,10 @@ public class ProcessEngineService {
 
     public List<Instance> bulkRebinding(String host, String workflowId, String operatorId, BulkRebindingParam bulkRebindingParam) throws Exception {
         return InstanceService.singleton.bulkRebinding(host, workflowId, operatorId, bulkRebindingParam);
+    }
+
+    public Instance relocate(String host, String definitionId, String operatorId, RelocateParam relocateParam) throws Exception {
+        return InstanceService.singleton.relocate(host, definitionId, operatorId, relocateParam);
     }
 
     public List<Instance> findInstances(String host, Condition cond) throws Exception {

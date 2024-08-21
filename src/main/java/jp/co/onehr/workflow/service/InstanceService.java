@@ -12,6 +12,7 @@ import io.github.thunderz99.cosmos.condition.Condition;
 import io.github.thunderz99.cosmos.condition.SubConditionType;
 import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.constant.*;
+import jp.co.onehr.workflow.contract.context.InstanceContext;
 import jp.co.onehr.workflow.contract.context.OperatorLogContext;
 import jp.co.onehr.workflow.contract.notification.Notification;
 import jp.co.onehr.workflow.dto.ActionResult;
@@ -364,6 +365,86 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
     }
 
     /**
+     * Move the instance to any specified node
+     *
+     * @param host
+     * @param definitionId
+     * @param operatorId
+     * @param relocateParam
+     * @return
+     * @throws Exception
+     */
+    protected Instance relocate(String host, String definitionId, String operatorId, RelocateParam relocateParam) throws Exception {
+        var definition = DefinitionService.singleton.getDefinition(host, definitionId);
+
+        if (ObjectUtils.isEmpty(relocateParam)) {
+            throw new WorkflowException(WorkflowErrors.RELOCATE_PARAM_NOT_EXIST, "Relocate param cannot be null", definitionId);
+        }
+
+        var instanceId = relocateParam.instanceId;
+        var relocateNodeId = relocateParam.relocateNodeId;
+
+        if (StringUtils.isBlank(instanceId)) {
+            throw new WorkflowException(WorkflowErrors.RELOCATE_INSTANCE_ID_NOT_EXIST, "The ID of the instance to be relocated does not exist", definitionId);
+        }
+
+        if (StringUtils.isBlank(relocateNodeId)) {
+            throw new WorkflowException(WorkflowErrors.RELOCATE_NODE_ID_NOT_EXIST, "The ID of the node to be relocated does not exist", instanceId);
+        }
+
+        var existInstance = getInstance(host, instanceId);
+
+        // Instance that has been approved cannot be relocated
+        if (existInstance.status.equals(Status.APPROVED) || existInstance.status.equals(Status.FINISHED)) {
+            throw new WorkflowException(WorkflowErrors.RELOCATE_INSTANCE_STATUS_INVALID, "The current status of the instance does not allow relocation", instanceId);
+        }
+
+        if (!existInstance.definitionId.equals(definitionId)) {
+            throw new WorkflowException(WorkflowErrors.RELOCATE_DEFINITION_MISMATCH, "The instance and definition ID for relocation do not match", instanceId);
+        }
+
+        var existNode = NodeService.getNodeByNodeId(definition, existInstance.nodeId);
+
+        // If the instance ID matches the relocateNode ID, no action will be taken, and the result will be returned directly
+        if (existNode.nodeId.equals(relocateNodeId)) {
+            return existInstance;
+        }
+
+        var relocateNode = NodeService.getNodeByNodeId(definition, relocateNodeId);
+
+        Instance instance = existInstance.copy();
+        instance.nodeId = relocateNode.nodeId;
+
+        InstanceContext instanceContext = relocateParam.instanceContext;
+
+        // Generate information related to the instance's preNode
+        instance.preNodeId = "";
+        instance.preExpandOperatorIdSet.clear();
+        var previousNodeInfo = NodeService.getPreviousNodeInfo(definition, instance, instanceContext);
+        if (!previousNodeInfo.isEmpty()) {
+            instance.preNodeId = previousNodeInfo.nodeId;
+            instance.preExpandOperatorIdSet.addAll(previousNodeInfo.expandOperatorIdSet);
+        }
+
+        // Generate information related to the current operator of the instance
+        relocateNode.resetCurrentOperators(instance, instanceContext);
+        relocateNode.resetParallelApproval(instance, relocateNode.getApprovalType(), Action.RELOCATE, operatorId, instanceContext);
+
+        instance.status = Status.PROCESSING;
+        if (NodeService.isLastNode(definition, instance.nodeId)) {
+            instance.status = Status.APPROVED;
+        }
+
+        var comment = relocateParam.comment;
+        var logContext = relocateParam.logContext;
+
+        var operateLog = generateRelocateLog(existInstance, instance, operatorId, existNode, comment, logContext);
+        instance.operateLogList.add(operateLog);
+
+        return super.update(host, instance);
+    }
+
+    /**
      * Set the allowed actions for the instance.
      *
      * @param definition
@@ -658,6 +739,36 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         operateLog.operatorId = operatorId;
         operateLog.action = Action.REBINDING.name();
         operateLog.statusAfter = Status.PROCESSING;
+        operateLog.comment = comment;
+        operateLog.logContext = logContext;
+        operateLog.operatorAt = DateUtil.nowDateTimeStringUTC();
+
+        return operateLog;
+    }
+
+    /**
+     * Generate operation log for instance relocate
+     *
+     * @param existInstance
+     * @param instance
+     * @param operatorId
+     * @param existNode
+     * @param comment
+     * @param logContext
+     * @return
+     * @throws Exception
+     */
+    private OperateLog generateRelocateLog(Instance existInstance, Instance instance, String operatorId, Node existNode, String comment, OperatorLogContext logContext) throws Exception {
+        var operateLog = new OperateLog();
+
+        operateLog.nodeId = existNode.nodeId;
+        operateLog.nodeName = existNode.nodeName;
+        operateLog.nodeType = existNode.getClass().getSimpleName();
+
+        operateLog.statusBefore = existInstance.status;
+        operateLog.operatorId = operatorId;
+        operateLog.action = Action.RELOCATE.name();
+        operateLog.statusAfter = instance.status;
         operateLog.comment = comment;
         operateLog.logContext = logContext;
         operateLog.operatorAt = DateUtil.nowDateTimeStringUTC();
