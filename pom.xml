@@ -7,7 +7,7 @@
     <groupId>jp.co.onehr.workflow</groupId>
     <artifactId>cosmos-workflow</artifactId>
     <packaging>jar</packaging>
-    <version>0.1.9</version>
+    <version>0.1.10</version>
     <name>cosmos-workflow</name>
     <url>https://github.com/one-hr/cosmos-workflow</url>
 
@@ -16,6 +16,8 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java-cosmos.version>0.6.10</java-cosmos.version>
+        <junit.jupiter.version>5.8.2</junit.jupiter.version>
     </properties>
 
     <dependencies>
@@ -25,18 +27,13 @@
             <artifactId>logstash-logback-encoder</artifactId>
             <version>6.6</version>
         </dependency>
+
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.2.9</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.12.0</version>
-        </dependency>
         <!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
         <dependency>
             <groupId>commons-io</groupId>
@@ -44,69 +41,10 @@
             <version>2.11.0</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.14.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>2.13.2</version>
-        </dependency>
-
         <dependency>
             <groupId>com.github.thunderz99</groupId>
             <artifactId>java-cosmos</artifactId>
-            <version>0.6.3</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>31.0.1-jre</version>
-        </dependency>
-
-        <!-- upgrade json-smart version from 2.4.8 to 2.4.10-->
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-identity</artifactId>
-            <version>1.8.2</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.nimbusds</groupId>
-                    <artifactId>oauth2-oidc-sdk</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.nimbusds</groupId>
-            <artifactId>oauth2-oidc-sdk</artifactId>
-            <version>10.7.1</version>
-        </dependency>
-        <!-- upgrade json-smart version from 2.4.8 to 2.4.10-->
-
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-security-keyvault-keys</artifactId>
-            <version>4.5.2</version>
-        </dependency>
-
-        <!-- about keys and crypto -->
-        <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on -->
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-            <version>1.70</version>
-        </dependency>
-
-        <!-- http://javaluator.sourceforge.net/    -->
-        <dependency>
-            <groupId>com.fathzer</groupId>
-            <artifactId>javaluator</artifactId>
-            <version>3.0.3</version>
+            <version>${java-cosmos.version}</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.atteo/evo-inflector -->
@@ -120,29 +58,21 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.8.2</version>
+            <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
-            <version>5.8.2</version>
+            <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.8.2</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/com.github.javafaker/javafaker -->
-        <dependency>
-            <groupId>com.github.javafaker</groupId>
-            <artifactId>javafaker</artifactId>
-            <version>1.0.2</version>
+            <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
 

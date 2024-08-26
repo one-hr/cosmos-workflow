@@ -1,12 +1,8 @@
 package jp.co.onehr.workflow.base;
 
-import java.util.Locale;
-
-import com.github.javafaker.Faker;
 import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.ProcessDesign;
 import jp.co.onehr.workflow.ProcessEngine;
-import jp.co.onehr.workflow.base.faker.SafeFaker;
 import jp.co.onehr.workflow.contract.context.TestContextParamService;
 import jp.co.onehr.workflow.contract.log.TestOperateLogService;
 import jp.co.onehr.workflow.contract.notification.TestNotificationSender;
@@ -31,8 +27,6 @@ public class BaseTest implements TestIdGeneratable {
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
     public static final String host = "localhost";
-
-    protected final Faker faker = new SafeFaker(Locale.JAPANESE);
 
     protected static ProcessEngine processEngine;
     protected static ProcessDesign processDesign;
