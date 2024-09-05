@@ -1,10 +1,12 @@
 package jp.co.onehr.workflow.dao;
 
 import io.github.thunderz99.cosmos.Cosmos;
+import io.github.thunderz99.cosmos.CosmosBuilder;
 import io.github.thunderz99.cosmos.CosmosDatabase;
 import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.service.base.BaseNoSqlService;
 import jp.co.onehr.workflow.util.EnvUtil;
+import jp.co.onehr.workflow.util.InfraUtil;
 
 import static jp.co.onehr.workflow.service.base.BaseNoSqlService.DEFAULT_COLLECTION;
 
@@ -25,7 +27,11 @@ public class CosmosDB {
         String connectionString = EnvUtil.get(FW_WORKFLOW_CONNECTION_STRING);
         String dbName = EnvUtil.getOrDefault(FW_WORKFLOW_DATABASE_NAME, DEFAULT_DATABASE_NAME);
 
-        return new Cosmos(connectionString).getDatabase(dbName);
+        var dbType = InfraUtil.getDbType();
+
+        return new CosmosBuilder().withDatabaseType(dbType)
+                .withConnectionString(connectionString).build()
+                .getDatabase(dbName);
     }
 
     /**

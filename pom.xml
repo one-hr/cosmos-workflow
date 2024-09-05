@@ -7,7 +7,7 @@
     <groupId>jp.co.onehr.workflow</groupId>
     <artifactId>cosmos-workflow</artifactId>
     <packaging>jar</packaging>
-    <version>0.1.10</version>
+    <version>0.1.11</version>
     <name>cosmos-workflow</name>
     <url>https://github.com/one-hr/cosmos-workflow</url>
 
@@ -16,7 +16,7 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java-cosmos.version>0.6.10</java-cosmos.version>
+        <java-cosmos.version>0.7.2</java-cosmos.version>
         <junit.jupiter.version>5.8.2</junit.jupiter.version>
     </properties>
 
@@ -52,6 +52,13 @@
             <groupId>org.atteo</groupId>
             <artifactId>evo-inflector</artifactId>
             <version>1.2.1</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.reflections/reflections -->
+        <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+            <version>0.10.2</version>
         </dependency>
 
         <!-- test dependencies -->

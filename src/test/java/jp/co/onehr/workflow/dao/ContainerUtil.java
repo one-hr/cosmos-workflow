@@ -3,9 +3,12 @@ package jp.co.onehr.workflow.dao;
 import java.util.Set;
 
 import io.github.thunderz99.cosmos.Cosmos;
+import io.github.thunderz99.cosmos.CosmosBuilder;
+import io.github.thunderz99.cosmos.util.UniqueKeyUtil;
 import jp.co.onehr.workflow.dto.base.UniqueKeyCapable;
 import jp.co.onehr.workflow.service.base.BaseCRUDService;
 import jp.co.onehr.workflow.util.EnvUtil;
+import jp.co.onehr.workflow.util.InfraUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,10 +56,12 @@ public class ContainerUtil {
             return false;
         }
 
-        String connectionString = EnvUtil.get(FW_WORKFLOW_CONNECTION_STRING);
-        String dbName = EnvUtil.getOrDefault(FW_WORKFLOW_DATABASE_NAME, DEFAULT_DATABASE_NAME);
+        var connectionString = EnvUtil.get(FW_WORKFLOW_CONNECTION_STRING);
+        var dbName = EnvUtil.getOrDefault(FW_WORKFLOW_DATABASE_NAME, DEFAULT_DATABASE_NAME);
+        var dbType = InfraUtil.getDbType();
 
-        var cosmosAccount = new Cosmos(connectionString);
+        var cosmosAccount = new CosmosBuilder().withDatabaseType(dbType)
+                .withConnectionString(connectionString).build();
 
         // If it is not local or CI/CD environment, do not recreate
         if (!judgeValidTestAccount(cosmosAccount.getAccount())) {
@@ -70,11 +75,16 @@ public class ContainerUtil {
         // Delete collection
         cosmosAccount.deleteCollection(dbName, collectionName);
         // Recreate collection
-        var uniqueKeyPolicy = Cosmos.getUniqueKeyPolicy(Set.of("/" + UniqueKeyCapable.UNIQUE_KEY_1, "/" + UniqueKeyCapable.UNIQUE_KEY_2, "/" + UniqueKeyCapable.UNIQUE_KEY_3));
+        var uniqueKeyPolicy = UniqueKeyUtil.getUniqueKeyPolicy(Set.of("/" + UniqueKeyCapable.UNIQUE_KEY_1, "/" + UniqueKeyCapable.UNIQUE_KEY_2, "/" + UniqueKeyCapable.UNIQUE_KEY_3));
         cosmosAccount.createIfNotExist(dbName, collectionName, uniqueKeyPolicy);
 
         var collection = cosmosAccount.readCollection(dbName, collectionName);
-        assertThat(collection.getProperties().getUniqueKeyPolicy().getUniqueKeys()).hasSize(3);
+
+        if(InfraUtil.isCosmosDB()) {
+            // only cosmosdb needed to create unique indexes
+            // mongodb unique indexes will be created in IndexService
+            assertThat(collection.getUniqueKeyPolicy().getUniqueKeys()).hasSize(3);
+        }
 
         staticLogger.info("end recreate data collection");
 
