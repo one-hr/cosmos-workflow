@@ -19,6 +19,7 @@ import jp.co.onehr.workflow.contract.plugin.WorkflowPlugin;
 import jp.co.onehr.workflow.contract.restriction.ActionRestriction;
 import jp.co.onehr.workflow.contract.restriction.AdminActionRestriction;
 import jp.co.onehr.workflow.contract.validation.Validations;
+import jp.co.onehr.workflow.dao.IndexDAO;
 import jp.co.onehr.workflow.dto.*;
 import jp.co.onehr.workflow.dto.param.ContextParam;
 import org.slf4j.Logger;
@@ -120,6 +121,9 @@ public class ProcessConfiguration {
     public void registerDB(String host, CosmosDatabase db, String collectionName) {
         dbCache.put(host, db);
         collectionCache.put(host, collectionName);
+
+        // create indexes for cosmos-workflow(only has effects when using mongodb)
+        IndexDAO.singleton.checkAndInit(host);
     }
 
     public CosmosDatabase getDatabase(String host) {
