@@ -7,7 +7,7 @@
     <groupId>jp.co.onehr.workflow</groupId>
     <artifactId>cosmos-workflow</artifactId>
     <packaging>jar</packaging>
-    <version>0.1.12</version>
+    <version>0.1.13</version>
     <name>cosmos-workflow</name>
     <url>https://github.com/one-hr/cosmos-workflow</url>
 
@@ -16,8 +16,14 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java-cosmos.version>0.7.3</java-cosmos.version>
+        <logstash-logback-encoder.version>6.6</logstash-logback-encoder.version>
+        <logback-classic.version>1.2.13</logback-classic.version>
+        <commons-io.version>2.14.0</commons-io.version>
+        <java-cosmos.version>0.7.5</java-cosmos.version>
+        <evo-inflector.version>1.2.1</evo-inflector.version>
+        <reflections.version>0.10.2</reflections.version>
         <junit.jupiter.version>5.8.2</junit.jupiter.version>
+        <assertj-core.version>3.19.0</assertj-core.version>
     </properties>
 
     <dependencies>
@@ -25,20 +31,20 @@
         <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
-            <version>6.6</version>
+            <version>${logstash-logback-encoder.version}</version>
         </dependency>
 
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.9</version>
+            <version>${logback-classic.version}</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.11.0</version>
+            <version>${commons-io.version}</version>
         </dependency>
 
         <dependency>
@@ -51,14 +57,14 @@
         <dependency>
             <groupId>org.atteo</groupId>
             <artifactId>evo-inflector</artifactId>
-            <version>1.2.1</version>
+            <version>${evo-inflector.version}</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.reflections/reflections -->
         <dependency>
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
-            <version>0.10.2</version>
+            <version>${reflections.version}</version>
         </dependency>
 
         <!-- test dependencies -->
@@ -86,7 +92,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.19.0</version>
+            <version>${assertj-core.version}</version>
             <scope>test</scope>
         </dependency>
 
