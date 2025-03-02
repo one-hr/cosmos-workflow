@@ -37,5 +37,13 @@ public class InfraUtil {
         return StringUtils.equals(getDbType(), "mongodb");
     }
 
+    /**
+     * Whether current infra uses Postgres
+     * @return true/false
+     */
+    public static boolean isPostgres(){
+        return StringUtils.equals(getDbType(), "postgres");
+    }
+
 }
 

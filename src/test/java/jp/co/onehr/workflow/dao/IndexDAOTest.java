@@ -1,6 +1,7 @@
 package jp.co.onehr.workflow.dao;
 
 import jp.co.onehr.workflow.base.BaseTest;
+import jp.co.onehr.workflow.service.base.BaseNoSqlService;
 import jp.co.onehr.workflow.util.InfraUtil;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.atteo.evo.inflector.English;
@@ -21,7 +22,7 @@ class IndexDAOTest extends BaseTest {
         var host = "localhost";
         var className = "Index" + RandomStringUtils.randomAlphanumeric(6) + "Test";
 
-        var partition = IndexDAO.singleton.addSuffixToPartition(English.plural(className));
+        var partition = BaseNoSqlService.addSuffixToPartition(English.plural(className));
 
         try {
             var results = IndexDAO.singleton.createIfNotExistBasicIndexes(host, List.of(className));

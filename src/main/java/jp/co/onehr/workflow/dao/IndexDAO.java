@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static jp.co.onehr.workflow.service.base.BaseNoSqlService.addSuffixToPartition;
 import static jp.co.onehr.workflow.service.base.BaseNoSqlService.judgeEnableDefaultWorkflowDB;
 
 /**
@@ -27,7 +28,11 @@ import static jp.co.onehr.workflow.service.base.BaseNoSqlService.judgeEnableDefa
  * <p>
  *     every partition(mongo collection) should create index
  * </p>
+ * <p>
+ *     use DBSchemaService instead
+ * </p>
  */
+@Deprecated
 public class IndexDAO {
 
     static Logger log = LoggerFactory.getLogger(IndexDAO.class);
@@ -233,19 +238,5 @@ public class IndexDAO {
 
         return childClasses.stream().map(clazz -> clazz.getSimpleName()).collect(Collectors.toList());
 
-    }
-
-    /**
-     * Add a custom suffix to the partition.
-     *
-     * @param partition
-     * @return
-     */
-    public static String addSuffixToPartition(String partition) {
-        var suffix = ProcessConfiguration.getConfiguration().getPartitionSuffix();
-        if (StringUtils.isNotEmpty(suffix)) {
-            partition = partition + "_" + suffix;
-        }
-        return partition;
     }
 }

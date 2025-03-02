@@ -19,7 +19,7 @@
         <logstash-logback-encoder.version>6.6</logstash-logback-encoder.version>
         <logback-classic.version>1.2.13</logback-classic.version>
         <commons-io.version>2.14.0</commons-io.version>
-        <java-cosmos.version>0.7.5</java-cosmos.version>
+        <java-cosmos.version>0.8.2</java-cosmos.version>
         <evo-inflector.version>1.2.1</evo-inflector.version>
         <reflections.version>0.10.2</reflections.version>
         <junit.jupiter.version>5.8.2</junit.jupiter.version>

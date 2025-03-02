@@ -84,6 +84,12 @@ public class ContainerUtil {
             // only cosmosdb needed to create unique indexes
             // mongodb unique indexes will be created in IndexService
             assertThat(collection.getUniqueKeyPolicy().getUniqueKeys()).hasSize(3);
+        } else if(InfraUtil.isMongoDB()) {
+            // For MongoDB, delete and recreate the local test database Data_xxx.
+            cosmosAccount.deleteDatabase(collectionName);
+            cosmosAccount.createIfNotExist(dbName, collectionName);
+        } else if(InfraUtil.isPostgres()) {
+            cosmosAccount.createIfNotExist(dbName, collectionName);
         }
 
         staticLogger.info("end recreate data collection");
