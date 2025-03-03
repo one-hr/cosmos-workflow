@@ -64,20 +64,4 @@ public class PostgresSchemaDAO implements DBSchemaInitializer {
         return ((PostgresImpl) db.getCosmosAccount()).getDataSource();
     }
 
-    /**
-     * Delete the table for the specified partitionName
-     *
-     * @param host
-     * @param partitionName
-     * @throws Exception
-     */
-    void dropTableIfExists(String host, String partitionName) throws Exception {
-
-        var dataSource = getDataSource(host);
-        var schemaName = ProcessConfiguration.getConfiguration().getCollectionName(host);
-
-        try(var conn = dataSource.getConnection()){
-            TableUtil.dropTableIfExists(conn, schemaName, partitionName);
-        }
-    }
 }
