@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.azure.cosmos.implementation.guava25.collect.Sets;
 import com.fasterxml.jackson.annotation.JsonSetter;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Lists;
 import io.github.thunderz99.cosmos.util.JsonUtil;
 import jp.co.onehr.workflow.constant.ApplicationMode;

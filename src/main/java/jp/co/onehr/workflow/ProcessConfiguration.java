@@ -121,9 +121,6 @@ public class ProcessConfiguration {
     public void registerDB(String host, CosmosDatabase db, String collectionName) {
         dbCache.put(host, db);
         collectionCache.put(host, collectionName);
-
-        // create indexes for cosmos-workflow(only has effects when using mongodb)
-        IndexDAO.singleton.checkAndInit(host);
     }
 
     public CosmosDatabase getDatabase(String host) {

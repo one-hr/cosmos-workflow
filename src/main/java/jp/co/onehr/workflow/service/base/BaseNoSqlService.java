@@ -9,6 +9,7 @@ import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dao.CosmosDB;
 import jp.co.onehr.workflow.dto.base.UniqueKeyCapable;
 import jp.co.onehr.workflow.exception.WorkflowException;
+import jp.co.onehr.workflow.service.infra.DBSchemaService;
 import jp.co.onehr.workflow.util.EnvUtil;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -31,6 +32,11 @@ public abstract class BaseNoSqlService<T> {
     protected String defaultCollection;
 
     protected String partition;
+
+    /**
+     * flag to record whether the schema has been initialized
+     */
+    protected boolean schemaInitialized = false;
 
     public BaseNoSqlService(Class<T> classOfT) {
         this.classOfT = classOfT;
@@ -103,6 +109,15 @@ public abstract class BaseNoSqlService<T> {
             throw new WorkflowException(WorkflowErrors.WORKFLOW_ENGINE_REGISTER_INVALID, "Failed to retrieve the name of the collection.", host);
         }
 
+        if(!schemaInitialized) {
+            // Initialize DB Schema(table/index)
+            // for partition table
+            DBSchemaService.singleton.createSchemaIfNotExist(host, this.getPartition());
+            // for recycle table
+            DBSchemaService.singleton.createSchemaIfNotExist(host, this.getRecyclePartition());
+            schemaInitialized = true;
+        }
+
         return coll;
     }
 
@@ -133,11 +148,16 @@ public abstract class BaseNoSqlService<T> {
      * @param partition
      * @return
      */
-    public String addSuffixToPartition(String partition) {
+    public static String addSuffixToPartition(String partition) {
         var suffix = ProcessConfiguration.getConfiguration().getPartitionSuffix();
         if (StringUtils.isNotEmpty(suffix)) {
             partition = partition + "_" + suffix;
         }
         return partition;
     }
+
+    protected final String getRecyclePartition() {
+        return getPartition() + "_recycle";
+    }
+
 }

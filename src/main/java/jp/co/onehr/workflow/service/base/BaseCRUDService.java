@@ -321,10 +321,6 @@ public abstract class BaseCRUDService<T extends BaseData> extends BaseNoSqlServi
         return ret == null ? null : ret.toMap();
     }
 
-    protected final String getRecyclePartition() {
-        return getPartition() + "_recycle";
-    }
-
     protected List<T> find(String host, Condition cond) throws Exception {
         var db = getDatabase(host);
         if (CollectionUtils.isEmpty(cond.sort)) {
