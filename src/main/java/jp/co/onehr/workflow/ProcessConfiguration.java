@@ -19,7 +19,6 @@ import jp.co.onehr.workflow.contract.plugin.WorkflowPlugin;
 import jp.co.onehr.workflow.contract.restriction.ActionRestriction;
 import jp.co.onehr.workflow.contract.restriction.AdminActionRestriction;
 import jp.co.onehr.workflow.contract.validation.Validations;
-import jp.co.onehr.workflow.dao.IndexDAO;
 import jp.co.onehr.workflow.dto.*;
 import jp.co.onehr.workflow.dto.param.ContextParam;
 import org.slf4j.Logger;

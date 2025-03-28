@@ -1,14 +1,16 @@
 package jp.co.onehr.workflow.service.infra;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import jp.co.onehr.workflow.dao.infra.DBSchemaDAOBuilder;
 import jp.co.onehr.workflow.dao.infra.DBSchemaInitializer;
 import jp.co.onehr.workflow.util.InfraUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Service class used to initialize Database's table definition and indexes(mainly used in postgres/mongodb)
@@ -27,10 +29,9 @@ public class DBSchemaService {
 
     public static DBSchemaService singleton = new DBSchemaService();
 
-    DBSchemaInitializer schemaDAO;
+    Map<String, DBSchemaInitializer> schemaDAOMap = new HashMap<>();
 
-    DBSchemaService(){
-        schemaDAO = new DBSchemaDAOBuilder().withDatabaseType(InfraUtil.getDbType()).build();
+    DBSchemaService() {
     }
 
 
@@ -45,12 +46,15 @@ public class DBSchemaService {
     public List<String> createSchemaIfNotExist(String host, String partitionName) throws Exception {
         var ret = new ArrayList<String>();
 
+        var dbType = InfraUtil.getDbTypeByHost(host);
+
+        var schemaDAO = schemaDAOMap.computeIfAbsent(dbType, (type) -> new DBSchemaDAOBuilder().withDatabaseType(type).build());
+
         ret.add(schemaDAO.createTableIfNotExist(host, partitionName));
         ret.addAll(schemaDAO.createIndexesIfNotExist(host, partitionName));
 
         return ret.stream().filter(StringUtils::isNotEmpty).toList();
     }
-
 
 
 }

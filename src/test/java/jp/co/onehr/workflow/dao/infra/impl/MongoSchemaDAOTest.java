@@ -1,6 +1,10 @@
 package jp.co.onehr.workflow.dao.infra.impl;
 
+import jp.co.onehr.workflow.ProcessConfiguration;
+import jp.co.onehr.workflow.dao.CosmosDB;
 import jp.co.onehr.workflow.service.base.BaseNoSqlService;
+import jp.co.onehr.workflow.util.InfraUtil;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.atteo.evo.inflector.English;
 import org.junit.jupiter.api.Test;
@@ -9,10 +13,10 @@ import org.junit.jupiter.api.condition.EnabledIf;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MongoSchemaDAOTest {
-    String host = "localhost";
+    static String host = "localhost";
 
     @Test
-    @EnabledIf("jp.co.onehr.workflow.util.InfraUtil#isMongoDB")
+    @EnabledIf("isMongoDB")
     void createTablesIfNotExist_should_work() throws Exception {
         var dao = new MongoSchemaDAO();
         assertThat(dao.createTableIfNotExist(host, "Nodes")).isEmpty();
@@ -20,7 +24,7 @@ class MongoSchemaDAOTest {
 
 
     @Test
-    @EnabledIf("jp.co.onehr.workflow.util.InfraUtil#isMongoDB")
+    @EnabledIf("isMongoDB")
     void createIndexIfNotExist_should_work() throws Exception {
 
         {
@@ -52,4 +56,14 @@ class MongoSchemaDAOTest {
 
     }
 
+    /**
+     * condition method.
+     */
+    static boolean isMongoDB() {
+        var db = ProcessConfiguration.getConfiguration().getDatabase(host);
+        if (ObjectUtils.isEmpty(db)) {
+            db = CosmosDB.registerDefaultWorkflowDB(host);
+        }
+        return InfraUtil.isMongoDB(host);
+    }
 }

@@ -2,7 +2,10 @@ package jp.co.onehr.workflow.dao.infra.impl;
 
 import io.github.thunderz99.cosmos.impl.postgres.util.TableUtil;
 import jp.co.onehr.workflow.ProcessConfiguration;
+import jp.co.onehr.workflow.dao.CosmosDB;
 import jp.co.onehr.workflow.service.base.BaseNoSqlService;
+import jp.co.onehr.workflow.util.InfraUtil;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.atteo.evo.inflector.English;
 import org.junit.jupiter.api.Test;
@@ -13,10 +16,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class PostgresSchemaDAOTest {
 
-    String host = "localhost";
+    static String host = "localhost";
 
     @Test
-    @EnabledIf("jp.co.onehr.workflow.util.InfraUtil#isPostgres")
+    @EnabledIf("isPostgres")
     void createTableIfNotExist_should_work() throws Exception {
 
         var dao = new PostgresSchemaDAO();
@@ -48,8 +51,20 @@ class PostgresSchemaDAOTest {
         var dataSource = getDataSource(host);
         var schemaName = ProcessConfiguration.getConfiguration().getCollectionName(host);
 
-        try(var conn = dataSource.getConnection()){
+        try (var conn = dataSource.getConnection()) {
             TableUtil.dropTableIfExists(conn, schemaName, partitionName);
         }
+    }
+
+
+    /**
+     * condition method.
+     */
+    static boolean isPostgres() {
+        var db = ProcessConfiguration.getConfiguration().getDatabase(host);
+        if (ObjectUtils.isEmpty(db)) {
+            db = CosmosDB.registerDefaultWorkflowDB(host);
+        }
+        return InfraUtil.isPostgres(db);
     }
 }

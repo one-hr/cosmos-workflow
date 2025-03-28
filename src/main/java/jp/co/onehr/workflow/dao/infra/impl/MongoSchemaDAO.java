@@ -1,5 +1,11 @@
 package jp.co.onehr.workflow.dao.infra.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
 import io.github.thunderz99.cosmos.impl.mongo.MongoImpl;
@@ -10,16 +16,9 @@ import jp.co.onehr.workflow.dao.infra.DBSchemaInitializer;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.atteo.evo.inflector.English;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static jp.co.onehr.workflow.service.base.BaseNoSqlService.judgeEnableDefaultWorkflowDB;
 
@@ -27,7 +26,7 @@ import static jp.co.onehr.workflow.service.base.BaseNoSqlService.judgeEnableDefa
  * DAO class used to initialize Database's indexes(only used in mongodb)
  *
  * <p>
- *     every partition(mongo collection) should create index
+ * every partition(mongo collection) should create index
  * </p>
  */
 public class MongoSchemaDAO implements DBSchemaInitializer {
@@ -55,7 +54,6 @@ public class MongoSchemaDAO implements DBSchemaInitializer {
         }
         return ret;
     }
-
 
 
     /**
@@ -187,7 +185,7 @@ public class MongoSchemaDAO implements DBSchemaInitializer {
         var collectionName = ProcessConfiguration.getConfiguration().getCollectionName(host);
 
         // get the native mongo client to do index operations
-        var client = ((MongoImpl)db.getCosmosAccount()).getClient();
+        var client = ((MongoImpl) db.getCosmosAccount()).getClient();
         var database = client.getDatabase(collectionName);
         return database;
     }
