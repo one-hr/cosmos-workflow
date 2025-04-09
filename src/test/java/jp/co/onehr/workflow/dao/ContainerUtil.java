@@ -2,7 +2,6 @@ package jp.co.onehr.workflow.dao;
 
 import java.util.Set;
 
-import io.github.thunderz99.cosmos.Cosmos;
 import io.github.thunderz99.cosmos.CosmosBuilder;
 import io.github.thunderz99.cosmos.util.UniqueKeyUtil;
 import jp.co.onehr.workflow.dto.base.UniqueKeyCapable;
@@ -58,7 +57,7 @@ public class ContainerUtil {
 
         var connectionString = EnvUtil.get(FW_WORKFLOW_CONNECTION_STRING);
         var dbName = EnvUtil.getOrDefault(FW_WORKFLOW_DATABASE_NAME, DEFAULT_DATABASE_NAME);
-        var dbType = InfraUtil.getDbType();
+        var dbType = InfraUtil.getDbType(connectionString);
 
         var cosmosAccount = new CosmosBuilder().withDatabaseType(dbType)
                 .withConnectionString(connectionString).build();
@@ -80,15 +79,15 @@ public class ContainerUtil {
 
         var collection = cosmosAccount.readCollection(dbName, collectionName);
 
-        if(InfraUtil.isCosmosDB()) {
+        if (InfraUtil.isCosmosDB(host)) {
             // only cosmosdb needed to create unique indexes
             // mongodb unique indexes will be created in IndexService
             assertThat(collection.getUniqueKeyPolicy().getUniqueKeys()).hasSize(3);
-        } else if(InfraUtil.isMongoDB()) {
+        } else if (InfraUtil.isMongoDB(host)) {
             // For MongoDB, delete and recreate the local test database Data_xxx.
             cosmosAccount.deleteDatabase(collectionName);
             cosmosAccount.createIfNotExist(dbName, collectionName);
-        } else if(InfraUtil.isPostgres()) {
+        } else if (InfraUtil.isPostgres(host)) {
             cosmosAccount.createIfNotExist(dbName, collectionName);
         }
 
