@@ -7,7 +7,7 @@
     <groupId>jp.co.onehr.workflow</groupId>
     <artifactId>cosmos-workflow</artifactId>
     <packaging>jar</packaging>
-    <version>0.2.4</version>
+    <version>0.2.5</version>
     <name>cosmos-workflow</name>
     <url>https://github.com/one-hr/cosmos-workflow</url>
 
@@ -19,7 +19,7 @@
         <logstash-logback-encoder.version>6.6</logstash-logback-encoder.version>
         <logback-classic.version>1.2.13</logback-classic.version>
         <commons-io.version>2.14.0</commons-io.version>
-        <java-cosmos.version>0.8.8</java-cosmos.version>
+        <java-cosmos.version>0.8.9</java-cosmos.version>
         <evo-inflector.version>1.2.1</evo-inflector.version>
         <reflections.version>0.10.2</reflections.version>
         <junit.jupiter.version>5.8.2</junit.jupiter.version>
