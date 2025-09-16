@@ -2,6 +2,7 @@ package jp.co.onehr.workflow.service.base;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import io.github.thunderz99.cosmos.CosmosDatabase;
 import jp.co.onehr.workflow.ProcessConfiguration;
@@ -34,9 +35,11 @@ public abstract class BaseNoSqlService<T> {
     protected String partition;
 
     /**
+     * key: host
+     * value: schemaInitialized
      * flag to record whether the schema has been initialized
      */
-    protected boolean schemaInitialized = false;
+    protected final ConcurrentHashMap<String, Boolean> schemaInitializedMap = new ConcurrentHashMap<>();
 
     public BaseNoSqlService(Class<T> classOfT) {
         this.classOfT = classOfT;
@@ -109,13 +112,16 @@ public abstract class BaseNoSqlService<T> {
             throw new WorkflowException(WorkflowErrors.WORKFLOW_ENGINE_REGISTER_INVALID, "Failed to retrieve the name of the collection.", host);
         }
 
-        if(!schemaInitialized) {
-            // Initialize DB Schema(table/index)
+        // Ensure that each host has initialized the schema.
+        if (schemaInitializedMap.putIfAbsent(host, true) == null) {
+            log.info("host:{}, Database started creating table and index, table name: {}.", host, partition);
+
             // for partition table
             DBSchemaService.singleton.createSchemaIfNotExist(host, this.getPartition());
             // for recycle table
             DBSchemaService.singleton.createSchemaIfNotExist(host, this.getRecyclePartition());
-            schemaInitialized = true;
+
+            log.info("host:{}, Database finished creating table and index, table name: {}.", host, partition);
         }
 
         return coll;
