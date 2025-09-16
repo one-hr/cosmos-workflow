@@ -51,8 +51,9 @@ public class DBSchemaService {
         var schemaDAO = schemaDAOMap.computeIfAbsent(dbType, (type) -> new DBSchemaDAOBuilder().withDatabaseType(type).build());
 
         ret.add(schemaDAO.createTableIfNotExist(host, partitionName));
+        log.info("host:{}, The table in the database has been created, table name: {}.", host, partitionName);
         ret.addAll(schemaDAO.createIndexesIfNotExist(host, partitionName));
-
+        log.info("host:{}, The index for the table in the database has been created, table name: {}.", host, partitionName);
         return ret.stream().filter(StringUtils::isNotEmpty).toList();
     }
 
