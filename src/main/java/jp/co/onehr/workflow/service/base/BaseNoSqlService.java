@@ -120,6 +120,8 @@ public abstract class BaseNoSqlService<T> {
             DBSchemaService.singleton.createSchemaIfNotExist(host, this.getPartition());
             // for recycle table
             DBSchemaService.singleton.createSchemaIfNotExist(host, this.getRecyclePartition());
+            // create custom index for pg
+            DBSchemaService.singleton.createCustomIndexIfNotExist(host, this.getPartition(), classOfT);
 
             log.info("host:{}, Database finished creating table and index, table name: {}.", host, partition);
         }
