@@ -6,12 +6,16 @@ import java.util.Map;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonSetter;
-import com.google.common.collect.Sets;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import io.github.thunderz99.cosmos.util.JsonUtil;
 import jp.co.onehr.workflow.constant.ApplicationMode;
 import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.dto.base.BaseData;
+import jp.co.onehr.workflow.dto.base.index.IndexCustomizable;
+import jp.co.onehr.workflow.dto.base.index.IndexDefinition;
+import jp.co.onehr.workflow.dto.base.index.IndexField;
+import jp.co.onehr.workflow.dto.base.index.IndexFieldType;
 import jp.co.onehr.workflow.dto.node.Node;
 
 /**
@@ -21,7 +25,7 @@ import jp.co.onehr.workflow.dto.node.Node;
  * It includes the order of all nodes, the defined version
  * the version number recorded by the workflow for corresponding to the definition
  */
-public class Definition extends BaseData {
+public class Definition extends BaseData implements IndexCustomizable {
 
     /**
      * The ID of the associated workflow.
@@ -79,4 +83,11 @@ public class Definition extends BaseData {
         }
     }
 
+    @Override
+    public List<IndexDefinition> getCustomIndexDefinitions() {
+        return List.of(
+                // Based on the business logic, querying all definitions by workflowId is a common use case
+                IndexDefinition.of(IndexField.of("workflowId", IndexFieldType.TEXT), false)
+        );
+    }
 }

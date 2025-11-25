@@ -9,13 +9,20 @@ import javax.sql.DataSource;
 import io.github.thunderz99.cosmos.impl.postgres.PostgresDatabaseImpl;
 import io.github.thunderz99.cosmos.impl.postgres.PostgresImpl;
 import io.github.thunderz99.cosmos.impl.postgres.dto.IndexOption;
+import io.github.thunderz99.cosmos.impl.postgres.dto.PGFieldType;
+import io.github.thunderz99.cosmos.impl.postgres.dto.PGIndexField;
 import io.github.thunderz99.cosmos.impl.postgres.util.TableUtil;
 import jp.co.onehr.workflow.ProcessConfiguration;
 import jp.co.onehr.workflow.dao.CosmosDB;
 import jp.co.onehr.workflow.dao.infra.DBSchemaInitializer;
+import jp.co.onehr.workflow.dto.base.index.IndexCustomizable;
+import jp.co.onehr.workflow.dto.base.index.IndexDefinition;
+import jp.co.onehr.workflow.dto.base.index.IndexField;
+import jp.co.onehr.workflow.dto.base.index.IndexFieldType;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +65,7 @@ public class PostgresSchemaDAO implements DBSchemaInitializer {
     public List<String> createIndexesIfNotExist(String host, String partitionName) throws Exception {
         var ret = new ArrayList<String>();
 
-        var isRecycle = StringUtils.endsWith(partitionName, "_recycle");
+        var isRecycle = Strings.CS.endsWith(partitionName, "_recycle");
 
         if (isRecycle) {
             // If the recycle partition has a TTL field, register it in pg_cron to enable the automatic deletion job
@@ -66,10 +73,11 @@ public class PostgresSchemaDAO implements DBSchemaInitializer {
             ret.add(_enableTTLJob(host, partitionName, cronExpression));
 
             // create the related indexes
-            var options = List.of(
-                    Pair.of("_expireAt", new Options().unique(false).fieldType("bigint"))
+            var indexDefinitions = List.of(
+                    IndexDefinition.of(IndexField.of("_expireAt", IndexFieldType.BIGINT))
             );
-            ret.addAll(_createIndexIfNotExist(host, partitionName, options));
+
+            ret.addAll(_createIndexIfNotExist(host, partitionName, indexDefinitions));
         }
         return ret;
     }
@@ -88,17 +96,35 @@ public class PostgresSchemaDAO implements DBSchemaInitializer {
         return db.enableTTL(schemaName, partitionName, cronExpression);
     }
 
+
+    @Override
+    public List<String> createCustomIndexIfNotExist(String host, String partitionName, IndexCustomizable dto) throws Exception {
+        var ret = new ArrayList<String>();
+
+        // Create the customized indexes defined in the DTO class (e.g., Instance).
+        if (dto != null) {
+            var indexDefinitions = dto.getCustomIndexDefinitions();
+            ret.addAll(_createIndexIfNotExist(host, partitionName, indexDefinitions));
+        }
+
+        return ret;
+    }
+
     /**
      * create specific indexes for dto classes
      *
      * @param host
      * @param partitionName
-     * @param options       "fieldName, Option" pair
+     * @param indexDefinitions index definitions, including fieldName, fieldType, uniqueness
      * @return list of partition.fieldName  that created Indexes
      */
-    List<String> _createIndexIfNotExist(String host, String partitionName, List<Pair<String, Options>> options) throws Exception {
+    List<String> _createIndexIfNotExist(String host, String partitionName, List<IndexDefinition> indexDefinitions) throws Exception {
 
         if (StringUtils.isEmpty(partitionName)) {
+            return List.of();
+        }
+
+        if (CollectionUtils.isEmpty(indexDefinitions)) {
             return List.of();
         }
 
@@ -115,11 +141,10 @@ public class PostgresSchemaDAO implements DBSchemaInitializer {
             var partition = partitionName;
             // Create the index only if the table exists
             if (TableUtil.tableExist(conn, schemaName, partition)) {
-                for (var option : options) {
-                    var fieldName = option.getLeft();
-                    var indexOption = IndexOption.unique(option.getRight().unique);
-                    indexOption.fieldType = option.getRight().fieldType;
-                    ret.add(TableUtil.createIndexIfNotExists(conn, schemaName, partition, fieldName, indexOption));
+                for (var indexDef : indexDefinitions) {
+                    var indexFields = indexDef.fields.stream().map(f -> PGIndexField.of(f.fieldName, PGFieldType.valueOf(f.type.name()))).collect(Collectors.toList());
+                    var indexOption = IndexOption.unique(indexDef.unique);
+                    ret.add(TableUtil.createIndexIfNotExist4MultiFields(conn, schemaName, partition, indexFields, indexOption));
                 }
             }
 
@@ -144,42 +169,6 @@ public class PostgresSchemaDAO implements DBSchemaInitializer {
 
         // get the native postgres dataSource to do db operations
         return ((PostgresImpl) db.getCosmosAccount()).getDataSource();
-    }
-
-    /**
-     * Index options when creating indexes for mongodb
-     */
-    public static class Options {
-        public boolean unique = false;
-
-        /**
-         * fieldType for this index. default is text. other valid value is bigint / numeric / float8 / etc
-         *
-         * <p>
-         * example: CREATE INDEX idx_MailRecords__expireAt_1
-         * ON "Data_xxx"."MailRecords" (((data->>'_expireAt')::bigint));
-         * </p>
-         */
-        public String fieldType = "text";
-
-        public Options() {
-        }
-
-        public Options unique(boolean unique) {
-            this.unique = unique;
-            return this;
-        }
-
-        /**
-         * set the field type. default is "text"
-         *
-         * @param fieldType
-         * @return Options
-         */
-        public Options fieldType(String fieldType) {
-            this.fieldType = fieldType;
-            return this;
-        }
     }
 
 }

@@ -1,6 +1,8 @@
 package jp.co.onehr.workflow.dao.infra;
 
-import java.util.*;
+import java.util.List;
+
+import jp.co.onehr.workflow.dto.base.index.IndexCustomizable;
 
 /**
  * Interface used to initialize Database's table schemas and indexes(mainly used for postgres/mongodb)
@@ -34,7 +36,6 @@ public interface DBSchemaInitializer {
      *
      * @param host
      * @param partitionName
-     *
      * @return created index names
      * @throws Exception
      */
@@ -43,5 +44,25 @@ public interface DBSchemaInitializer {
     }
 
 
+    /**
+     * Create custom indexes for the specified partitionName (e.g., "Definitions").
+     * If the indexes already exist, no action is taken.
+     * Currently supported only for postgres.
+     * For CosmosDB or MongoDB, this operation is skipped.
+     *
+     * @param host
+     * @param partitionName
+     * @param dto           DTO instance
+     *
+     *                      <p>
+     *                      classOfT refers to the DTO class.
+     *                      If the DTO implements IndexCustomizable, create custom indexes specific to that DTO.
+     *                      </p>
+     * @return a list of created index names
+     * @throws Exception
+     */
+    default public List<String> createCustomIndexIfNotExist(String host, String partitionName, IndexCustomizable dto) throws Exception {
+        return List.of();
+    }
 }
 
