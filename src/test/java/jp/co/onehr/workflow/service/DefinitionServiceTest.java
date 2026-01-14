@@ -381,8 +381,8 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
                 var result = definitions.get(0);
                 assertThat(result.nodes).hasSize(3);
                 assertThat(result.version).isZero();
-                assertThat(definition.nodes.get(2).nodeName).isEqualTo("End_Node");
-                assertThat(definition.nodes.get(2).configuration)
+                assertThat(result.nodes.get(2).nodeName).isEqualTo("End_Node");
+                assertThat(result.nodes.get(2).configuration)
                         .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
                         .containsEntry("reconfirm", true);
             }
