@@ -192,6 +192,10 @@ public class DefinitionService extends BaseCRUDService<Definition> {
             startNode.localNames.putAll(creationParam.startLocalNames);
         }
 
+        if (ObjectUtils.isNotEmpty(creationParam.startNodeConfiguration)) {
+            startNode.configuration = creationParam.startNodeConfiguration;
+        }
+
         return startNode;
     }
 
@@ -207,6 +211,10 @@ public class DefinitionService extends BaseCRUDService<Definition> {
 
         if (MapUtils.isNotEmpty(creationParam.endLocalNames)) {
             endNode.localNames.putAll(creationParam.endLocalNames);
+        }
+
+        if (ObjectUtils.isNotEmpty(creationParam.endNodeConfiguration)) {
+            endNode.configuration = creationParam.endNodeConfiguration;
         }
 
         return endNode;

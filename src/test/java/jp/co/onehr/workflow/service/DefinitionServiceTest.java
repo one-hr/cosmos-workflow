@@ -2,6 +2,7 @@ package jp.co.onehr.workflow.service;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import io.github.thunderz99.cosmos.condition.Condition;
@@ -11,12 +12,14 @@ import jp.co.onehr.workflow.constant.ApprovalType;
 import jp.co.onehr.workflow.constant.NodeType;
 import jp.co.onehr.workflow.constant.WorkflowErrors;
 import jp.co.onehr.workflow.dto.Definition;
+import jp.co.onehr.workflow.dto.OperateLog;
 import jp.co.onehr.workflow.dto.Workflow;
 import jp.co.onehr.workflow.dto.node.*;
 import jp.co.onehr.workflow.dto.param.DefinitionParam;
 import jp.co.onehr.workflow.dto.param.WorkflowCreationParam;
 import jp.co.onehr.workflow.dto.param.WorkflowUpdatingParam;
 import jp.co.onehr.workflow.exception.WorkflowException;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
 import static jp.co.onehr.workflow.service.DefinitionService.DEFAULT_END_NODE_NAME;
@@ -105,6 +108,90 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
             assertThat(result.nodes.get(3).getType()).isEqualTo(NodeType.EndNode.name());
         } finally {
             WorkflowService.singleton.purge(host, workflow.id);
+        }
+    }
+
+    @Test
+    void createInitialDefinition_with_node_configuration_should_work() throws Exception {
+        var workflow1 = new Workflow(getUuid(), "createInitialDefinition_with_node_configuration_1");
+        var workflow2 = new Workflow(getUuid(), "createInitialDefinition_with_node_configuration_2");
+        try {
+
+            // test startNodeConfiguration
+            {
+                var creationParam = new WorkflowCreationParam();
+                creationParam.name = workflow1.name;
+                creationParam.returnToStartNode = false;
+                creationParam.enableOperatorControl = true;
+                creationParam.allowedOperatorIds.addAll(List.of("operator-2", "operator-3", "operator-4"));
+
+                var testOperateLog = new OperateLog();
+                testOperateLog.nodeId = "testA";
+                creationParam.startNodeConfiguration = testOperateLog;
+
+                var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+                singleNode1.operatorId = "operator-2";
+                creationParam.nodes.add(singleNode1);
+
+                var definition = getService().createInitialDefinition(host, workflow1, creationParam);
+
+                var result = getService().readSuppressing404(host, definition.id);
+
+                assertThat(result.workflowId).isEqualTo(workflow1.id);
+                assertThat(result.version).isEqualTo(0);
+                assertThat(result.applicationModes).hasSize(1);
+                assertThat(result.applicationModes).containsExactlyInAnyOrder(ApplicationMode.SELF);
+                assertThat(result.returnToStartNode).isFalse();
+
+                assertThat(result.nodes).hasSize(3);
+                assertThat(result.nodes.get(0).nodeName).isEqualTo("Start_Node");
+                assertThat(result.nodes.get(0).getType()).isEqualTo(NodeType.StartNode.name());
+                assertThat(result.nodes.get(0).configuration).isNotNull();
+                var testConfiguration = result.nodes.get(0).configuration;
+                assertThat(testConfiguration)
+                        .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+                        .containsEntry("nodeId", "testA");
+            }
+
+            // test endNodeConfiguration
+            {
+                var creationParam = new WorkflowCreationParam();
+                creationParam.name = workflow2.name;
+                creationParam.returnToStartNode = false;
+                creationParam.enableOperatorControl = true;
+                creationParam.allowedOperatorIds.addAll(List.of("operator-2", "operator-3", "operator-4"));
+
+                creationParam.endNodeConfiguration = Map.of("reconfirm", true);
+
+                var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+                singleNode1.operatorId = "operator-2";
+                creationParam.nodes.add(singleNode1);
+
+                var definition = getService().createInitialDefinition(host, workflow2, creationParam);
+
+                var result = getService().readSuppressing404(host, definition.id);
+
+                assertThat(result.workflowId).isEqualTo(workflow2.id);
+                assertThat(result.version).isEqualTo(0);
+                assertThat(result.applicationModes).hasSize(1);
+                assertThat(result.applicationModes).containsExactlyInAnyOrder(ApplicationMode.SELF);
+                assertThat(result.returnToStartNode).isFalse();
+
+                assertThat(result.nodes).hasSize(3);
+                assertThat(result.nodes.get(0).nodeName).isEqualTo("Start_Node");
+                assertThat(result.nodes.get(0).getType()).isEqualTo(NodeType.StartNode.name());
+                assertThat(result.nodes.get(0).configuration).isNull();
+                assertThat(result.nodes.get(2).nodeName).isEqualTo("End_Node");
+                assertThat(result.nodes.get(2).getType()).isEqualTo(NodeType.EndNode.name());
+                assertThat(result.nodes.get(2).configuration).isNotNull();
+                var testConfiguration = result.nodes.get(2).configuration;
+                assertThat(testConfiguration)
+                        .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+                        .containsEntry("reconfirm", true);
+            }
+        } finally {
+            WorkflowService.singleton.purge(host, workflow1.id);
+            WorkflowService.singleton.purge(host, workflow2.id);
         }
     }
 
@@ -245,6 +332,66 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
     }
 
     @Test
+    void upsertDefinition_with_node_configuration_should_work() throws Exception {
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "upsertDefinition_with_node_configuration";
+        creationParam.returnToStartNode = false;
+        creationParam.enableOperatorControl = true;
+        creationParam.enableVersion = false;
+        creationParam.allowedOperatorIds.addAll(List.of("operator-1", "operator-2"));
+        creationParam.endNodeConfiguration = Map.of("reconfirm", false);
+
+        var workflowId = "";
+        try {
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
+
+            workflow = processDesign.getWorkflow(host, workflow.getId());
+            assertThat(workflow.enableVersion).isFalse();
+            assertThat(workflow.currentVersion).isZero();
+
+            {
+                var definitions = processDesign.findDefinitions(host, Condition.filter("workflowId", workflow.id));
+                assertThat(definitions).hasSize(1);
+                var definition = definitions.get(0);
+                assertThat(definition.nodes).hasSize(2);
+                assertThat(definition.nodes.get(1).nodeName).isEqualTo("End_Node");
+                assertThat(definition.nodes.get(1).configuration)
+                        .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+                        .containsEntry("reconfirm", false);
+
+                var singleNode = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+                singleNode.operatorId = "operator-1";
+                definition.nodes.add(1, singleNode);
+                definition.nodes.get(2).configuration = Map.of("reconfirm", true);
+
+                var param = new DefinitionParam();
+                param.workflowId = workflowId;
+                param.enableOperatorControl = false;
+                param.nodes.addAll(definition.nodes);
+                getService().upsert(host, param);
+
+                workflow = processDesign.getWorkflow(host, workflow.getId());
+                assertThat(workflow.enableVersion).isFalse();
+                assertThat(workflow.currentVersion).isZero();
+
+                definitions = processDesign.findDefinitions(host, Condition.filter("workflowId", workflow.id));
+                assertThat(definitions).hasSize(1);
+
+                var result = definitions.get(0);
+                assertThat(result.nodes).hasSize(3);
+                assertThat(result.version).isZero();
+                assertThat(definition.nodes.get(2).nodeName).isEqualTo("End_Node");
+                assertThat(definition.nodes.get(2).configuration)
+                        .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+                        .containsEntry("reconfirm", true);
+            }
+        } finally {
+            WorkflowService.singleton.purge(host, workflowId);
+        }
+    }
+
+    @Test
     void getDefinition_should_work() throws Exception {
         var creationParam = new WorkflowCreationParam();
         creationParam.name = "getDefinition_should_work";
@@ -348,7 +495,6 @@ public class DefinitionServiceTest extends BaseCRUDServiceTest<Definition, Defin
             WorkflowService.singleton.purge(host, workflowId);
         }
     }
-
 
     @Test
     void checkNodes_should_work() throws Exception {
