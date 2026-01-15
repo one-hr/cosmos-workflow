@@ -52,6 +52,17 @@ public class WorkflowCreationParam extends SimpleData {
     public LinkedHashMap<String, String> endLocalNames = Maps.newLinkedHashMap();
 
     /**
+     * Configuration for specifying the start node
+     */
+    public Object startNodeConfiguration;
+
+    /**
+     * Configuration for specifying the end node
+     */
+    public Object endNodeConfiguration;
+
+
+    /**
      * When the user performs rejection and cancellation, the instance returns to the start node
      * true: Return to the start node.
      * false: Stay at the current node
