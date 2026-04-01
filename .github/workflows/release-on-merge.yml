@@ -1,0 +1,245 @@
+name: Release After Java CI On Master
+
+on:
+  workflow_run:
+    workflows:
+      - Java CI with Maven
+    types:
+      - completed
+    branches:
+      - master
+
+permissions:
+  contents: write
+  checks: read
+
+jobs:
+  release:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out push commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Resolve release context
+        id: context
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          fail_with_summary() {
+            local reason="$1"
+            local version_source="$2"
+            local previous_source="$3"
+            local compared_refs="$4"
+
+            {
+              echo "RELEASE_RESULT=failed"
+              echo "RELEASE_REASON=${reason}"
+              echo "RELEASE_CURRENT_VERSION=${CURRENT_VERSION:-}"
+              echo "RELEASE_VERSION_SOURCE=${version_source}"
+              echo "RELEASE_PREVIOUS_VERSION=${PREVIOUS_VERSION:-}"
+              echo "RELEASE_PREVIOUS_SOURCE=${previous_source}"
+              echo "RELEASE_COMPARED_REFS=${compared_refs}"
+            } >> "$GITHUB_ENV"
+            exit 1
+          }
+
+          VERSION_SOURCE="mvn help:evaluate (project.version)"
+          PREVIOUS_SOURCE="check_suite.before"
+
+          CURRENT_VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version --file pom.xml | tail -n 1 | tr -d '\r')
+          if [ -z "${CURRENT_VERSION}" ]; then
+            fail_with_summary \
+              "failed to resolve current project.version" \
+              "${VERSION_SOURCE}" \
+              "" \
+              "unavailable -> ${{ github.event.workflow_run.head_sha }}"
+          fi
+
+          BEFORE_REF=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/check-suites/${{ github.event.workflow_run.check_suite_id }}" \
+            | jq -r '.before // ""')
+
+          COMPARABLE=false
+          CHANGED=false
+          REASON="before ref unavailable"
+          PREVIOUS_VERSION=""
+          REF_OUTPUT="${BEFORE_REF}"
+
+          if [ -z "${BEFORE_REF}" ] || [ "${BEFORE_REF}" = "0000000000000000000000000000000000000000" ]; then
+            REF_OUTPUT="unavailable"
+          elif git cat-file -e "${BEFORE_REF}:pom.xml" 2>/dev/null; then
+            PREVIOUS_POM=$(mktemp)
+            trap 'rm -f "${PREVIOUS_POM}"' EXIT
+
+            git show "${BEFORE_REF}:pom.xml" > "${PREVIOUS_POM}"
+            PREVIOUS_SOURCE="check_suite.before + mvn help:evaluate (project.version)"
+            PREVIOUS_VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version --file "${PREVIOUS_POM}" | tail -n 1 | tr -d '\r')
+
+            if [ -z "${PREVIOUS_VERSION}" ]; then
+              fail_with_summary \
+                "failed to resolve previous project.version" \
+                "${VERSION_SOURCE}" \
+                "${PREVIOUS_SOURCE}" \
+                "${BEFORE_REF} -> ${{ github.event.workflow_run.head_sha }}"
+            fi
+
+            COMPARABLE=true
+            REASON="comparable"
+            if [ "${CURRENT_VERSION}" = "${PREVIOUS_VERSION}" ]; then
+              CHANGED=false
+              REASON="version unchanged"
+            else
+              CHANGED=true
+              REASON="version changed"
+            fi
+          else
+            REASON="pom.xml missing in previous ref"
+          fi
+
+          echo "version=${CURRENT_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${CURRENT_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "source=${VERSION_SOURCE}" >> "$GITHUB_OUTPUT"
+          echo "ref=${REF_OUTPUT}" >> "$GITHUB_OUTPUT"
+          echo "previous_version=${PREVIOUS_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "previous_source=${PREVIOUS_SOURCE}" >> "$GITHUB_OUTPUT"
+          echo "comparable=${COMPARABLE}" >> "$GITHUB_OUTPUT"
+          echo "changed=${CHANGED}" >> "$GITHUB_OUTPUT"
+          echo "reason=${REASON}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish tag and release
+        id: publish
+        if: steps.context.outputs.comparable == 'true' && steps.context.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          fail_publish() {
+            local reason="$1"
+
+            {
+              echo "RELEASE_RESULT=failed"
+              echo "RELEASE_REASON=${reason}"
+              echo "RELEASE_CURRENT_VERSION=${{ steps.context.outputs.version }}"
+              echo "RELEASE_VERSION_SOURCE=${{ steps.context.outputs.source }}"
+              echo "RELEASE_PREVIOUS_VERSION=${{ steps.context.outputs.previous_version }}"
+              echo "RELEASE_PREVIOUS_SOURCE=${{ steps.context.outputs.previous_source }}"
+              echo "RELEASE_COMPARED_REFS=${{ steps.context.outputs.ref }} -> ${{ github.event.workflow_run.head_sha }}"
+              echo "RELEASE_TAG=${{ steps.context.outputs.tag }}"
+              echo "RELEASE_TAG_EXISTS=${TAG_EXISTS}"
+              echo "RELEASE_RELEASE_EXISTS=${RELEASE_EXISTS}"
+            } >> "$GITHUB_ENV"
+            exit 1
+          }
+
+          TAG_EXISTS=false
+          RELEASE_EXISTS=false
+
+          if git rev-parse -q --verify "refs/tags/${{ steps.context.outputs.tag }}" >/dev/null 2>&1; then
+            TAG_EXISTS=true
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag "${{ steps.context.outputs.tag }}" "${{ github.event.workflow_run.head_sha }}" || fail_publish "failed to create tag"
+            git push origin "${{ steps.context.outputs.tag }}" || fail_publish "failed to push tag"
+          fi
+
+          if gh release view "${{ steps.context.outputs.tag }}" >/dev/null 2>&1; then
+            RELEASE_EXISTS=true
+          else
+            gh release create "${{ steps.context.outputs.tag }}" \
+              --target "${{ github.event.workflow_run.head_sha }}" \
+              --title "${{ steps.context.outputs.tag }}" \
+              --generate-notes || fail_publish "failed to create GitHub release"
+          fi
+
+          echo "tag_exists=${TAG_EXISTS}" >> "$GITHUB_OUTPUT"
+          echo "release_exists=${RELEASE_EXISTS}" >> "$GITHUB_OUTPUT"
+
+      - name: Write release summary
+        if: ${{ always() }}
+        run: |
+          {
+            echo "## Release summary"
+            echo ""
+            
+            if [ "${{ steps.context.outcome }}" = "failure" ] || [ "${{ steps.publish.outcome }}" = "failure" ]; then
+              echo "- Result: failed"
+            elif [ "${{ steps.context.outputs.comparable }}" != "true" ]; then
+              echo "- Result: skipped"
+            elif [ "${{ steps.context.outputs.changed }}" != "true" ]; then
+              echo "- Result: skipped"
+            else
+              echo "- Result: processed"
+            fi
+            
+            if [ "${{ steps.context.outcome }}" = "failure" ] || [ "${{ steps.publish.outcome }}" = "failure" ]; then
+              echo "- Reason: ${RELEASE_REASON}"
+              if [ -n "${RELEASE_CURRENT_VERSION}" ]; then
+                echo "- Current version: ${RELEASE_CURRENT_VERSION}"
+              fi
+              if [ -n "${RELEASE_VERSION_SOURCE}" ]; then
+                echo "- Version source: ${RELEASE_VERSION_SOURCE}"
+              fi
+            else
+              echo "- Reason: ${{ steps.context.outputs.reason }}"
+              echo "- Current version: ${{ steps.context.outputs.version }}"
+              echo "- Version source: ${{ steps.context.outputs.source }}"
+            fi
+            
+            if [ "${{ steps.context.outcome }}" = "failure" ] || [ "${{ steps.publish.outcome }}" = "failure" ]; then
+              if [ -n "${RELEASE_PREVIOUS_VERSION}" ]; then
+                echo "- Previous version: ${RELEASE_PREVIOUS_VERSION}"
+              else
+                echo "- Previous version: unavailable"
+              fi
+            elif [ "${{ steps.context.outputs.comparable }}" != "true" ]; then
+              echo "- Previous version: unavailable"
+            else
+              echo "- Previous version: ${{ steps.context.outputs.previous_version }}"
+            fi
+            
+            if [ "${{ steps.context.outcome }}" = "failure" ] || [ "${{ steps.publish.outcome }}" = "failure" ]; then
+              if [ -n "${RELEASE_PREVIOUS_SOURCE}" ]; then
+                echo "- Previous version source: ${RELEASE_PREVIOUS_SOURCE}"
+              fi
+            else
+              echo "- Previous version source: ${{ steps.context.outputs.previous_source }}"
+            fi
+            
+            if [ "${{ steps.publish.outcome }}" = "failure" ]; then
+              if [ -n "${RELEASE_TAG}" ]; then
+                echo "- Tag: ${RELEASE_TAG}"
+              fi
+              if [ -n "${RELEASE_TAG_EXISTS}" ]; then
+                echo "- Tag existed: ${RELEASE_TAG_EXISTS}"
+              fi
+              if [ -n "${RELEASE_RELEASE_EXISTS}" ]; then
+                echo "- Release existed: ${RELEASE_RELEASE_EXISTS}"
+              fi
+            elif [ "${{ steps.context.outputs.comparable }}" == "true" ] && [ "${{ steps.context.outputs.changed }}" == "true" ]; then
+              echo "- Tag: ${{ steps.context.outputs.tag }}"
+              echo "- Tag existed: ${{ steps.publish.outputs.tag_exists }}"
+              echo "- Release existed: ${{ steps.publish.outputs.release_exists }}"
+            fi
+            
+            if [ "${{ steps.context.outcome }}" = "failure" ] || [ "${{ steps.publish.outcome }}" = "failure" ]; then
+              if [ -n "${RELEASE_COMPARED_REFS}" ]; then
+                echo "- Compared refs: ${RELEASE_COMPARED_REFS}"
+              fi
+            else
+              echo "- Comparable: ${{ steps.context.outputs.comparable }}"
+              echo "- Compared refs: ${{ steps.context.outputs.ref }} -> ${{ github.event.workflow_run.head_sha }}"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
