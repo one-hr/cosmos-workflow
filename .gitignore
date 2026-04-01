@@ -188,3 +188,13 @@ $RECYCLE.BIN/
 .idea/runConfigurations.xml
 /.idea/csv-editor.xml
 /.idea/sonarlint/securityhotspotstore/index.pb
+
+# cursor config
+/.cursor/
+
+# codex config
+/.codex
+
+# Antigravity config
+/.agent
+/.agents/

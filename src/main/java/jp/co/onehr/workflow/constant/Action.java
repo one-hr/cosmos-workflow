@@ -46,7 +46,7 @@ public enum Action {
     REJECT(new RejectService()),
 
     /**
-     * Withdraw. Withdraw instance means the instance data will be deleted immediately
+     * Withdraw. Remove the instance from the main partition and keep a recycle copy that expires by TTL.
      */
     WITHDRAW(new WithdrawalService()),
 
