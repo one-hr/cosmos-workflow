@@ -121,6 +121,23 @@ class PostgresSchemaDAOTest {
         }
     }
 
+    /**
+     * DTO for checking boolean custom index creation.
+     */
+    static class BooleanCustomIndexTest extends BaseData implements IndexCustomizable {
+        @Override
+        public List<IndexDefinition> getCustomIndexDefinitions() {
+            return List.of(
+                    IndexDefinition.of(
+                            List.of(IndexField.of("entityId"),
+                                    IndexField.of("active", IndexFieldType.BOOLEAN),
+                                    IndexField.of("category"),
+                                    IndexField.of("createdAt")),
+                            false)
+            );
+        }
+    }
+
 
     /**
      * Tests for CustomIndex (normal case).
@@ -176,6 +193,110 @@ class PostgresSchemaDAOTest {
 
         } finally {
             // Clean up
+            try (var conn = dataSource.getConnection()) {
+                TableUtil.dropTableIfExists(conn, schemaName, partitionName);
+            }
+        }
+    }
+
+    @Test
+    @EnabledIf("isPostgres")
+    void createCustomIndexIfNotExist_should_create_boolean_field_index() throws Exception {
+        var dao = new PostgresSchemaDAO();
+        var partitionName = "BoolIdxTests";
+        var dataSource = getDataSource(host);
+        var schemaName = ProcessConfiguration.getConfiguration().getCollectionName(host);
+
+        try {
+            assertThat(TableUtil.SUPPORTED_INDEX_FIELD_TYPE).contains("boolean");
+
+            var tableName = dao.createTableIfNotExist(host, partitionName);
+            assertThat(tableName).contains(".\"" + partitionName + "\"");
+
+            var result = dao.createCustomIndexIfNotExist(host, partitionName, new BooleanCustomIndexTest());
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0)).contains("entityId_active_category_createdAt");
+
+            try (var conn = dataSource.getConnection()) {
+                var indexes = PGTableTestUtil.findIndexes(conn, schemaName, partitionName);
+                // primary key, default data GIN index, custom boolean index
+                assertThat(indexes).hasSize(3);
+
+                var indexName = "idx_" + partitionName + "_entityId_active_category_createdAt_1";
+                assertThat(indexes).containsKey(indexName);
+                var indexDef = indexes.get(indexName);
+                assertThat(indexDef).doesNotContain("UNIQUE INDEX");
+                assertThat(indexDef).contains("::boolean");
+            }
+        } finally {
+            try (var conn = dataSource.getConnection()) {
+                TableUtil.dropTableIfExists(conn, schemaName, partitionName);
+            }
+        }
+    }
+
+    @Test
+    @EnabledIf("isPostgres")
+    void createCustomGinIndex_should_work() throws Exception {
+        var dao = new PostgresSchemaDAO();
+        var partitionName = "CustomGinIndexTests";
+        var dataSource = getDataSource(host);
+        var schemaName = ProcessConfiguration.getConfiguration().getCollectionName(host);
+
+        try {
+            dao.createTableIfNotExist(host, partitionName);
+
+            // Create a GIN index for a JSON array or object field.
+            {
+                var result = dao._createIndexIfNotExist(host, partitionName, List.of(IndexDefinition.ofGin(IndexField.of("targetIdList", IndexFieldType.JSONB))));
+
+                assertThat(result).hasSize(1);
+
+                try (var conn = dataSource.getConnection()) {
+                    var indexes = PGTableTestUtil.findIndexes(conn, schemaName, partitionName);
+                    var indexName = "idx_" + partitionName + "_targetIdList_1";
+
+                    assertThat(indexes).containsKey(indexName);
+                    assertThat(indexes.get(indexName))
+                            .containsIgnoringCase("USING GIN")
+                            .contains("data -> 'targetIdList'::text")
+                            .doesNotContain("UNIQUE INDEX");
+                }
+            }
+
+            // Reapplying the same definition leaves the existing GIN index unchanged.
+            {
+                var result = dao._createIndexIfNotExist(host, partitionName, List.of(IndexDefinition.ofGin(IndexField.of("targetIdList", IndexFieldType.JSONB))));
+
+                assertThat(result).isEmpty();
+            }
+        } finally {
+            try (var conn = dataSource.getConnection()) {
+                TableUtil.dropTableIfExists(conn, schemaName, partitionName);
+            }
+        }
+    }
+
+    @Test
+    @EnabledIf("isPostgres")
+    void createCustomIndex_should_reject_existing_index_with_different_method() throws Exception {
+        var dao = new PostgresSchemaDAO();
+        var partitionName = "GinMethodMismatchTests";
+        var dataSource = getDataSource(host);
+        var schemaName = ProcessConfiguration.getConfiguration().getCollectionName(host);
+
+        try {
+            dao.createTableIfNotExist(host, partitionName);
+            dao._createIndexIfNotExist(host, partitionName, List.of(IndexDefinition.of(IndexField.of("targetIdList"))));
+
+            // The generated name is the same, but replacing BTREE with GIN requires an explicit migration.
+            {
+                assertThatThrownBy(() -> dao._createIndexIfNotExist(host, partitionName, List.of(IndexDefinition.ofGin(IndexField.of("targetIdList", IndexFieldType.JSONB)))))
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("Existing index method mismatch. manual migration required");
+            }
+        } finally {
             try (var conn = dataSource.getConnection()) {
                 TableUtil.dropTableIfExists(conn, schemaName, partitionName);
             }
