@@ -29,7 +29,9 @@ public interface IndexCustomizable {
      * <p>
      * If nothing is defined, no custom indexes are created.
      * If definitions are provided, they are created during schema initialization in BaseNoSqlService.getColl(host).
-     * If an index with the same name already exists, no action is taken.
+     * If an index with the same name and method already exists, no action is taken.
+     * If the name matches but the method differs, schema initialization fails so that
+     * the existing index can be migrated explicitly.
      * Fields specified as uniqueKey automatically generate a unique B-tree index,so no custom index needs to be defined here.
      * Example: Instance.workflowId requires no custom index.
      * </p>

@@ -19,6 +19,8 @@ import jp.co.onehr.workflow.dto.base.index.IndexCustomizable;
 import jp.co.onehr.workflow.dto.base.index.IndexDefinition;
 import jp.co.onehr.workflow.dto.base.index.IndexField;
 import jp.co.onehr.workflow.dto.base.index.IndexFieldType;
+import jp.co.onehr.workflow.dto.base.index.IndexMethod;
+import jp.co.onehr.workflow.util.CheckUtil;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -144,6 +146,22 @@ public class PostgresSchemaDAO implements DBSchemaInitializer {
                 for (var indexDef : indexDefinitions) {
                     var indexFields = indexDef.fields.stream().map(f -> PGIndexField.of(f.fieldName, PGFieldType.valueOf(f.type.name()))).collect(Collectors.toList());
                     var indexOption = IndexOption.unique(indexDef.unique);
+                    if (indexDef.method == IndexMethod.GIN) {
+                        indexOption = indexOption.gin();
+                    }
+
+                    var joinedFieldNames = indexDef.fields.stream().map(field -> field.fieldName).collect(Collectors.joining("_"));
+                    var normalizedPartition = TableUtil.checkAndNormalizeValidEntityName(partition);
+                    var expectedIndexName = TableUtil.removeQuotes(TableUtil.getIndexName(normalizedPartition, joinedFieldNames));
+                    var existingIndexDefinition = findExistingIndexDefinition(conn, schemaName, partition, expectedIndexName);
+                    if (StringUtils.isNotEmpty(existingIndexDefinition)) {
+                        var expectedIndexMethod = "USING " + indexDef.method.name();
+                        CheckUtil.check(
+                                StringUtils.containsIgnoreCase(existingIndexDefinition, expectedIndexMethod),
+                                "Existing index method mismatch. manual migration required: " + expectedIndexName);
+                        continue;
+                    }
+
                     ret.add(TableUtil.createIndexIfNotExist4MultiFields(conn, schemaName, partition, indexFields, indexOption));
                 }
             }
@@ -151,6 +169,36 @@ public class PostgresSchemaDAO implements DBSchemaInitializer {
         }
 
         return ret.stream().filter(StringUtils::isNotEmpty).collect(Collectors.toList());
+    }
+
+    /**
+     * Returns the PostgreSQL definition of an existing index.
+     *
+     * <p>{@code CREATE INDEX IF NOT EXISTS} only checks the index name and does
+     * not report a difference between BTREE and GIN. Reading {@code pg_indexes}
+     * first allows schema initialization to reject a method mismatch instead of
+     * silently keeping an incompatible index.</p>
+     *
+     * @param conn Active PostgreSQL connection.
+     * @param schemaName Schema containing the table.
+     * @param tableName Table containing the index.
+     * @param indexName Expected index name.
+     * @return The index definition, or {@code null} when the index does not exist.
+     * @throws Exception If the metadata query fails.
+     */
+    String findExistingIndexDefinition(java.sql.Connection conn, String schemaName, String tableName, String indexName) throws Exception {
+        var query = "SELECT indexdef FROM pg_indexes WHERE schemaname = ? AND tablename = ? AND indexname = ?";
+        try (var pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, TableUtil.removeQuotes(TableUtil.checkAndNormalizeValidEntityName(schemaName)));
+            pstmt.setString(2, TableUtil.removeQuotes(TableUtil.checkAndNormalizeValidEntityName(tableName)));
+            pstmt.setString(3, indexName);
+            try (var rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("indexdef");
+                }
+            }
+        }
+        return null;
     }
 
     /**
