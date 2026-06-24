@@ -29,6 +29,7 @@ import jp.co.onehr.workflow.util.DateUtil;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 
 public class InstanceService extends BaseCRUDService<Instance> implements NotificationSendChangeable {
@@ -147,11 +148,13 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
      * @param host
      * @param instanceId
      * @param action
+     * @param operatorId
      * @param extendParam
+     * @param applicantActionContext
      * @return
      * @throws Exception
      */
-    protected ActionResult resolve(String host, String instanceId, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
+    protected ActionResult resolve(String host, String instanceId, Action action, String operatorId, ActionExtendParam extendParam, ApplicantActionContext applicantActionContext) throws Exception {
 
         var existInstance = getInstance(host, instanceId);
 
@@ -163,7 +166,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
 
         Instance instance = existInstance.copy();
 
-        checkAllowingAction(operatorId, extendParam, definition, instance, action);
+        checkAllowingAction(operatorId, extendParam, definition, instance, action, applicantActionContext);
 
         ActionResult result = action.execute(definition, existInstance.status, instance, operatorId, extendParam);
 
@@ -194,10 +197,10 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         return result;
     }
 
-    private void checkAllowingAction(String operatorId, ActionExtendParam extendParam, Definition definition, Instance instance, Action action) {
+    private void checkAllowingAction(String operatorId, ActionExtendParam extendParam, Definition definition, Instance instance, Action action, ApplicantActionContext applicantActionContext) {
         OperationMode targetOperationMode = null;
         // operator as not admin
-        if (extendParam == null || !extendParam.operationMode.isAdminMode()) {
+        if (extendParam == null || extendParam.operationMode == null || !extendParam.operationMode.isAdminMode()) {
             if (StringUtils.isBlank(operatorId)) {
                 throw new WorkflowException(WorkflowErrors.INSTANCE_OPERATOR_INVALID, "The operator of the instance cannot be empty", instance.getId());
             }
@@ -207,7 +210,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         }
 
         // Before executing an action, check if the user's action is allowed
-        InstanceService.singleton.setAllowingActions(definition, instance, operatorId, targetOperationMode);
+        InstanceService.singleton.setAllowingActions(definition, instance, operatorId, targetOperationMode, applicantActionContext);
 
         if (!instance.allowingActions.contains(action)) {
             throw new WorkflowException(WorkflowErrors.NODE_ACTION_INVALID, "The current action is not allowed at the node for the instance", instance.getId());
@@ -450,8 +453,10 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
      * @param definition
      * @param instance
      * @param operatorId
+     * @param operationMode
+     * @param applicantActionContext
      */
-    public void setAllowingActions(Definition definition, Instance instance, String operatorId, OperationMode operationMode) {
+    public void setAllowingActions(Definition definition, Instance instance, String operatorId, OperationMode operationMode, ApplicantActionContext applicantActionContext) {
         instance.allowingActions.clear();
 
         var configuration = ProcessConfiguration.getConfiguration();
@@ -468,7 +473,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
             var customRemovalActions = configuration.generateCustomRemovalActionsByOperator(definition, instance, operatorId);
             actions.removeAll(customRemovalActions);
 
-            var removalActions = generateRemovalActionsByOperator(definition, instance, operatorId);
+            var removalActions = generateRemovalActionsByOperator(definition, instance, operatorId, applicantActionContext);
             actions.removeAll(removalActions);
         }
 
@@ -525,7 +530,7 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
      * @param operatorId
      * @return
      */
-    private Set<Action> generateRemovalActionsByOperator(Definition definition, Instance instance, String operatorId) {
+    private Set<Action> generateRemovalActionsByOperator(Definition definition, Instance instance, String operatorId, ApplicantActionContext applicantActionContext) {
         var actions = new HashSet<Action>();
         actions.add(Action.REAPPLY);
 
@@ -573,17 +578,25 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
                         }
                     }
 
-                    // When in progress, the applicant or their proxy can cancel or delete the instance at any time
-                    if (isInstanceApplicant(instance, operatorId)) {
+                    // When in progress, the applicant or their proxy can cancel the instance at any time
+                    if (canPerformApplicantAction(definition, instance, operatorId, Action.CANCEL, applicantActionContext)) {
                         actions.remove(Action.CANCEL);
+                    }
+                    if (canPerformApplicantAction(definition, instance, operatorId, Action.WITHDRAW, applicantActionContext)) {
                         actions.remove(Action.WITHDRAW);
                     }
                 }
             }
             case REJECTED, CANCELED -> {
                 // Only the applicant or the proxy applicant can perform actions in the Rejected and Canceled states.
-                if (!isInstanceApplicant(instance, operatorId)) {
-                    actions.addAll(List.of(Action.values()));
+                if (!canPerformApplicantAction(definition, instance, operatorId, Action.CANCEL, applicantActionContext)) {
+                    actions.add(Action.CANCEL);
+                }
+                if (!canPerformApplicantAction(definition, instance, operatorId, Action.WITHDRAW, applicantActionContext)) {
+                    actions.add(Action.WITHDRAW);
+                }
+                if (!canPerformApplicantAction(definition, instance, operatorId, Action.APPLY, applicantActionContext)) {
+                    actions.add(Action.APPLY);
                 }
             }
             case APPROVED -> {
@@ -591,8 +604,10 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
                 actions.add(Action.RETRIEVE);
 
                 // Only the applicant/proxy applicant can cancel or delete the instance in the approved status
-                if (!isInstanceApplicant(instance, operatorId)) {
+                if (!canPerformApplicantAction(definition, instance, operatorId, Action.CANCEL, applicantActionContext)) {
                     actions.add(Action.CANCEL);
+                }
+                if (!canPerformApplicantAction(definition, instance, operatorId, Action.WITHDRAW, applicantActionContext)) {
                     actions.add(Action.WITHDRAW);
                 }
                 // If the operator has the permission to retrieve the instance, the retrieve action is not removed.
@@ -664,15 +679,23 @@ public class InstanceService extends BaseCRUDService<Instance> implements Notifi
         }
     }
 
-    // To determine if the operator is the applicant of the instance.
-    private boolean isInstanceApplicant(Instance instance, String operatorId) {
-        if (operatorId.equals(instance.applicant)) {
+    /**
+     * Checks applicant-side action permission from workflow data first, then from the business provider.
+     *
+     * @param definition workflow definition for the instance
+     * @param instance workflow instance being checked
+     * @param operatorId operator requesting the action
+     * @param action applicant-side action to check
+     * @return true when the operator is allowed to perform the action
+     */
+    private boolean canPerformApplicantAction(Definition definition, Instance instance, String operatorId, Action action, ApplicantActionContext applicantActionContext) {
+        if (Strings.CS.equals(operatorId, instance.applicant)) {
             return true;
         }
-        if (operatorId.equals(instance.proxyApplicant)) {
+        if (Strings.CS.equals(operatorId, instance.proxyApplicant)) {
             return true;
         }
-        return false;
+        return ProcessConfiguration.getConfiguration().canPerformApplicantAction(definition, instance, operatorId, action, applicantActionContext);
     }
 
     // To determine if the operator is eligible to retrieve the instance

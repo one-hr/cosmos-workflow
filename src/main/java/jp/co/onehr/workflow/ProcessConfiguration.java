@@ -18,8 +18,10 @@ import jp.co.onehr.workflow.contract.operator.OperatorService;
 import jp.co.onehr.workflow.contract.plugin.WorkflowPlugin;
 import jp.co.onehr.workflow.contract.restriction.ActionRestriction;
 import jp.co.onehr.workflow.contract.restriction.AdminActionRestriction;
+import jp.co.onehr.workflow.contract.restriction.ApplicantActionPermissionProvider;
 import jp.co.onehr.workflow.contract.validation.Validations;
 import jp.co.onehr.workflow.dto.*;
+import jp.co.onehr.workflow.dto.param.ApplicantActionContext;
 import jp.co.onehr.workflow.dto.param.ContextParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,6 +80,7 @@ public class ProcessConfiguration {
      */
     private ActionRestriction actionRestriction;
     private AdminActionRestriction adminActionRestriction;
+    private ApplicantActionPermissionProvider applicantActionPermissionProvider;
 
     /**
      * Custom Processing of Operation Logs
@@ -247,6 +250,10 @@ public class ProcessConfiguration {
         this.adminActionRestriction = restriction;
     }
 
+    public void registerApplicantActionPermissionProvider(ApplicantActionPermissionProvider provider) {
+        this.applicantActionPermissionProvider = provider;
+    }
+
     public Set<Action> generateCustomRemovalActionsByOperator(Definition definition, Instance instance, String operatorId) {
         var actions = new HashSet<Action>();
         if (actionRestriction != null) {
@@ -261,6 +268,23 @@ public class ProcessConfiguration {
             actions.addAll(adminActionRestriction.generateCustomRemovalActionsByAdmin(definition, instance, operatorId));
         }
         return actions;
+    }
+
+    /**
+     * Delegates applicant-side action checks to the registered business provider.
+     *
+     * @param definition workflow definition for the instance
+     * @param instance workflow instance being checked
+     * @param operatorId operator requesting the action
+     * @param action applicant-side action to check
+     * @param context extra values used by the business permission check
+     * @return true when a provider is registered and allows the action
+     */
+    public boolean canPerformApplicantAction(Definition definition, Instance instance, String operatorId, Action action, ApplicantActionContext context) {
+        if (applicantActionPermissionProvider != null) {
+            return applicantActionPermissionProvider.canPerformApplicantAction(definition, instance, operatorId, action, context);
+        }
+        return false;
     }
 
     // === Configuration and registration for Operator Log  ===
