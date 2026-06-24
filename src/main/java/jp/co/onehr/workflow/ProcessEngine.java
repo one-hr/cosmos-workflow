@@ -40,19 +40,27 @@ public class ProcessEngine extends SimpleData {
     }
 
     public Instance getInstanceWithOps(String host, String instanceId, String operatorId) throws Exception {
-        return service.getInstanceWithOps(host, instanceId, operatorId, OperationMode.OPERATOR_MODE);
+        return service.getInstanceWithOps(host, instanceId, operatorId, OperationMode.OPERATOR_MODE, null);
     }
 
     public Instance getInstanceWithOps(String host, String instanceId, String operatorId, OperationMode operationMode) throws Exception {
-        return service.getInstanceWithOps(host, instanceId, operatorId, operationMode);
+        return service.getInstanceWithOps(host, instanceId, operatorId, operationMode, null);
+    }
+
+    public Instance getInstanceWithOps(String host, String instanceId, String operatorId, OperationMode operationMode, ApplicantActionContext applicantActionContext) throws Exception {
+        return service.getInstanceWithOps(host, instanceId, operatorId, operationMode, applicantActionContext);
     }
 
     public ActionResult resolve(String host, String instanceId, Action action, String operatorId) throws Exception {
-        return service.resolve(host, instanceId, action, operatorId, null);
+        return service.resolve(host, instanceId, action, operatorId, null, null);
     }
 
     public ActionResult resolve(String host, String instanceId, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
-        return service.resolve(host, instanceId, action, operatorId, extendParam);
+        return service.resolve(host, instanceId, action, operatorId, extendParam, null);
+    }
+
+    public ActionResult resolve(String host, String instanceId, Action action, String operatorId, ActionExtendParam extendParam, ApplicantActionContext applicantActionContext) throws Exception {
+        return service.resolve(host, instanceId, action, operatorId, extendParam, applicantActionContext);
     }
 
     public Instance rebinding(String host, String instanceId, String operatorId, RebindingParam rebindingParam) throws Exception {

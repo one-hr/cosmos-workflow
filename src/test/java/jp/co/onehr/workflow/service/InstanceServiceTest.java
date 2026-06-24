@@ -14,6 +14,7 @@ import jp.co.onehr.workflow.contract.context.TestOperatorLogContext;
 import jp.co.onehr.workflow.contract.notification.TestNotification;
 import jp.co.onehr.workflow.contract.plugin.TestPluginParam;
 import jp.co.onehr.workflow.contract.plugin.TestPluginResult;
+import jp.co.onehr.workflow.contract.restriction.TestApplicantActionContext;
 import jp.co.onehr.workflow.dto.Instance;
 import jp.co.onehr.workflow.dto.node.MultipleNode;
 import jp.co.onehr.workflow.dto.node.RobotNode;
@@ -3379,6 +3380,60 @@ public class InstanceServiceTest extends BaseCRUDServiceTest<Instance, InstanceS
                         .isInstanceOf(WorkflowException.class)
                         .hasMessageContaining(WorkflowErrors.RELOCATE_INSTANCE_STATUS_INVALID.name());
             }
+        } finally {
+            WorkflowService.singleton.purge(host, workflowId);
+        }
+    }
+
+    @Test
+    void resolve_cancel_by_applicant_side_permission_provider_should_work() throws Exception {
+        var creationParam = new WorkflowCreationParam();
+        creationParam.name = "resolve_cancel_by_applicant_side_permission_provider_should_work";
+        var workflowId = "";
+        try {
+            var workflow = processDesign.createWorkflow(host, creationParam);
+            workflowId = workflow.getId();
+
+            var definition = processDesign.getCurrentDefinition(host, workflow.id, 0);
+
+            var singleNode1 = new SingleNode("DEFAULT_SINGLE_NODE_NAME-1");
+            singleNode1.operatorId = "operator-1";
+            definition.nodes.add(1, singleNode1);
+
+            var definitionParam = new DefinitionParam();
+            definitionParam.workflowId = workflowId;
+            definitionParam.enableOperatorControl = false;
+            definitionParam.nodes.addAll(definition.nodes);
+            processDesign.upsertDefinition(host, definitionParam);
+
+            definition = processDesign.getCurrentDefinition(host, workflow.id, 1);
+
+            var param = new ApplicationParam();
+            param.workflowId = workflow.id;
+            param.applicant = "operator-applicant";
+
+            var instance = processEngine.startInstance(host, param);
+            var proxyOperator = "operator-proxy";
+            var applicantActionContext = new TestApplicantActionContext();
+            applicantActionContext.host = host;
+            applicantActionContext.proxyOperatorId = proxyOperator;
+
+            var resultWithoutPermission = processEngine.getInstanceWithOps(host, instance.getId(), "operator-not-proxy");
+            assertThat(resultWithoutPermission.allowingActions).doesNotContain(Action.CANCEL);
+
+            var resultWithPermission = processEngine.getInstanceWithOps(host, instance.getId(), proxyOperator, OperationMode.OPERATOR_MODE,
+                    applicantActionContext);
+            assertThat(resultWithPermission.allowingActions).containsExactly(Action.CANCEL);
+
+            var extendParam = new ActionExtendParam();
+            var actionResult = processEngine.resolve(host, instance.getId(), Action.CANCEL, proxyOperator, extendParam,
+                    applicantActionContext);
+            assertThat(actionResult.instance.status).isEqualTo(Status.CANCELED);
+            assertThat(actionResult.instance.operateLogList).last().satisfies(log -> {
+                assertThat(log.operatorId).isEqualTo(proxyOperator);
+                assertThat(log.action).isEqualTo(Action.CANCEL.name());
+                assertThat(log.statusAfter).isEqualTo(Status.CANCELED);
+            });
         } finally {
             WorkflowService.singleton.purge(host, workflowId);
         }

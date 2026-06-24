@@ -10,6 +10,7 @@ import jp.co.onehr.workflow.contract.operator.TestOperatorService;
 import jp.co.onehr.workflow.contract.plugin.TestPlugin;
 import jp.co.onehr.workflow.contract.restriction.TestActionRestriction;
 import jp.co.onehr.workflow.contract.restriction.TestAdminActionRestriction;
+import jp.co.onehr.workflow.contract.restriction.TestApplicantActionPermissionProvider;
 import jp.co.onehr.workflow.contract.validation.TestValidation;
 import jp.co.onehr.workflow.dao.ContainerUtil;
 import jp.co.onehr.workflow.util.TestOrder;
@@ -51,6 +52,7 @@ public class BaseTest implements TestIdGeneratable {
         configuration.registerNotificationSender(TestNotificationSender.singleton);
         configuration.registerActionRestriction(TestActionRestriction.singleton);
         configuration.registerAdminActionRestriction(TestAdminActionRestriction.singleton);
+        configuration.registerApplicantActionPermissionProvider(TestApplicantActionPermissionProvider.singleton);
         configuration.registerOperatorLogService(TestOperateLogService.singleton);
         configuration.registerContextParamService(TestContextParamService.singleton);
         configuration.registerValidationsService(TestValidation.singleton);

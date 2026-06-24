@@ -35,25 +35,37 @@ public class ProcessEngineService {
         return instance;
     }
 
+    @Deprecated
+    public Instance getInstanceWithOps(String host, String instanceId, String operatorId, OperationMode operationMode) throws Exception {
+        return getInstanceWithOps(host, instanceId, operatorId, operationMode, null);
+    }
+
     /**
      * Get the instance with the allowed actions.
      *
      * @param host
      * @param instanceId
      * @param operatorId
+     * @param operationMode
+     * @param applicantActionContext
      * @return
      * @throws Exception
      */
-    public Instance getInstanceWithOps(String host, String instanceId, String operatorId, OperationMode operationMode) throws Exception {
+    public Instance getInstanceWithOps(String host, String instanceId, String operatorId, OperationMode operationMode, ApplicantActionContext applicantActionContext) throws Exception {
         var instance = InstanceService.singleton.readSuppressing404(host, instanceId);
         var definition = DefinitionService.singleton.getDefinition(host, instance.definitionId);
-        InstanceService.singleton.setAllowingActions(definition, instance, operatorId, operationMode);
+        InstanceService.singleton.setAllowingActions(definition, instance, operatorId, operationMode, applicantActionContext);
 
         return instance;
     }
 
+    @Deprecated
     public ActionResult resolve(String host, String instanceId, Action action, String operatorId, ActionExtendParam extendParam) throws Exception {
-        return InstanceService.singleton.resolve(host, instanceId, action, operatorId, extendParam);
+        return resolve(host, instanceId, action, operatorId, extendParam, null);
+    }
+
+    public ActionResult resolve(String host, String instanceId, Action action, String operatorId, ActionExtendParam extendParam, ApplicantActionContext applicantActionContext) throws Exception {
+        return InstanceService.singleton.resolve(host, instanceId, action, operatorId, extendParam, applicantActionContext);
     }
 
     public Instance rebinding(String host, String instanceId, String operatorId, RebindingParam rebindingParam) throws Exception {
