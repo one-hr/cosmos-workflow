@@ -27,7 +27,7 @@ Built-in features:
 
 ## Requirements
 
-- Java 17
+- Java 21
 - Maven
 - A `java-cosmos`-compatible backend
 
@@ -41,7 +41,7 @@ Dependency:
 <dependency>
   <groupId>jp.co.onehr.workflow</groupId>
   <artifactId>cosmos-workflow</artifactId>
-  <version>0.2.11</version>
+  <version>0.3.1</version>
 </dependency>
 ```
 
