@@ -29,7 +29,7 @@
 
 ## 运行要求
 
-- Java 17
+- Java 21
 - Maven
 - 一个兼容 `java-cosmos` 的后端
 
@@ -43,7 +43,7 @@
 <dependency>
   <groupId>jp.co.onehr.workflow</groupId>
   <artifactId>cosmos-workflow</artifactId>
-  <version>0.2.11</version>
+  <version>0.3.1</version>
 </dependency>
 ```
 

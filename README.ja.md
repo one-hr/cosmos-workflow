@@ -30,7 +30,7 @@
 
 ## 要件
 
-- Java 17
+- Java 21
 - Maven
 - `java-cosmos` 互換のバックエンド
 
@@ -44,7 +44,7 @@
 <dependency>
   <groupId>jp.co.onehr.workflow</groupId>
   <artifactId>cosmos-workflow</artifactId>
-  <version>0.2.11</version>
+  <version>0.3.1</version>
 </dependency>
 ```
 
