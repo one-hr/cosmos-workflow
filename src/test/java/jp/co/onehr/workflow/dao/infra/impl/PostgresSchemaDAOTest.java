@@ -36,20 +36,60 @@ class PostgresSchemaDAOTest {
     void createTableIfNotExist_should_work() throws Exception {
 
         var dao = new PostgresSchemaDAO();
-        var className = "PostgresSchemaDAO" + RandomStringUtils.randomAlphanumeric(4) + "Test";
 
-        var partitionName = BaseNoSqlService.addSuffixToPartition(English.plural(className));
+        // scenario: Create a new table.
+        {
+            var className = "PostgresSchemaDAO" + RandomStringUtils.randomAlphanumeric(4) + "Test";
+            var partitionName = BaseNoSqlService.addSuffixToPartition(English.plural(className));
 
-        try {
-            // SimpleData
-
-            var tableName = dao.createTableIfNotExist(host, partitionName);
-            assertThat(tableName).contains(".\"%s\"".formatted(partitionName));
-
-        } finally {
-            dropTableIfExists(host, className);
+            try {
+                var tableName = dao.createTableIfNotExist(host, partitionName);
+                assertThat(tableName).contains(".\"%s\"".formatted(partitionName));
+            } finally {
+                dropTableIfExists(host, partitionName);
+            }
         }
+    }
 
+    @Test
+    @EnabledIf("isPostgres")
+    void createTableIfNotExist_should_reject_name_conflict_failed() throws Exception {
+        var dao = new PostgresSchemaDAO();
+
+        // scenario: A type with the table name exists, so java-cosmos skips the table and the missing table is reported.
+        {
+            var partitionName = "PostgresSchemaDAO" + RandomStringUtils.randomAlphanumeric(8) + "Test";
+            var schemaName = ProcessConfiguration.getConfiguration().getCollectionName(host);
+            var typeName = "%s.%s".formatted(TableUtil.checkAndNormalizeValidEntityName(schemaName),
+                    TableUtil.checkAndNormalizeValidEntityName(partitionName));
+
+            try (var conn = getDataSource(host).getConnection(); var stmt = conn.createStatement()) {
+                stmt.execute("CREATE TYPE " + typeName + " AS (value integer)");
+                try {
+                    assertThatThrownBy(() -> dao.createTableIfNotExist(host, partitionName))
+                            .hasMessageContaining("Table was not created")
+                            .hasMessageContaining("an object with the same name may already exist");
+                } finally {
+                    stmt.execute("DROP TYPE IF EXISTS " + typeName);
+                }
+            } finally {
+                dropTableIfExists(host, partitionName);
+            }
+        }
+    }
+
+    @Test
+    @EnabledIf("isPostgres")
+    void createIndexesIfNotExist_should_reject_missing_recycle_table_failed() {
+        var dao = new PostgresSchemaDAO();
+
+        // scenario: The TTL job is not scheduled for a recycle table that does not exist.
+        {
+            var partitionName = "PostgresSchemaDAO" + RandomStringUtils.randomAlphanumeric(8) + "Tests_recycle";
+
+            assertThatThrownBy(() -> dao.createIndexesIfNotExist(host, partitionName))
+                    .hasMessageContaining("TTL table is missing");
+        }
     }
 
     @Test

@@ -77,7 +77,7 @@ configuration.registerDB(host, db, collectionName);
 
 Postgres では、必要なテーブルやインデックスは初回アクセス時に自動作成されます。
 
-起動時やコンテナ初期化時に登録フローがある場合は、その中で `registerDB(...)` を 1 回だけ呼び、同じ `host` を使い回します。
+起動時やコンテナ初期化時に登録し、同じ `host` を使います。接続先の DB や collection が変わった場合は、その組を再登録してください。
 
 デフォルト DB 自動登録に使う環境変数:
 
@@ -138,7 +138,7 @@ public class WorkflowTenantRegistrar {
 }
 ```
 
-`host` ごとの設定は `registerDB(...)` だけです。その他の `register*` メソッドと `setPartitionSuffix(...)` は単一の `ProcessConfiguration` に保存されるため、プロセス全体の起動設定として 1 回だけ行ってください。
+DB 登録は `host` ごとに保存され、キャッシュ無効化とテーブル確認も指定した `host` を対象にします。拡張の登録メソッドと `setPartitionSuffix(...)` は単一の `ProcessConfiguration` に保存されるため、プロセス全体の起動設定として 1 回だけ行ってください。
 
 ### 3. ワークフローを作成する
 
@@ -271,6 +271,16 @@ instance = result.instance;
 - `backMode`、`backNodeId`: `BACK` 用の追加入力
 
 ## 運用メモ
+
+登録済みの DB または collection を同名で再作成した後は、同じ `host` で 3 つの組み込み Service を再確認できます。
+
+```java
+var configuration = ProcessConfiguration.getConfiguration();
+configuration.invalidateSchemaCache(host); // In-memory only; the next access retries initialization.
+List<String> partitions = configuration.ensureTables(host); // Synchronous; throws on failure.
+```
+
+`ensureTables` は既存分を含む 6 つの主／回収用論理 partition 名を返します。従来の `registerDB(...)` と初回アクセス時の遅延初期化も利用できます。`onehr-core` と併用する製品では、製品側で `TableSchemaInitializer` と `EnvironmentCacheInvalidator` のアダプターを登録します。
 
 - `ProcessDesign` と `ProcessEngine` は 1 回だけ生成し、共通サービスの中で保持する
 - DB 登録と拡張ポイント登録は、コンテナ初期化やテナント初期化のタイミングでまとめて行う

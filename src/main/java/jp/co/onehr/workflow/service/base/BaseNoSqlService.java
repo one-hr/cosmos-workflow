@@ -1,8 +1,13 @@
 package jp.co.onehr.workflow.service.base;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.github.thunderz99.cosmos.CosmosDatabase;
 import jp.co.onehr.workflow.ProcessConfiguration;
@@ -35,28 +40,37 @@ public abstract class BaseNoSqlService<T> {
     protected String partition;
 
     /**
-     * key: host
-     * value: schemaInitialized
-     * flag to record whether the schema has been initialized
+     * Live services whose schema state {@link #invalidateSchemaCaches(String)} drops.
+     * Weak references let services that are no longer used be collected.
      */
-    protected final ConcurrentHashMap<String, Boolean> schemaInitializedMap = new ConcurrentHashMap<>();
+    private static final Set<BaseNoSqlService<?>> instances = Collections.newSetFromMap(new WeakHashMap<>());
+
+    /**
+     * host -> whether the schema has been initialized. Each value is also the lock of its host.
+     * Invalidation removes only the entry of its host, so an initialization that holds the removed state records
+     * its result only there, and the states and locks of other hosts are kept.
+     */
+    private final ConcurrentHashMap<String, AtomicBoolean> schemaStates = new ConcurrentHashMap<>();
 
     public BaseNoSqlService(Class<T> classOfT) {
         this.classOfT = classOfT;
         this.defaultCollection = DEFAULT_COLLECTION;
         this.partition = addSuffixToPartition(English.plural(classOfT.getSimpleName()));
+        registerInstance();
     }
 
     public BaseNoSqlService(Class<T> classOfT, String partition) {
         this.classOfT = classOfT;
         this.defaultCollection = DEFAULT_COLLECTION;
         this.partition = addSuffixToPartition(partition);
+        registerInstance();
     }
 
     public BaseNoSqlService(Class<T> classOfT, String defaultCollection, String partition) {
         this.classOfT = classOfT;
         this.defaultCollection = defaultCollection;
         this.partition = addSuffixToPartition(partition);
+        registerInstance();
     }
 
     /**
@@ -86,6 +100,26 @@ public abstract class BaseNoSqlService<T> {
         return map;
     }
 
+    private void registerInstance() {
+        synchronized (instances) {
+            instances.add(this);
+        }
+    }
+
+    /**
+     * Drops this process's schema state of the host in every live service. Performs no I/O and does not
+     * wait for an initialization in progress. Use {@link ProcessConfiguration#invalidateSchemaCache(String)}.
+     *
+     * @param host tenant identifier
+     */
+    public static void invalidateSchemaCaches(String host) {
+        synchronized (instances) {
+            for (var service : instances) {
+                service.schemaStates.remove(host);
+            }
+        }
+    }
+
     public String getPartition() {
         return partition;
     }
@@ -105,28 +139,71 @@ public abstract class BaseNoSqlService<T> {
      * @return
      */
     public String getColl(String host) throws Exception {
-
+        // The collection, the database read by the caller and the schema state are separate reads, not one snapshot.
+        // During a switch, a request may combine the old and new targets, or read the new target before its state
+        // is invalidated and skip the initialization. See ProcessConfiguration#registerDB.
         var coll = ProcessConfiguration.getConfiguration().getCollectionName(host);
 
         if (StringUtils.isEmpty(coll)) {
             throw new WorkflowException(WorkflowErrors.WORKFLOW_ENGINE_REGISTER_INVALID, "Failed to retrieve the name of the collection.", host);
         }
 
-        // Ensure that each host has initialized the schema.
-        if (schemaInitializedMap.putIfAbsent(host, true) == null) {
-            log.info("host:{}, Database started creating table and index, table name: {}.", host, partition);
+        initializeSchema(host, false);
+        return coll;
+    }
 
-            // for partition table
-            DBSchemaService.singleton.createSchemaIfNotExist(host, this.getPartition());
-            // for recycle table
-            DBSchemaService.singleton.createSchemaIfNotExist(host, this.getRecyclePartition());
-            // create custom index for pg
-            DBSchemaService.singleton.createCustomIndexIfNotExist(host, this.getPartition(), classOfT);
+    /**
+     * Forces synchronous schema verification for this service, bypassing the successful schema cache.
+     * Intended for {@link ProcessConfiguration#ensureTables(String)}.
+     *
+     * @return the main and recycle logical partition names, including existing objects
+     * @throws Exception if the registration is incomplete or initialization fails; later calls may retry
+     */
+    public final List<String> ensureTables(String host) throws Exception {
+        // Resolve the database first; this registers the default database when enabled, as a CRUD access does.
+        var db = getDatabase(host);
+        var coll = ProcessConfiguration.getConfiguration().getCollectionName(host);
 
-            log.info("host:{}, Database finished creating table and index, table name: {}.", host, partition);
+        if (ObjectUtils.isEmpty(db) || StringUtils.isEmpty(coll)) {
+            throw new WorkflowException(WorkflowErrors.WORKFLOW_ENGINE_REGISTER_INVALID, "Failed to retrieve the registered database and collection.", host);
         }
 
-        return coll;
+        initializeSchema(host, true);
+        return List.of(getPartition(), getRecyclePartition());
+    }
+
+    /**
+     * Initializes the main table, recycle table and custom indexes once per host until it is invalidated.
+     * Concurrent first calls for the same host wait for the running initialization. A forced call always
+     * reruns the checks.
+     */
+    private void initializeSchema(String host, boolean force) throws Exception {
+        // The initialization reads the registration after taking this state, and registerDB publishes a new target
+        // before removing the state, so a state created after an invalidation never records the old target.
+        var initialized = schemaStates.computeIfAbsent(host, key -> new AtomicBoolean());
+        if (!force && initialized.get()) {
+            return;
+        }
+        // The per-host flag doubles as the lock, so only calls for the same host wait for each other.
+        synchronized (initialized) {
+            if (!force && initialized.get()) {
+                return;
+            }
+            initialized.set(false);
+            log.info("host:{}, Starting table and index initialization, partition:{}.", host, partition);
+            try {
+                DBSchemaService.singleton.createSchemaIfNotExist(host, getPartition());
+                DBSchemaService.singleton.createSchemaIfNotExist(host, getRecyclePartition());
+                DBSchemaService.singleton.createCustomIndexIfNotExist(host, getPartition(), classOfT);
+                initialized.set(true);
+                log.info("host:{}, Finished table and index initialization, partition:{}.", host, partition);
+            } catch (Exception e) {
+                // The exception is rethrown, so only its type and message are logged here to keep repeated retries readable.
+                log.warn("host:{}, Schema initialization failed; a later call may retry, partition:{}, cause:{}: {}",
+                        host, partition, e.getClass().getSimpleName(), e.getMessage());
+                throw e;
+            }
+        }
     }
 
     /**

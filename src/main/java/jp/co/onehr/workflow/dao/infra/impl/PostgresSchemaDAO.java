@@ -59,7 +59,13 @@ public class PostgresSchemaDAO implements DBSchemaInitializer {
         var schemaName = ProcessConfiguration.getConfiguration().getCollectionName(host);
 
         try (var conn = dataSource.getConnection()) {
-            return TableUtil.createTableIfNotExists(conn, schemaName, partitionName);
+            var result = TableUtil.createTableIfNotExists(conn, schemaName, partitionName);
+            // java-cosmos returns without creating the table when another object already uses the name in pg_type,
+            // so a missing table must fail instead of being recorded as initialized.
+            CheckUtil.check(TableUtil.tableExist(conn, schemaName, partitionName),
+                    "Table was not created: %s.%s; an object with the same name may already exist"
+                            .formatted(schemaName, partitionName));
+            return result;
         }
     }
 
@@ -95,6 +101,12 @@ public class PostgresSchemaDAO implements DBSchemaInitializer {
     static String _enableTTLJob(String host, String partitionName, String cronExpression) throws Exception {
         var db = (PostgresDatabaseImpl) ProcessConfiguration.getConfiguration().getDatabase(host);
         var schemaName = ProcessConfiguration.getConfiguration().getCollectionName(host);
+        // Schedule the TTL job only for an existing table; the job state itself is not verified because
+        // other components (e.g. onehr-core's TTL master job migration) may replace per-table jobs.
+        try (var conn = getDataSource(host).getConnection()) {
+            CheckUtil.check(TableUtil.tableExist(conn, schemaName, partitionName),
+                    "TTL table is missing: " + schemaName + "." + partitionName);
+        }
         return db.enableTTL(schemaName, partitionName, cronExpression);
     }
 
