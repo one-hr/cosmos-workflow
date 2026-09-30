@@ -76,7 +76,7 @@ configuration.registerDB(host, db, collectionName);
 
 对于 Postgres，框架会在首次访问时自动创建工作流相关表和索引。
 
-如果启动期或容器初始化阶段已经处理注册，只需要在那里调用一次 `registerDB(...)` 并复用同一个 `host`。
+在启动期或容器初始化阶段注册并复用同一个 `host`；目标数据库或 collection 变化时，重新注册完整的 DB/collection。
 
 默认数据库自动注册使用以下环境变量：
 
@@ -137,7 +137,7 @@ public class WorkflowTenantRegistrar {
 }
 ```
 
-只有 `registerDB(...)` 是 `host` 级配置。其他 `register*` 方法以及 `setPartitionSuffix(...)` 都写入单例 `ProcessConfiguration`，应在应用启动时统一设置一次，不要随着 `host` 切换。
+DB 注册按 `host` 保存，缓存失效和补表也针对指定 `host`。扩展注册方法以及 `setPartitionSuffix(...)` 都写入单例 `ProcessConfiguration`，应在应用启动时统一设置一次，不要随着 `host` 切换。
 
 ### 3. 创建工作流
 
@@ -270,6 +270,16 @@ instance = result.instance;
 - `backMode`、`backNodeId`: `BACK` 的附加参数
 
 ## 运行说明
+
+已注册的数据库或 collection 同名重建后，可按同一个 `host` 重新核查三个内置 Service：
+
+```java
+var configuration = ProcessConfiguration.getConfiguration();
+configuration.invalidateSchemaCache(host); // In-memory only; the next access retries initialization.
+List<String> partitions = configuration.ensureTables(host); // Synchronous; throws on failure.
+```
+
+`ensureTables` 返回全部六个主表／回收表的逻辑 partition 名称，包含已存在的对象。原有 `registerDB(...)` 与首次访问懒初始化继续可用。同时依赖 `onehr-core` 的制品，可在制品内注册其 `TableSchemaInitializer` 和 `EnvironmentCacheInvalidator` 适配。
 
 - `ProcessDesign` 和 `ProcessEngine` 只构建一次，放到项目级公共 service 里
 - 在容器初始化、租户初始化或应用启动阶段，把数据库注册和扩展点注册放在一起做

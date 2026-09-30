@@ -1,10 +1,14 @@
 package jp.co.onehr.workflow;
 
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.common.collect.Maps;
 import io.github.thunderz99.cosmos.CosmosDatabase;
@@ -20,9 +24,17 @@ import jp.co.onehr.workflow.contract.restriction.ActionRestriction;
 import jp.co.onehr.workflow.contract.restriction.AdminActionRestriction;
 import jp.co.onehr.workflow.contract.restriction.ApplicantActionPermissionProvider;
 import jp.co.onehr.workflow.contract.validation.Validations;
-import jp.co.onehr.workflow.dto.*;
+import jp.co.onehr.workflow.dto.ActionResult;
+import jp.co.onehr.workflow.dto.ApprovalStatus;
+import jp.co.onehr.workflow.dto.Definition;
+import jp.co.onehr.workflow.dto.Instance;
+import jp.co.onehr.workflow.dto.OperateLog;
 import jp.co.onehr.workflow.dto.param.ApplicantActionContext;
 import jp.co.onehr.workflow.dto.param.ContextParam;
+import jp.co.onehr.workflow.service.DefinitionService;
+import jp.co.onehr.workflow.service.InstanceService;
+import jp.co.onehr.workflow.service.WorkflowService;
+import jp.co.onehr.workflow.service.base.BaseNoSqlService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,12 +53,12 @@ public class ProcessConfiguration {
     /**
      * host -> database
      */
-    private Map<String, CosmosDatabase> dbCache = Maps.newHashMap();
+    private final Map<String, CosmosDatabase> dbCache = new ConcurrentHashMap<>();
 
     /**
      * host -> collectionName
      */
-    private Map<String, String> collectionCache = Maps.newHashMap();
+    private final Map<String, String> collectionCache = new ConcurrentHashMap<>();
 
     /**
      * Custom suffix for partition
@@ -120,17 +132,82 @@ public class ProcessConfiguration {
 
     // === Configuration and registration for Cosmos DB ===
 
-    public void registerDB(String host, CosmosDatabase db, String collectionName) {
-        dbCache.put(host, db);
-        collectionCache.put(host, collectionName);
+    /**
+     * Registers the database and collection of a host.
+     *
+     * <p>Re-registering the same account, database name and collection keeps the current registration and its
+     * schema initialization state. A different target replaces the registration and makes the next access
+     * initialize the schema again.</p>
+     *
+     * <p>The database, the collection and the schema state are published separately, and CRUD methods read the
+     * database and the collection separately. A request running during a switch may therefore use the old target,
+     * a mix of the old and new database and collection, or the new target before the schema state is invalidated.
+     * The last case skips the initialization and usually fails on a missing table or container; a backend that
+     * creates collections on write, such as MongoDB, may write to the new target instead. Such requests do not
+     * record a schema state, and later requests initialize the new target. Callers should stop in-flight writes of
+     * the host while switching.</p>
+     */
+    public synchronized void registerDB(String host, CosmosDatabase db, String collectionName) {
+        var currentDb = dbCache.get(host);
+        boolean sameDatabase;
+        if (currentDb == null || db == null) {
+            sameDatabase = currentDb == db;
+        } else {
+            // Callers may create a new wrapper for the same account on every registration,
+            // so the account and database name are compared instead of the wrapper object.
+            sameDatabase = currentDb.getCosmosAccount() == db.getCosmosAccount()
+                    && Objects.equals(currentDb.getDatabaseName(), db.getDatabaseName());
+        }
+        if (sameDatabase && Objects.equals(collectionCache.get(host), collectionName)) {
+            return;
+        }
+        // compute() removes the entry when the value is null; ConcurrentHashMap does not accept null values.
+        dbCache.compute(host, (key, current) -> db);
+        collectionCache.compute(host, (key, current) -> collectionName);
+        // Publish the new target before dropping the old state, so a later initialization uses the new target.
+        // The two steps are not atomic for readers; see the Javadoc above.
+        BaseNoSqlService.invalidateSchemaCaches(host);
     }
 
     public CosmosDatabase getDatabase(String host) {
-        return dbCache.get(host);
+        return host == null ? null : dbCache.get(host);
     }
 
     public String getCollectionName(String host) {
-        return collectionCache.get(host);
+        return host == null ? null : collectionCache.get(host);
+    }
+
+    /**
+     * Invalidates only this process's schema initialization state for the host and keeps its registration.
+     * Performs no database or network I/O and does not wait for an initialization in progress; such an
+     * initialization records its result only in the discarded state. Call after a same-name database rebuild;
+     * a database switch must also call {@link #registerDB(String, CosmosDatabase, String)}.
+     */
+    public void invalidateSchemaCache(String host) {
+        if (host != null) {
+            BaseNoSqlService.invalidateSchemaCaches(host);
+        }
+    }
+
+    /**
+     * Synchronously checks all built-in workflow partitions, bypassing successful schema caches.
+     * Configure the partition suffix before the services are first used.
+     *
+     * @param host registered tenant identifier
+     * @return the six logical partition names, including existing partitions; on Cosmos DB
+     *         these describe the no-op schema path, not newly created physical containers
+     * @throws Exception if registration or any table, index or TTL initialization fails;
+     *                   no partial result is returned and later calls may retry. On PostgreSQL a table
+     *                   that is still missing after creation, e.g. because another object uses its name,
+     *                   also fails here. TTL cron jobs are scheduled when absent but their current state
+     *                   is not verified.
+     */
+    public List<String> ensureTables(String host) throws Exception {
+        var tables = new ArrayList<String>();
+        tables.addAll(WorkflowService.singleton.ensureTables(host));
+        tables.addAll(DefinitionService.singleton.ensureTables(host));
+        tables.addAll(InstanceService.singleton.ensureTables(host));
+        return List.copyOf(tables);
     }
 
     public void setPartitionSuffix(String partitionSuffix) {

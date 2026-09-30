@@ -74,7 +74,7 @@ configuration.registerDB(host, db, collectionName);
 
 With Postgres, the library creates workflow-related tables and indexes on first access.
 
-If startup or container initialization already handles registration, call `registerDB(...)` there once and reuse the same `host`.
+Register during startup or container initialization and reuse the same `host`. Register the new DB/collection pair again whenever that target changes.
 
 Default DB registration via environment variables:
 
@@ -135,7 +135,7 @@ public class WorkflowTenantRegistrar {
 }
 ```
 
-Only `registerDB(...)` is host-scoped. The other `register*` methods and `setPartitionSuffix(...)` write to the singleton `ProcessConfiguration`, so treat them as process-wide startup configuration and set them once before handling workflow requests.
+Database registration is stored per host; schema invalidation and verification also target a specific host. The extension `register*` methods and `setPartitionSuffix(...)` write to the singleton `ProcessConfiguration`, so treat them as process-wide startup configuration and set them once before handling workflow requests.
 
 ### 3. Create a workflow
 
@@ -268,6 +268,16 @@ Related fields in `ActionExtendParam`:
 - `backMode`, `backNodeId`: additional input for `BACK`
 
 ## Operational notes
+
+To recheck the three built-in services after recreating a registered database or collection, use the same `host`:
+
+```java
+var configuration = ProcessConfiguration.getConfiguration();
+configuration.invalidateSchemaCache(host); // In-memory only; the next access retries initialization.
+List<String> partitions = configuration.ensureTables(host); // Synchronous; throws on failure.
+```
+
+`ensureTables` returns all six logical main/recycle partition names, including existing ones. Existing `registerDB(...)` and lazy initialization remain supported. Applications that use `onehr-core` can register adapters for its `TableSchemaInitializer` and `EnvironmentCacheInvalidator` in the application.
 
 - build `ProcessDesign` and `ProcessEngine` once and keep them behind a project-level service
 - register database and extension hooks together during container or tenant initialization

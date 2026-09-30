@@ -1,9 +1,9 @@
 package jp.co.onehr.workflow.service.infra;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import jp.co.onehr.workflow.dao.infra.DBSchemaDAOBuilder;
 import jp.co.onehr.workflow.dao.infra.DBSchemaInitializer;
@@ -30,7 +30,7 @@ public class DBSchemaService {
 
     public static DBSchemaService singleton = new DBSchemaService();
 
-    Map<String, DBSchemaInitializer> schemaDAOMap = new HashMap<>();
+    Map<String, DBSchemaInitializer> schemaDAOMap = new ConcurrentHashMap<>();
 
     DBSchemaService() {
     }
